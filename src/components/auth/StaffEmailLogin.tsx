@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff } from "lucide-react";
 
 const loginSchema = z.object({
@@ -21,51 +20,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export function StaffEmailLogin() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [loginAttempted, setLoginAttempted] = useState(false);
   const navigate = useNavigate();
-  const { user, userType, loading: authLoading } = useAuth();
-
-  // Navigate once auth state resolves after login
-  useEffect(() => {
-    console.log("[Login] Effect check:", { loginAttempted, authLoading, user: !!user, userType });
-    
-    if (loginAttempted && !authLoading) {
-      if (user && userType === "staff") {
-        console.log("[Login] Navigating to dashboard");
-        navigate("/staff/dashboard");
-      } else if (user && userType === "vendor") {
-        console.log("[Login] Vendor trying staff login");
-        toast.error("This login is for staff only. Use vendor login.");
-        supabase.auth.signOut();
-        setLoginAttempted(false);
-        setLoading(false);
-      } else if (user && userType === null) {
-        console.log("[Login] User has no profile");
-        toast.error("Account not configured. Contact administrator.");
-        setLoginAttempted(false);
-        setLoading(false);
-      } else if (!user) {
-        // Auth completed but no user - something went wrong
-        console.log("[Login] Auth completed but no user");
-        setLoginAttempted(false);
-        setLoading(false);
-      }
-    }
-  }, [loginAttempted, authLoading, user, userType, navigate]);
-
-  // Timeout fallback to prevent infinite loading
-  useEffect(() => {
-    if (loginAttempted && loading) {
-      const timeout = setTimeout(() => {
-        console.log("[Login] Timeout - resetting loading state");
-        setLoading(false);
-        setLoginAttempted(false);
-        toast.error("Login timed out. Please try again.");
-      }, 10000); // 10 second timeout
-      
-      return () => clearTimeout(timeout);
-    }
-  }, [loginAttempted, loading]);
 
   const {
     register,
@@ -76,7 +31,6 @@ export function StaffEmailLogin() {
   });
 
   const onSubmit = async (data: LoginFormData) => {
-    console.log("[Login] Submitting login for:", data.email);
     setLoading(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -86,12 +40,11 @@ export function StaffEmailLogin() {
 
       if (error) throw error;
 
-      console.log("[Login] Auth successful, waiting for userType...");
       toast.success("Login successful!");
-      setLoginAttempted(true);
+      navigate("/staff/dashboard");
     } catch (error: any) {
-      console.error("[Login] Auth error:", error);
       toast.error(error.message || "Login failed");
+    } finally {
       setLoading(false);
     }
   };
