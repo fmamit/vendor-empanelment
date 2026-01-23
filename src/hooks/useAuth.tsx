@@ -20,118 +20,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userType, setUserType] = useState<UserType>(null);
   const [loading, setLoading] = useState(true);
 
-  const determineUserType = async (userId: string): Promise<UserType> => {
-    console.log("[Auth] ==== DETERMINING USER TYPE ====");
-    console.log("[Auth] User ID:", userId);
-    
-    try {
-      // Check if user is internal staff
-      console.log("[Auth] Querying profiles table...");
-      const profileStartTime = Date.now();
-      
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("user_id", userId)
-        .maybeSingle();
-
-      console.log("[Auth] Profile query took:", Date.now() - profileStartTime, "ms");
-      console.log("[Auth] Profile query result:", { profile, profileError });
-
-      if (profileError) {
-        console.error("[Auth] Profile query error:", profileError);
-      }
-
-      if (profile) {
-        console.log("[Auth] Setting userType to 'staff'");
-        return "staff";
-      }
-
-      // Check if user is vendor user
-      const { data: vendorUser, error: vendorError } = await supabase
-        .from("vendor_users")
-        .select("id")
-        .eq("user_id", userId)
-        .maybeSingle();
-
-      console.log("[Auth] Vendor query result:", { vendorUser, vendorError });
-
-      if (vendorError) {
-        console.error("[Auth] Vendor query error:", vendorError);
-      }
-
-      if (vendorUser) {
-        console.log("[Auth] Setting userType to 'vendor'");
-        return "vendor";
-      }
-
-      console.log("[Auth] No profile or vendor found, userType = null");
-      return null;
-    } catch (error) {
-      console.error("[Auth] determineUserType failed:", error);
-      return null;
-    }
-  };
-
   useEffect(() => {
-    let isMounted = true;
-    console.log("[Auth] Initializing auth state...");
-
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log("[Auth] onAuthStateChange:", event, session?.user?.id);
-        
-        if (!isMounted) return;
-        
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          const type = await determineUserType(session.user.id);
-          if (isMounted) {
-            setUserType(type);
-            console.log("[Auth] userType set to:", type);
-          }
-        } else {
-          setUserType(null);
-        }
-        
-        if (isMounted) {
-          setLoading(false);
-          console.log("[Auth] Loading set to false (onAuthStateChange)");
-        }
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      console.log("[Auth] getSession result:", session?.user?.id);
-      
-      if (!isMounted) return;
-      
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        const type = await determineUserType(session.user.id);
-        if (isMounted) {
-          setUserType(type);
-          console.log("[Auth] userType set to:", type);
-        }
-      }
-      
-      if (isMounted) {
-        setLoading(false);
-        console.log("[Auth] Loading set to false (getSession)");
-      }
+      setLoading(false);
     });
 
-    return () => {
-      isMounted = false;
-      subscription.unsubscribe();
-    };
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  // Determine user type when user changes
+  useEffect(() => {
+    if (!user) {
+      setUserType(null);
+      return;
+    }
+
+    const checkUserType = async () => {
+      // Check staff first
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (profile) {
+        setUserType("staff");
+        return;
+      }
+
+      // Check vendor
+      const { data: vendorUser } = await supabase
+        .from("vendor_users")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (vendorUser) {
+        setUserType("vendor");
+        return;
+      }
+
+      setUserType(null);
+    };
+
+    checkUserType();
+  }, [user]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
