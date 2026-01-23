@@ -14,12 +14,14 @@ import InstallApp from "./pages/InstallApp";
 import VendorLogin from "./pages/vendor/VendorLogin";
 import VendorDashboard from "./pages/vendor/VendorDashboard";
 import VendorRegistration from "./pages/vendor/VendorRegistration";
+import VendorDocuments from "./pages/vendor/VendorDocuments";
 
 // Staff Pages
 import StaffLogin from "./pages/staff/StaffLogin";
 import StaffDashboard from "./pages/staff/StaffDashboard";
 import StaffReviewQueue from "./pages/staff/StaffReviewQueue";
 import VendorReviewDetail from "./pages/staff/VendorReviewDetail";
+import FraudAlertsDashboard from "./pages/staff/FraudAlertsDashboard";
 
 // Admin Pages
 import AdminUserManagement from "./pages/admin/AdminUserManagement";
@@ -43,6 +45,14 @@ const App = () => (
             <Route path="/vendor/login" element={<VendorLogin />} />
             <Route path="/vendor/dashboard" element={<VendorDashboard />} />
             <Route path="/vendor/register" element={<VendorRegistration />} />
+            <Route path="/vendor/documents" element={<VendorDocuments />} />
+            
+            {/* Staff Routes */}
+            <Route path="/staff/login" element={<StaffLogin />} />
+            <Route path="/staff/dashboard" element={<StaffDashboard />} />
+            <Route path="/staff/queue" element={<StaffReviewQueue />} />
+            <Route path="/staff/vendor/:vendorId" element={<VendorReviewDetail />} />
+            <Route path="/staff/fraud-alerts" element={<FraudAlertsDashboard />} />
             
             {/* Staff Routes */}
             <Route path="/staff/login" element={<StaffLogin />} />

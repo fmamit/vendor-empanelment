@@ -19,7 +19,8 @@ import {
   AlertTriangle,
   Building2,
   ChevronRight,
-  Loader2
+  Loader2,
+  ShieldAlert
 } from "lucide-react";
 
 export default function StaffDashboard() {
@@ -140,6 +141,27 @@ export default function StaffDashboard() {
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Fraud Alerts */}
+        <Card className="border-warning/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <ShieldAlert className="h-4 w-4 text-warning" />
+              Fraud Alerts
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Button variant="outline" className="w-full justify-start h-14" onClick={() => navigate("/staff/fraud-alerts")}>
+              <AlertTriangle className="h-5 w-5 mr-3 text-warning" />
+              <div className="flex-1 text-left">
+                <p className="font-medium">View Fraud Alerts</p>
+                <p className="text-xs text-muted-foreground">Monitor security & duplicates</p>
+              </div>
+              <Badge variant="destructive">3</Badge>
+              <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
           </CardContent>
         </Card>
 
