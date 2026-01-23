@@ -45,6 +45,10 @@ export interface VendorDocument {
   reviewed_by: string | null;
   reviewed_at: string | null;
   review_comments: string | null;
+  created_at: string;
+  document_types?: {
+    name: string;
+  };
 }
 
 export function useVendorProfile() {
@@ -87,7 +91,7 @@ export function useVendorDocuments(vendorId: string | null) {
 
       const { data, error } = await supabase
         .from("vendor_documents")
-        .select("*")
+        .select("*, document_types(name)")
         .eq("vendor_id", vendorId)
         .order("created_at", { ascending: false });
 
