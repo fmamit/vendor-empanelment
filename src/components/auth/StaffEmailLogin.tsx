@@ -27,8 +27,24 @@ export function StaffEmailLogin() {
 
   // Navigate once auth state resolves after login
   useEffect(() => {
-    if (loginAttempted && !authLoading && user && userType === "staff") {
-      navigate("/staff/dashboard");
+    console.log("[Login] Effect check:", { loginAttempted, authLoading, user: !!user, userType });
+    
+    if (loginAttempted && !authLoading) {
+      if (user && userType === "staff") {
+        console.log("[Login] Navigating to dashboard");
+        navigate("/staff/dashboard");
+      } else if (user && userType === "vendor") {
+        console.log("[Login] Vendor trying staff login");
+        toast.error("This login is for staff only. Use vendor login.");
+        supabase.auth.signOut();
+        setLoginAttempted(false);
+        setLoading(false);
+      } else if (user && userType === null) {
+        console.log("[Login] User has no profile");
+        toast.error("Account not configured. Contact administrator.");
+        setLoginAttempted(false);
+        setLoading(false);
+      }
     }
   }, [loginAttempted, authLoading, user, userType, navigate]);
 
@@ -41,6 +57,7 @@ export function StaffEmailLogin() {
   });
 
   const onSubmit = async (data: LoginFormData) => {
+    console.log("[Login] Submitting login for:", data.email);
     setLoading(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -50,9 +67,11 @@ export function StaffEmailLogin() {
 
       if (error) throw error;
 
+      console.log("[Login] Auth successful, waiting for userType...");
       toast.success("Login successful!");
       setLoginAttempted(true);
     } catch (error: any) {
+      console.error("[Login] Auth error:", error);
       toast.error(error.message || "Login failed");
       setLoading(false);
     }
