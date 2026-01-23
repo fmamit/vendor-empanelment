@@ -44,9 +44,28 @@ export function StaffEmailLogin() {
         toast.error("Account not configured. Contact administrator.");
         setLoginAttempted(false);
         setLoading(false);
+      } else if (!user) {
+        // Auth completed but no user - something went wrong
+        console.log("[Login] Auth completed but no user");
+        setLoginAttempted(false);
+        setLoading(false);
       }
     }
   }, [loginAttempted, authLoading, user, userType, navigate]);
+
+  // Timeout fallback to prevent infinite loading
+  useEffect(() => {
+    if (loginAttempted && loading) {
+      const timeout = setTimeout(() => {
+        console.log("[Login] Timeout - resetting loading state");
+        setLoading(false);
+        setLoginAttempted(false);
+        toast.error("Login timed out. Please try again.");
+      }, 10000); // 10 second timeout
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [loginAttempted, loading]);
 
   const {
     register,

@@ -21,16 +21,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const determineUserType = async (userId: string): Promise<UserType> => {
-    console.log("[Auth] Determining user type for:", userId);
+    console.log("[Auth] ==== DETERMINING USER TYPE ====");
+    console.log("[Auth] User ID:", userId);
     
     try {
       // Check if user is internal staff
+      console.log("[Auth] Querying profiles table...");
+      const profileStartTime = Date.now();
+      
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("id")
         .eq("user_id", userId)
         .maybeSingle();
 
+      console.log("[Auth] Profile query took:", Date.now() - profileStartTime, "ms");
       console.log("[Auth] Profile query result:", { profile, profileError });
 
       if (profileError) {
