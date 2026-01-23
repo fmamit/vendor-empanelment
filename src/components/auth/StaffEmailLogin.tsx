@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff } from "lucide-react";
 
 const loginSchema = z.object({
@@ -20,7 +21,16 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export function StaffEmailLogin() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [loginAttempted, setLoginAttempted] = useState(false);
   const navigate = useNavigate();
+  const { user, userType, loading: authLoading } = useAuth();
+
+  // Navigate once auth state resolves after login
+  useEffect(() => {
+    if (loginAttempted && !authLoading && user && userType === "staff") {
+      navigate("/staff/dashboard");
+    }
+  }, [loginAttempted, authLoading, user, userType, navigate]);
 
   const {
     register,
@@ -41,10 +51,9 @@ export function StaffEmailLogin() {
       if (error) throw error;
 
       toast.success("Login successful!");
-      navigate("/staff/dashboard");
+      setLoginAttempted(true);
     } catch (error: any) {
       toast.error(error.message || "Login failed");
-    } finally {
       setLoading(false);
     }
   };
