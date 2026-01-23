@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { MobileLayout } from "@/components/layout/MobileLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRoles } from "@/hooks/useUserRoles";
+import { useStaffVendorQueue } from "@/hooks/useStaffWorkflow";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,12 +16,16 @@ import {
   Users,
   TrendingUp,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  Building2,
+  ChevronRight,
+  Loader2
 } from "lucide-react";
 
 export default function StaffDashboard() {
   const { user, userType, loading, signOut } = useAuth();
   const { roles, isAdmin, isMaker, isChecker, isApprover, isLoading: rolesLoading } = useUserRoles();
+  const { data: vendors, isLoading: vendorsLoading } = useStaffVendorQueue();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -33,7 +38,7 @@ export default function StaffDashboard() {
     return (
       <MobileLayout title="Dashboard">
         <div className="flex-1 flex items-center justify-center">
-          <div className="animate-pulse text-muted-foreground">Loading...</div>
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </MobileLayout>
     );
@@ -44,9 +49,16 @@ export default function StaffDashboard() {
     navigate("/");
   };
 
+  // Calculate stats
+  const pendingReview = vendors?.filter(v => v.current_status === "pending_review").length || 0;
+  const inVerification = vendors?.filter(v => v.current_status === "in_verification").length || 0;
+  const pendingApproval = vendors?.filter(v => v.current_status === "pending_approval").length || 0;
+  const totalActive = pendingReview + inVerification + pendingApproval;
+  const approved = vendors?.filter(v => v.current_status === "approved").length || 0;
+
   return (
     <MobileLayout title="Staff Dashboard">
-      <div className="flex-1 p-4 space-y-4">
+      <div className="flex-1 p-4 space-y-4 overflow-auto">
         {/* Welcome & Roles */}
         <Card className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground">
           <CardContent className="p-4">
@@ -67,22 +79,22 @@ export default function StaffDashboard() {
           <Card>
             <CardContent className="p-3 text-center">
               <Clock className="h-6 w-6 text-warning mx-auto mb-1" />
-              <p className="text-xl font-bold">12</p>
-              <p className="text-xs text-muted-foreground">Pending</p>
+              <p className="text-xl font-bold">{totalActive}</p>
+              <p className="text-xs text-muted-foreground">Active</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-3 text-center">
               <TrendingUp className="h-6 w-6 text-success mx-auto mb-1" />
-              <p className="text-xl font-bold">8</p>
-              <p className="text-xs text-muted-foreground">This Week</p>
+              <p className="text-xl font-bold">{approved}</p>
+              <p className="text-xs text-muted-foreground">Approved</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-3 text-center">
-              <AlertTriangle className="h-6 w-6 text-destructive mx-auto mb-1" />
-              <p className="text-xl font-bold">3</p>
-              <p className="text-xs text-muted-foreground">Overdue</p>
+              <Building2 className="h-6 w-6 text-primary mx-auto mb-1" />
+              <p className="text-xl font-bold">{vendors?.length || 0}</p>
+              <p className="text-xs text-muted-foreground">Total</p>
             </CardContent>
           </Card>
         </div>
@@ -93,60 +105,71 @@ export default function StaffDashboard() {
             <CardTitle className="text-base">My Workqueue</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {isMaker && (
-              <Button variant="outline" className="w-full justify-start h-14" onClick={() => navigate("/staff/review")}>
-                <FileSearch className="h-5 w-5 mr-3 text-primary" />
+            {(isMaker || isAdmin) && (
+              <Button variant="outline" className="w-full justify-start h-14" onClick={() => navigate("/staff/queue")}>
+                <FileSearch className="h-5 w-5 mr-3 text-warning" />
                 <div className="flex-1 text-left">
                   <p className="font-medium">Pending Review</p>
-                  <p className="text-xs text-muted-foreground">5 vendors awaiting initial review</p>
+                  <p className="text-xs text-muted-foreground">Initial document verification</p>
                 </div>
-                <Badge>5</Badge>
+                <Badge variant="secondary">{pendingReview}</Badge>
+                <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
             )}
             
-            {isChecker && (
-              <Button variant="outline" className="w-full justify-start h-14" onClick={() => navigate("/staff/verify")}>
-                <CheckSquare className="h-5 w-5 mr-3 text-accent" />
+            {(isChecker || isAdmin) && (
+              <Button variant="outline" className="w-full justify-start h-14" onClick={() => navigate("/staff/queue")}>
+                <CheckSquare className="h-5 w-5 mr-3 text-primary" />
                 <div className="flex-1 text-left">
-                  <p className="font-medium">Verification Queue</p>
-                  <p className="text-xs text-muted-foreground">4 vendors in verification</p>
+                  <p className="font-medium">In Verification</p>
+                  <p className="text-xs text-muted-foreground">Detailed verification check</p>
                 </div>
-                <Badge variant="secondary">4</Badge>
+                <Badge variant="secondary">{inVerification}</Badge>
+                <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
             )}
             
-            {isApprover && (
-              <Button variant="outline" className="w-full justify-start h-14" onClick={() => navigate("/staff/approve")}>
+            {(isApprover || isAdmin) && (
+              <Button variant="outline" className="w-full justify-start h-14" onClick={() => navigate("/staff/queue")}>
                 <ThumbsUp className="h-5 w-5 mr-3 text-success" />
                 <div className="flex-1 text-left">
                   <p className="font-medium">Pending Approval</p>
-                  <p className="text-xs text-muted-foreground">3 vendors ready for approval</p>
+                  <p className="text-xs text-muted-foreground">Final approval stage</p>
                 </div>
-                <Badge variant="outline">3</Badge>
+                <Badge variant="secondary">{pendingApproval}</Badge>
+                <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
-            )}
-            
-            {isAdmin && (
-              <>
-                <Button variant="outline" className="w-full justify-start h-14" onClick={() => navigate("/admin/users")}>
-                  <Users className="h-5 w-5 mr-3" />
-                  <div className="flex-1 text-left">
-                    <p className="font-medium">User Management</p>
-                    <p className="text-xs text-muted-foreground">Manage staff and roles</p>
-                  </div>
-                </Button>
-                
-                <Button variant="outline" className="w-full justify-start h-14" onClick={() => navigate("/admin/settings")}>
-                  <Settings className="h-5 w-5 mr-3" />
-                  <div className="flex-1 text-left">
-                    <p className="font-medium">System Settings</p>
-                    <p className="text-xs text-muted-foreground">Categories, documents, config</p>
-                  </div>
-                </Button>
-              </>
             )}
           </CardContent>
         </Card>
+
+        {/* Admin Actions */}
+        {isAdmin && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Administration</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button variant="outline" className="w-full justify-start h-14" onClick={() => navigate("/admin/users")}>
+                <Users className="h-5 w-5 mr-3" />
+                <div className="flex-1 text-left">
+                  <p className="font-medium">User Management</p>
+                  <p className="text-xs text-muted-foreground">Manage staff and assign roles</p>
+                </div>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              
+              <Button variant="outline" className="w-full justify-start h-14" onClick={() => navigate("/admin/settings")}>
+                <Settings className="h-5 w-5 mr-3" />
+                <div className="flex-1 text-left">
+                  <p className="font-medium">System Settings</p>
+                  <p className="text-xs text-muted-foreground">Categories, documents, configuration</p>
+                </div>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Sign Out */}
         <Button 

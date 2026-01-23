@@ -13,10 +13,17 @@ import InstallApp from "./pages/InstallApp";
 // Vendor Pages
 import VendorLogin from "./pages/vendor/VendorLogin";
 import VendorDashboard from "./pages/vendor/VendorDashboard";
+import VendorRegistration from "./pages/vendor/VendorRegistration";
 
 // Staff Pages
 import StaffLogin from "./pages/staff/StaffLogin";
 import StaffDashboard from "./pages/staff/StaffDashboard";
+import StaffReviewQueue from "./pages/staff/StaffReviewQueue";
+import VendorReviewDetail from "./pages/staff/VendorReviewDetail";
+
+// Admin Pages
+import AdminUserManagement from "./pages/admin/AdminUserManagement";
+import AdminSettings from "./pages/admin/AdminSettings";
 
 const queryClient = new QueryClient();
 
@@ -35,10 +42,17 @@ const App = () => (
             {/* Vendor Routes */}
             <Route path="/vendor/login" element={<VendorLogin />} />
             <Route path="/vendor/dashboard" element={<VendorDashboard />} />
+            <Route path="/vendor/register" element={<VendorRegistration />} />
             
             {/* Staff Routes */}
             <Route path="/staff/login" element={<StaffLogin />} />
             <Route path="/staff/dashboard" element={<StaffDashboard />} />
+            <Route path="/staff/queue" element={<StaffReviewQueue />} />
+            <Route path="/staff/vendor/:vendorId" element={<VendorReviewDetail />} />
+            
+            {/* Admin Routes */}
+            <Route path="/admin/users" element={<AdminUserManagement />} />
+            <Route path="/admin/settings" element={<AdminSettings />} />
             
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
