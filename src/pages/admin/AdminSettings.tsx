@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { MobileLayout } from "@/components/layout/MobileLayout";
+import { StaffLayout } from "@/components/layout/StaffLayout";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -13,18 +12,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { 
-  Settings, 
   Building2, 
   FileText,
   Plus,
   Edit,
   Trash2,
-  Loader2,
-  ArrowLeft
+  Loader2
 } from "lucide-react";
 
 export default function AdminSettings() {
-  const navigate = useNavigate();
   const { isAdmin } = useUserRoles();
   const queryClient = useQueryClient();
 
@@ -154,19 +150,19 @@ export default function AdminSettings() {
 
   if (!isAdmin) {
     return (
-      <MobileLayout title="Access Denied">
+      <StaffLayout title="Access Denied">
         <div className="flex-1 flex items-center justify-center p-4">
           <p className="text-muted-foreground">Admin access required</p>
         </div>
-      </MobileLayout>
+      </StaffLayout>
     );
   }
 
   return (
-    <MobileLayout title="System Settings">
+    <StaffLayout title="System Settings">
       <div className="flex-1 flex flex-col">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-          <TabsList className="w-full justify-start px-4 h-auto py-2 bg-card border-b rounded-none">
+          <TabsList className="w-full justify-start px-6 h-auto py-3 bg-card border-b rounded-none">
             <TabsTrigger value="categories" className="flex items-center gap-2">
               <Building2 className="h-4 w-4" />
               Categories
@@ -179,91 +175,91 @@ export default function AdminSettings() {
 
           {/* Categories Tab */}
           <TabsContent value="categories" className="flex-1 flex flex-col mt-0">
-            <div className="p-4 border-b">
-              <Button className="w-full" onClick={() => setShowCategoryDialog(true)}>
+            <div className="p-6 border-b">
+              <Button onClick={() => setShowCategoryDialog(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Category
               </Button>
             </div>
 
-            <div className="flex-1 overflow-auto p-4 space-y-3">
+            <div className="flex-1 overflow-auto p-6 space-y-4">
               {categoriesLoading ? (
                 <div className="flex justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-              ) : categories?.map((cat) => (
-                <Card key={cat.id}>
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div className="flex-1">
-                      <p className="font-semibold">{cat.name}</p>
-                      <p className="text-sm text-muted-foreground">{cat.description}</p>
-                      {!cat.is_active && (
-                        <span className="text-xs text-destructive">Inactive</span>
-                      )}
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => openEditCategory(cat)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="text-destructive"
-                        onClick={() => deleteCategory.mutate(cat.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+              ) : (
+                <div className="grid gap-4">
+                  {categories?.map((cat) => (
+                    <Card key={cat.id}>
+                      <CardContent className="p-4 flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="font-semibold">{cat.name}</p>
+                          <p className="text-sm text-muted-foreground">{cat.description}</p>
+                          {!cat.is_active && (
+                            <span className="text-xs text-destructive">Inactive</span>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="ghost" size="icon" onClick={() => openEditCategory(cat)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="text-destructive"
+                            onClick={() => deleteCategory.mutate(cat.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </div>
           </TabsContent>
 
           {/* Document Types Tab */}
           <TabsContent value="documents" className="flex-1 flex flex-col mt-0">
-            <div className="p-4 border-b">
-              <Button className="w-full" onClick={() => setShowDocTypeDialog(true)}>
+            <div className="p-6 border-b">
+              <Button onClick={() => setShowDocTypeDialog(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Document Type
               </Button>
             </div>
 
-            <div className="flex-1 overflow-auto p-4 space-y-3">
+            <div className="flex-1 overflow-auto p-6 space-y-4">
               {docTypesLoading ? (
                 <div className="flex justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-              ) : docTypes?.map((doc) => (
-                <Card key={doc.id}>
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div className="flex-1">
-                      <p className="font-semibold">{doc.name}</p>
-                      <p className="text-sm text-muted-foreground">{doc.description}</p>
-                      <div className="flex gap-2 mt-1">
-                        {doc.has_expiry && (
-                          <span className="text-xs bg-warning/20 text-warning px-2 py-0.5 rounded">Has Expiry</span>
-                        )}
-                        <span className="text-xs bg-muted px-2 py-0.5 rounded">Max {doc.max_file_size_mb}MB</span>
-                      </div>
-                    </div>
-                    <Button variant="ghost" size="icon" onClick={() => openEditDocType(doc)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
+              ) : (
+                <div className="grid gap-4">
+                  {docTypes?.map((doc) => (
+                    <Card key={doc.id}>
+                      <CardContent className="p-4 flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="font-semibold">{doc.name}</p>
+                          <p className="text-sm text-muted-foreground">{doc.description}</p>
+                          <div className="flex gap-2 mt-1">
+                            {doc.has_expiry && (
+                              <span className="text-xs bg-warning/20 text-warning px-2 py-0.5 rounded">Has Expiry</span>
+                            )}
+                            <span className="text-xs bg-muted px-2 py-0.5 rounded">Max {doc.max_file_size_mb}MB</span>
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => openEditDocType(doc)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>
-
-        {/* Back Button */}
-        <div className="p-4 border-t">
-          <Button variant="outline" className="w-full" onClick={() => navigate("/staff/dashboard")}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Button>
-        </div>
       </div>
 
       {/* Category Dialog */}
@@ -378,6 +374,6 @@ export default function AdminSettings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </MobileLayout>
+    </StaffLayout>
   );
 }
