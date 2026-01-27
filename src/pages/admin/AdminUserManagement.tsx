@@ -1,12 +1,10 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { MobileLayout } from "@/components/layout/MobileLayout";
-import { useAuth } from "@/hooks/useAuth";
+import { StaffLayout } from "@/components/layout/StaffLayout";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -14,14 +12,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { 
-  Users, 
   Plus, 
   Search,
-  Edit,
-  Trash2,
   Shield,
-  Loader2,
-  ArrowLeft
+  Loader2
 } from "lucide-react";
 
 interface StaffUser {
@@ -43,8 +37,6 @@ const ROLE_OPTIONS = [
 ];
 
 export default function AdminUserManagement() {
-  const navigate = useNavigate();
-  const { user } = useAuth();
   const { isAdmin } = useUserRoles();
   const queryClient = useQueryClient();
 
@@ -205,36 +197,38 @@ export default function AdminUserManagement() {
 
   if (!isAdmin) {
     return (
-      <MobileLayout title="Access Denied">
+      <StaffLayout title="Access Denied">
         <div className="flex-1 flex items-center justify-center p-4">
           <p className="text-muted-foreground">Admin access required</p>
         </div>
-      </MobileLayout>
+      </StaffLayout>
     );
   }
 
   return (
-    <MobileLayout title="User Management">
+    <StaffLayout title="User Management">
       <div className="flex-1 flex flex-col">
         {/* Search & Add */}
-        <div className="p-4 border-b bg-card space-y-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search users..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
-            />
+        <div className="p-6 border-b bg-card space-y-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search users..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Button onClick={() => setShowAddDialog(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Staff User
+            </Button>
           </div>
-          <Button className="w-full" onClick={() => setShowAddDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Staff User
-          </Button>
         </div>
 
         {/* User List */}
-        <div className="flex-1 overflow-auto p-4 space-y-3">
+        <div className="flex-1 overflow-auto p-6 space-y-4">
           {isLoading ? (
             <div className="flex justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -242,44 +236,38 @@ export default function AdminUserManagement() {
           ) : filteredUsers?.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">No staff users found</p>
           ) : (
-            filteredUsers?.map((staffUser) => (
-              <Card key={staffUser.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <p className="font-semibold">{staffUser.full_name}</p>
-                      <p className="text-sm text-muted-foreground">{staffUser.email}</p>
-                      {staffUser.department && (
-                        <p className="text-xs text-muted-foreground">{staffUser.department}</p>
-                      )}
-                      <div className="flex gap-1 mt-2 flex-wrap">
-                        {staffUser.roles.map((role) => (
-                          <Badge key={role} variant="secondary" className="text-xs">
-                            {role}
-                          </Badge>
-                        ))}
+            <div className="grid gap-4">
+              {filteredUsers?.map((staffUser) => (
+                <Card key={staffUser.id}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="font-semibold">{staffUser.full_name}</p>
+                        <p className="text-sm text-muted-foreground">{staffUser.email}</p>
+                        {staffUser.department && (
+                          <p className="text-xs text-muted-foreground">{staffUser.department}</p>
+                        )}
+                        <div className="flex gap-1 mt-2 flex-wrap">
+                          {staffUser.roles.map((role) => (
+                            <Badge key={role} variant="secondary" className="text-xs">
+                              {role}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => setEditingUser(staffUser)}
+                      >
+                        <Shield className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      onClick={() => setEditingUser(staffUser)}
-                    >
-                      <Shield className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           )}
-        </div>
-
-        {/* Back Button */}
-        <div className="p-4 border-t">
-          <Button variant="outline" className="w-full" onClick={() => navigate("/staff/dashboard")}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Button>
         </div>
       </div>
 
@@ -428,6 +416,6 @@ export default function AdminUserManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </MobileLayout>
+    </StaffLayout>
   );
 }

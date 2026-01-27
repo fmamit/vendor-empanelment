@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { MobileLayout } from "@/components/layout/MobileLayout";
+import { StaffLayout } from "@/components/layout/StaffLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { 
@@ -65,21 +65,21 @@ export default function VendorReviewDetail() {
 
   if (vendorLoading || docsLoading) {
     return (
-      <MobileLayout title="Vendor Details">
+      <StaffLayout title="Vendor Details">
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      </MobileLayout>
+      </StaffLayout>
     );
   }
 
   if (!vendor) {
     return (
-      <MobileLayout title="Vendor Details">
+      <StaffLayout title="Vendor Details">
         <div className="flex-1 flex items-center justify-center p-4">
           <p className="text-muted-foreground">Vendor not found</p>
         </div>
-      </MobileLayout>
+      </StaffLayout>
     );
   }
 
@@ -147,17 +147,17 @@ export default function VendorReviewDetail() {
   };
 
   return (
-    <MobileLayout title="Review Vendor">
-      <div className="flex-1 overflow-auto p-4 space-y-4">
+    <StaffLayout title="Review Vendor">
+      <div className="flex-1 overflow-auto p-6 space-y-6">
         {/* Header */}
         <Card className="bg-primary text-primary-foreground">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center">
-                <Building2 className="h-6 w-6" />
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className="h-14 w-14 rounded-full bg-white/20 flex items-center justify-center">
+                <Building2 className="h-7 w-7" />
               </div>
               <div className="flex-1">
-                <p className="font-semibold text-lg">{vendor.company_name}</p>
+                <p className="font-semibold text-xl">{vendor.company_name}</p>
                 <p className="text-sm opacity-80">{vendor.vendor_code}</p>
               </div>
               <Badge className="bg-white/20">
@@ -167,73 +167,75 @@ export default function VendorReviewDetail() {
           </CardContent>
         </Card>
 
-        {/* Company Details */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Building2 className="h-4 w-4" />
-              Company Details
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            {vendor.trade_name && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Trade Name</span>
-                <span className="font-medium">{vendor.trade_name}</span>
-              </div>
-            )}
-            {vendor.gst_number && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">GST Number</span>
-                <span className="font-medium font-mono">{vendor.gst_number}</span>
-              </div>
-            )}
-            {vendor.pan_number && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">PAN Number</span>
-                <span className="font-medium font-mono">{vendor.pan_number}</span>
-              </div>
-            )}
-            {vendor.cin_number && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">CIN Number</span>
-                <span className="font-medium font-mono">{vendor.cin_number}</span>
-              </div>
-            )}
-            {vendor.registered_address && (
-              <div className="pt-2 border-t">
-                <p className="text-muted-foreground flex items-center gap-1 mb-1">
-                  <MapPin className="h-3 w-3" /> Registered Address
-                </p>
-                <p>{vendor.registered_address}</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Company Details */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                Company Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              {vendor.trade_name && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Trade Name</span>
+                  <span className="font-medium">{vendor.trade_name}</span>
+                </div>
+              )}
+              {vendor.gst_number && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">GST Number</span>
+                  <span className="font-medium font-mono">{vendor.gst_number}</span>
+                </div>
+              )}
+              {vendor.pan_number && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">PAN Number</span>
+                  <span className="font-medium font-mono">{vendor.pan_number}</span>
+                </div>
+              )}
+              {vendor.cin_number && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">CIN Number</span>
+                  <span className="font-medium font-mono">{vendor.cin_number}</span>
+                </div>
+              )}
+              {vendor.registered_address && (
+                <div className="pt-2 border-t">
+                  <p className="text-muted-foreground flex items-center gap-1 mb-1">
+                    <MapPin className="h-3 w-3" /> Registered Address
+                  </p>
+                  <p>{vendor.registered_address}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-        {/* Contact Details */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <User className="h-4 w-4" />
-              Primary Contact
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <span>{vendor.primary_contact_name}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4 text-muted-foreground" />
-              <span>{vendor.primary_mobile}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Mail className="h-4 w-4 text-muted-foreground" />
-              <span>{vendor.primary_email}</span>
-            </div>
-          </CardContent>
-        </Card>
+          {/* Contact Details */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Primary Contact
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span>{vendor.primary_contact_name}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-muted-foreground" />
+                <span>{vendor.primary_mobile}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-muted-foreground" />
+                <span>{vendor.primary_email}</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Banking Details */}
         {vendor.bank_name && (
@@ -245,30 +247,32 @@ export default function VendorReviewDetail() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Bank</span>
-                <span className="font-medium">{vendor.bank_name}</span>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Bank</span>
+                  <span className="font-medium">{vendor.bank_name}</span>
+                </div>
+                {vendor.bank_branch && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Branch</span>
+                    <span className="font-medium">{vendor.bank_branch}</span>
+                  </div>
+                )}
+                {vendor.bank_account_number && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Account No.</span>
+                    <span className="font-medium font-mono">
+                      {'•'.repeat(vendor.bank_account_number.length - 4)}{vendor.bank_account_number.slice(-4)}
+                    </span>
+                  </div>
+                )}
+                {vendor.bank_ifsc && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">IFSC</span>
+                    <span className="font-medium font-mono">{vendor.bank_ifsc}</span>
+                  </div>
+                )}
               </div>
-              {vendor.bank_branch && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Branch</span>
-                  <span className="font-medium">{vendor.bank_branch}</span>
-                </div>
-              )}
-              {vendor.bank_account_number && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Account No.</span>
-                  <span className="font-medium font-mono">
-                    {'•'.repeat(vendor.bank_account_number.length - 4)}{vendor.bank_account_number.slice(-4)}
-                  </span>
-                </div>
-              )}
-              {vendor.bank_ifsc && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">IFSC</span>
-                  <span className="font-medium font-mono">{vendor.bank_ifsc}</span>
-                </div>
-              )}
             </CardContent>
           </Card>
         )}
@@ -435,6 +439,6 @@ export default function VendorReviewDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </MobileLayout>
+    </StaffLayout>
   );
 }

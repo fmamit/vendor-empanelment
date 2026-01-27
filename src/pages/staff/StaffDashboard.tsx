@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { MobileLayout } from "@/components/layout/MobileLayout";
+import { StaffLayout } from "@/components/layout/StaffLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useStaffVendorQueue } from "@/hooks/useStaffWorkflow";
@@ -11,9 +11,6 @@ import {
   FileSearch, 
   CheckSquare, 
   ThumbsUp,
-  Settings,
-  LogOut,
-  Users,
   TrendingUp,
   Clock,
   AlertTriangle,
@@ -24,7 +21,7 @@ import {
 } from "lucide-react";
 
 export default function StaffDashboard() {
-  const { user, userType, loading, signOut } = useAuth();
+  const { user, userType, loading } = useAuth();
   const { roles, isAdmin, isMaker, isChecker, isApprover, isLoading: rolesLoading } = useUserRoles();
   const { data: vendors, isLoading: vendorsLoading } = useStaffVendorQueue();
   const navigate = useNavigate();
@@ -37,18 +34,13 @@ export default function StaffDashboard() {
 
   if (loading || rolesLoading) {
     return (
-      <MobileLayout title="Dashboard">
+      <StaffLayout title="Dashboard">
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      </MobileLayout>
+      </StaffLayout>
     );
   }
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/");
-  };
 
   // Calculate stats
   const pendingReview = vendors?.filter(v => v.current_status === "pending_review").length || 0;
@@ -58,14 +50,14 @@ export default function StaffDashboard() {
   const approved = vendors?.filter(v => v.current_status === "approved").length || 0;
 
   return (
-    <MobileLayout title="Staff Dashboard">
-      <div className="flex-1 p-4 space-y-4 overflow-auto">
+    <StaffLayout title="Dashboard">
+      <div className="flex-1 p-6 space-y-6 overflow-auto">
         {/* Welcome & Roles */}
         <Card className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground">
-          <CardContent className="p-4">
+          <CardContent className="p-6">
             <p className="text-sm opacity-80">Welcome back</p>
-            <p className="font-semibold text-lg">Capital India Staff</p>
-            <div className="flex gap-2 mt-2 flex-wrap">
+            <p className="font-semibold text-xl">Capital India Staff</p>
+            <div className="flex gap-2 mt-3 flex-wrap">
               {roles.map((role) => (
                 <Badge key={role} variant="secondary" className="bg-white/20 text-white border-0">
                   {role.charAt(0).toUpperCase() + role.slice(1)}
@@ -76,26 +68,33 @@ export default function StaffDashboard() {
         </Card>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
-            <CardContent className="p-3 text-center">
-              <Clock className="h-6 w-6 text-warning mx-auto mb-1" />
-              <p className="text-xl font-bold">{totalActive}</p>
-              <p className="text-xs text-muted-foreground">Active</p>
+            <CardContent className="p-4 text-center">
+              <Clock className="h-8 w-8 text-warning mx-auto mb-2" />
+              <p className="text-2xl font-bold">{totalActive}</p>
+              <p className="text-sm text-muted-foreground">Active</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-3 text-center">
-              <TrendingUp className="h-6 w-6 text-success mx-auto mb-1" />
-              <p className="text-xl font-bold">{approved}</p>
-              <p className="text-xs text-muted-foreground">Approved</p>
+            <CardContent className="p-4 text-center">
+              <TrendingUp className="h-8 w-8 text-success mx-auto mb-2" />
+              <p className="text-2xl font-bold">{approved}</p>
+              <p className="text-sm text-muted-foreground">Approved</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-3 text-center">
-              <Building2 className="h-6 w-6 text-primary mx-auto mb-1" />
-              <p className="text-xl font-bold">{vendors?.length || 0}</p>
-              <p className="text-xs text-muted-foreground">Total</p>
+            <CardContent className="p-4 text-center">
+              <Building2 className="h-8 w-8 text-primary mx-auto mb-2" />
+              <p className="text-2xl font-bold">{vendors?.length || 0}</p>
+              <p className="text-sm text-muted-foreground">Total</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <ShieldAlert className="h-8 w-8 text-destructive mx-auto mb-2" />
+              <p className="text-2xl font-bold">3</p>
+              <p className="text-sm text-muted-foreground">Alerts</p>
             </CardContent>
           </Card>
         </div>
@@ -103,11 +102,11 @@ export default function StaffDashboard() {
         {/* Role-Based Actions */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">My Workqueue</CardTitle>
+            <CardTitle className="text-lg">My Workqueue</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {(isMaker || isAdmin) && (
-              <Button variant="outline" className="w-full justify-start h-14" onClick={() => navigate("/staff/queue")}>
+              <Button variant="outline" className="w-full justify-start h-16" onClick={() => navigate("/staff/queue")}>
                 <FileSearch className="h-5 w-5 mr-3 text-warning" />
                 <div className="flex-1 text-left">
                   <p className="font-medium">Pending Review</p>
@@ -119,7 +118,7 @@ export default function StaffDashboard() {
             )}
             
             {(isChecker || isAdmin) && (
-              <Button variant="outline" className="w-full justify-start h-14" onClick={() => navigate("/staff/queue")}>
+              <Button variant="outline" className="w-full justify-start h-16" onClick={() => navigate("/staff/queue")}>
                 <CheckSquare className="h-5 w-5 mr-3 text-primary" />
                 <div className="flex-1 text-left">
                   <p className="font-medium">In Verification</p>
@@ -131,7 +130,7 @@ export default function StaffDashboard() {
             )}
             
             {(isApprover || isAdmin) && (
-              <Button variant="outline" className="w-full justify-start h-14" onClick={() => navigate("/staff/queue")}>
+              <Button variant="outline" className="w-full justify-start h-16" onClick={() => navigate("/staff/queue")}>
                 <ThumbsUp className="h-5 w-5 mr-3 text-success" />
                 <div className="flex-1 text-left">
                   <p className="font-medium">Pending Approval</p>
@@ -147,13 +146,13 @@ export default function StaffDashboard() {
         {/* Fraud Alerts */}
         <Card className="border-warning/30">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <ShieldAlert className="h-4 w-4 text-warning" />
+            <CardTitle className="text-lg flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5 text-warning" />
               Fraud Alerts
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" className="w-full justify-start h-14" onClick={() => navigate("/staff/fraud-alerts")}>
+            <Button variant="outline" className="w-full justify-start h-16" onClick={() => navigate("/staff/fraud-alerts")}>
               <AlertTriangle className="h-5 w-5 mr-3 text-warning" />
               <div className="flex-1 text-left">
                 <p className="font-medium">View Fraud Alerts</p>
@@ -164,45 +163,7 @@ export default function StaffDashboard() {
             </Button>
           </CardContent>
         </Card>
-
-        {/* Admin Actions */}
-        {isAdmin && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Administration</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button variant="outline" className="w-full justify-start h-14" onClick={() => navigate("/admin/users")}>
-                <Users className="h-5 w-5 mr-3" />
-                <div className="flex-1 text-left">
-                  <p className="font-medium">User Management</p>
-                  <p className="text-xs text-muted-foreground">Manage staff and assign roles</p>
-                </div>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-              
-              <Button variant="outline" className="w-full justify-start h-14" onClick={() => navigate("/admin/settings")}>
-                <Settings className="h-5 w-5 mr-3" />
-                <div className="flex-1 text-left">
-                  <p className="font-medium">System Settings</p>
-                  <p className="text-xs text-muted-foreground">Categories, documents, configuration</p>
-                </div>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Sign Out */}
-        <Button 
-          variant="outline" 
-          className="w-full" 
-          onClick={handleSignOut}
-        >
-          <LogOut className="h-4 w-4 mr-2" />
-          Sign Out
-        </Button>
       </div>
-    </MobileLayout>
+    </StaffLayout>
   );
 }

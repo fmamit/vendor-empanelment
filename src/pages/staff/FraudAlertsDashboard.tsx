@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MobileLayout } from "@/components/layout/MobileLayout";
+import { StaffLayout } from "@/components/layout/StaffLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useFraudAlerts, FraudAlert } from "@/hooks/useFraudAlerts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FraudAlertCard } from "@/components/fraud/FraudAlertCard";
 import { FraudAlertDetail } from "@/components/fraud/FraudAlertDetail";
@@ -14,9 +12,7 @@ import {
   ShieldAlert, 
   AlertTriangle, 
   Clock, 
-  CheckCircle2,
-  Filter,
-  ArrowLeft
+  CheckCircle2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -44,52 +40,48 @@ export default function FraudAlertsDashboard() {
   };
 
   return (
-    <MobileLayout title="Fraud Alerts">
+    <StaffLayout title="Fraud Detection">
       <div className="flex-1 overflow-auto">
         {/* Header */}
-        <div className="p-4 border-b bg-card">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/staff/dashboard")} className="mb-2 -ml-2">
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Back
-          </Button>
-          <h1 className="text-xl font-semibold">Fraud Detection</h1>
+        <div className="p-6 border-b bg-card">
+          <h1 className="text-2xl font-semibold">Fraud Detection</h1>
           <p className="text-sm text-muted-foreground">Monitor and review security alerts</p>
         </div>
 
         {/* Stats Cards */}
-        <div className="p-4 grid grid-cols-4 gap-2">
+        <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="border-destructive/30">
-            <CardContent className="p-3 text-center">
-              <ShieldAlert className="h-5 w-5 text-destructive mx-auto mb-1" />
-              <p className="text-lg font-bold">{stats.critical}</p>
-              <p className="text-xs text-muted-foreground">Critical</p>
+            <CardContent className="p-4 text-center">
+              <ShieldAlert className="h-6 w-6 text-destructive mx-auto mb-2" />
+              <p className="text-2xl font-bold">{stats.critical}</p>
+              <p className="text-sm text-muted-foreground">Critical</p>
             </CardContent>
           </Card>
           <Card className="border-warning/30">
-            <CardContent className="p-3 text-center">
-              <AlertTriangle className="h-5 w-5 text-warning mx-auto mb-1" />
-              <p className="text-lg font-bold">{stats.high}</p>
-              <p className="text-xs text-muted-foreground">High</p>
+            <CardContent className="p-4 text-center">
+              <AlertTriangle className="h-6 w-6 text-warning mx-auto mb-2" />
+              <p className="text-2xl font-bold">{stats.high}</p>
+              <p className="text-sm text-muted-foreground">High</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-3 text-center">
-              <Clock className="h-5 w-5 text-primary mx-auto mb-1" />
-              <p className="text-lg font-bold">{stats.pending}</p>
-              <p className="text-xs text-muted-foreground">Pending</p>
+            <CardContent className="p-4 text-center">
+              <Clock className="h-6 w-6 text-primary mx-auto mb-2" />
+              <p className="text-2xl font-bold">{stats.pending}</p>
+              <p className="text-sm text-muted-foreground">Pending</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-3 text-center">
-              <CheckCircle2 className="h-5 w-5 text-success mx-auto mb-1" />
-              <p className="text-lg font-bold">{stats.dismissed}</p>
-              <p className="text-xs text-muted-foreground">Resolved</p>
+            <CardContent className="p-4 text-center">
+              <CheckCircle2 className="h-6 w-6 text-success mx-auto mb-2" />
+              <p className="text-2xl font-bold">{stats.dismissed}</p>
+              <p className="text-sm text-muted-foreground">Resolved</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Tabs */}
-        <div className="px-4">
+        <div className="px-6">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="w-full grid grid-cols-4">
               <TabsTrigger value="pending">Pending</TabsTrigger>
@@ -101,7 +93,7 @@ export default function FraudAlertsDashboard() {
         </div>
 
         {/* Alerts List */}
-        <div className="p-4 space-y-3">
+        <div className="p-6 space-y-3">
           {alerts.length === 0 ? (
             <Card>
               <CardContent className="p-8 text-center">
@@ -135,6 +127,6 @@ export default function FraudAlertsDashboard() {
           onViewVendor={handleViewVendor}
         />
       )}
-    </MobileLayout>
+    </StaffLayout>
   );
 }
