@@ -1,121 +1,39 @@
 
-# Add Left Sidebar Menu to Staff Dashboard
+
+# Set Up Test Phone Number for Vendor Login
 
 ## Overview
-Add a collapsible left sidebar navigation menu to all staff pages, replacing the current mobile-first layout with a proper desktop sidebar layout that also works on mobile.
+Configure a test phone number that bypasses the real SMS OTP flow, allowing you to test vendor login without receiving actual SMS messages. This is done through the backend authentication settings.
 
-## Current State
-- All staff pages use `MobileLayout` component (top header only)
-- Shadcn sidebar component already exists in `src/components/ui/sidebar.tsx`
-- `NavLink` component exists for active route highlighting
-- Staff routes: Dashboard, Review Queue, Vendor Detail, Fraud Alerts
-- Admin routes: User Management, System Settings
+## How Test Phone Numbers Work
+The backend authentication system supports configuring test phone numbers with pre-defined OTP codes. When a user tries to log in with a test phone number:
+- No real SMS is sent
+- A fixed OTP code (that you define) is accepted
+- The user is authenticated normally
 
-## Implementation Plan
+## Implementation Steps
 
-### 1. Create Staff Sidebar Component
-**New file**: `src/components/layout/StaffSidebar.tsx`
+### Step 1: Configure Test Phone Number
+I'll use the authentication configuration tool to add a test phone number. You'll need to provide:
+- **Test phone number**: e.g., `+919999999999` (with country code)
+- **Test OTP code**: e.g., `123456`
 
-Contains the navigation menu with:
-- Logo and branding in header
-- Navigation groups:
-  - **Dashboard**: Home/Overview
-  - **Workqueue**: Pending Review, In Verification, Pending Approval
-  - **Alerts**: Fraud Alerts
-  - **Administration** (admin only): User Management, System Settings
-- User info and Sign Out button in footer
-- Role-based visibility (admin sections only show for admins)
-- Active route highlighting using `NavLink`
+### Step 2: Usage
+Once configured, you can:
+1. Go to the Vendor Login page
+2. Enter `9999999999` as the phone number
+3. Click "Get OTP" (no SMS will be sent)
+4. Enter `123456` as the OTP
+5. Successfully log in as a test vendor
 
-### 2. Create Staff Layout Wrapper
-**New file**: `src/components/layout/StaffLayout.tsx`
+## Important Notes
+- Test phone numbers only work in the test/development environment
+- Real phone numbers will still receive actual SMS messages
+- You can configure multiple test phone numbers if needed
+- This is a standard feature for testing phone authentication
 
-A wrapper component that:
-- Uses `SidebarProvider` to manage sidebar state
-- Contains the `StaffSidebar` component
-- Has a header with `SidebarTrigger` for mobile toggle
-- Wraps page content in `SidebarInset`
-- Works on both desktop (persistent sidebar) and mobile (sheet/drawer)
+## Next Step
+After you approve this plan, I'll configure the test phone number in your backend authentication settings. Please let me know:
+- What phone number would you like to use for testing? (default: `9999999999`)
+- What OTP code should be accepted? (default: `123456`)
 
-### 3. Update Staff Pages
-Update each staff page to use the new `StaffLayout` instead of `MobileLayout`:
-- `src/pages/staff/StaffDashboard.tsx`
-- `src/pages/staff/StaffReviewQueue.tsx`
-- `src/pages/staff/VendorReviewDetail.tsx`
-- `src/pages/staff/FraudAlertsDashboard.tsx`
-- `src/pages/admin/AdminUserManagement.tsx`
-- `src/pages/admin/AdminSettings.tsx`
-
-### 4. Sidebar Menu Structure
-
-```text
-+----------------------------------+
-|  [Logo] Capital India            |
-|  Staff Portal                    |
-+----------------------------------+
-|                                  |
-|  MAIN                            |
-|  > Dashboard                     |
-|                                  |
-|  WORKQUEUE                       |
-|  > Pending Review           (3)  |
-|  > In Verification          (1)  |
-|  > Pending Approval         (2)  |
-|                                  |
-|  ALERTS                          |
-|  > Fraud Alerts             (3)  |
-|                                  |
-|  ADMINISTRATION (admin only)     |
-|  > User Management               |
-|  > System Settings               |
-|                                  |
-+----------------------------------+
-|  [User Name]                     |
-|  [Sign Out]                      |
-+----------------------------------+
-```
-
-## Files to Create
-| File | Purpose |
-|------|---------|
-| `src/components/layout/StaffSidebar.tsx` | Sidebar navigation component |
-| `src/components/layout/StaffLayout.tsx` | Layout wrapper with sidebar |
-
-## Files to Modify
-| File | Changes |
-|------|---------|
-| `src/pages/staff/StaffDashboard.tsx` | Replace MobileLayout with StaffLayout, simplify content |
-| `src/pages/staff/StaffReviewQueue.tsx` | Replace MobileLayout with StaffLayout |
-| `src/pages/staff/VendorReviewDetail.tsx` | Replace MobileLayout with StaffLayout |
-| `src/pages/staff/FraudAlertsDashboard.tsx` | Replace MobileLayout with StaffLayout, remove back button |
-| `src/pages/admin/AdminUserManagement.tsx` | Replace MobileLayout with StaffLayout, remove back button |
-| `src/pages/admin/AdminSettings.tsx` | Replace MobileLayout with StaffLayout, remove back button |
-
-## Technical Details
-
-### StaffSidebar Component Features
-- Uses `useSidebar` hook for collapse state
-- Uses `useUserRoles` for role-based menu visibility
-- Uses `useStaffVendorQueue` for badge counts
-- Uses `NavLink` with `activeClassName` for highlighting current route
-- Collapsible to icon-only mode on desktop
-- Opens as sheet/drawer on mobile
-
-### Layout Structure
-```tsx
-<SidebarProvider>
-  <StaffSidebar />
-  <SidebarInset>
-    <header className="flex items-center gap-2 p-4 border-b">
-      <SidebarTrigger />
-      <h1>{title}</h1>
-    </header>
-    <main>{children}</main>
-  </SidebarInset>
-</SidebarProvider>
-```
-
-### Mobile Behavior
-- Sidebar hidden by default on mobile
-- Opens as overlay sheet when hamburger menu is tapped
-- Auto-closes when navigation link is clicked
