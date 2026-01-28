@@ -45,13 +45,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // If test mode is active, skip real auth
     if (isTestMode) {
+      console.log("[Auth] Test mode active, setting userType to vendor");
       setUserType("vendor");
       setLoading(false);
+      setUserTypeLoading(false);
       return;
     }
 
     // IMPORTANT: Set up listener BEFORE getting session to avoid race conditions
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("[Auth] onAuthStateChange:", event, "user:", session?.user?.email ?? "none");
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -59,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Get initial session after listener is set up
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("[Auth] getSession:", session?.user?.email ?? "no session");
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -71,18 +75,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Skip if test mode
     if (isTestMode) {
+      console.log("[Auth] Test mode - setting userType to vendor");
       setUserType("vendor");
       setUserTypeLoading(false);
       return;
     }
 
     if (!user) {
+      console.log("[Auth] No user - clearing userType");
       setUserType(null);
       setUserTypeLoading(false);
       return;
     }
 
     // Start loading user type
+    console.log("[Auth] User detected, checking userType for:", user.email);
     setUserTypeLoading(true);
 
     const checkUserType = async () => {
@@ -95,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .maybeSingle();
 
         if (profile) {
+          console.log("[Auth] User is staff");
           setUserType("staff");
           return;
         }
@@ -107,12 +115,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .maybeSingle();
 
         if (vendorUser) {
+          console.log("[Auth] User is vendor");
           setUserType("vendor");
           return;
         }
 
+        console.log("[Auth] User has no role assigned");
         setUserType(null);
       } finally {
+        console.log("[Auth] userTypeLoading complete");
         setUserTypeLoading(false);
       }
     };
