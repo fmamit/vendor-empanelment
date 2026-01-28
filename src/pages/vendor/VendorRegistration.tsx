@@ -11,7 +11,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useVendorCategories, useCategoryDocuments } from "@/hooks/useVendorData";
 import { useVendorProfile, useUpdateVendor, useUploadDocument, useSubmitVendorApplication, useCreateVendor } from "@/hooks/useVendor";
 import { useValidateInvitation, useConsumeInvitation } from "@/hooks/useVendorInvitations";
-import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { 
@@ -25,36 +24,28 @@ import {
   Loader2,
   AlertTriangle,
   Phone,
-  Mail,
-  KeyRound
+  Mail
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const STEPS = [
-  { id: 1, title: "Verify" },
-  { id: 2, title: "Company" },
-  { id: 3, title: "Contact" },
-  { id: 4, title: "Bank" },
-  { id: 5, title: "Documents" },
+  { id: 1, title: "Company" },
+  { id: 2, title: "Contact" },
+  { id: 3, title: "Bank" },
+  { id: 4, title: "Documents" },
 ];
 
 export default function VendorRegistration() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
-  const { user } = useAuth();
   
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [uploadingDocId, setUploadingDocId] = useState<string | null>(null);
   const [uploadedDocs, setUploadedDocs] = useState<Set<string>>(new Set());
-
-  // Auth state for step 1
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [otp, setOtp] = useState("");
-  const [authStep, setAuthStep] = useState<"phone" | "otp">("phone");
-  const [authLoading, setAuthLoading] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [initError, setInitError] = useState<string | null>(null);
 
   // Validate invitation token
   const { data: invitation, isLoading: invitationLoading, isError: invitationError } = useValidateInvitation(token);
@@ -92,7 +83,6 @@ export default function VendorRegistration() {
   useEffect(() => {
     if (invitation) {
       setSelectedCategory(invitation.category_id);
-      setPhoneNumber(invitation.contact_phone);
       setFormData(prev => ({
         ...prev,
         company_name: invitation.company_name,
@@ -102,148 +92,74 @@ export default function VendorRegistration() {
     }
   }, [invitation]);
 
-  // Check if user is already authenticated
+  // Auto-authenticate and create vendor when invitation is valid
   useEffect(() => {
-    if (user) {
-      setIsAuthenticated(true);
-      // If user is authenticated and we have invitation data, skip to step 2
-      if (invitation && currentStep === 1) {
-        // Create vendor if not exists
-        handleCreateVendorIfNeeded();
-      }
-    }
-  }, [user, invitation]);
-
-  // If vendor already exists, track current step based on data
-  useEffect(() => {
-    if (vendor && isAuthenticated && currentStep === 1) {
-      setCurrentStep(2);
-    }
-  }, [vendor, isAuthenticated]);
-
-  const handleCreateVendorIfNeeded = async () => {
-    if (!user || !invitation) return;
-
-    // Check if vendor already exists for this user
-    const { data: existingVendor } = await supabase
-      .from("vendor_users")
-      .select("vendor_id")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (existingVendor) {
-      // Vendor already exists, move to step 2
-      setCurrentStep(2);
-      refetchVendor();
-      return;
-    }
-
-    // Create new vendor
-    try {
-      await createVendor.mutateAsync({
-        categoryId: invitation.category_id,
-        companyName: invitation.company_name,
-        primaryContactName: formData.primary_contact_name || "Primary Contact",
-        primaryMobile: invitation.contact_phone,
-        primaryEmail: invitation.contact_email,
-        userId: user.id,
-      });
+    const initializeVendorSession = async () => {
+      if (!invitation || invitationLoading) return;
       
-      await refetchVendor();
-      setCurrentStep(2);
-      toast.success("Registration started successfully!");
-    } catch (error) {
-      console.error("Failed to create vendor:", error);
-    }
-  };
+      setIsInitializing(true);
+      setInitError(null);
+
+      try {
+        // Check if already authenticated
+        const { data: { session } } = await supabase.auth.getSession();
+        let userId = session?.user?.id;
+
+        // If not authenticated, sign in anonymously
+        if (!userId) {
+          const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
+          if (anonError) throw anonError;
+          userId = anonData.user?.id;
+        }
+
+        if (!userId) {
+          throw new Error("Failed to create session");
+        }
+
+        // Check if vendor already exists for this user
+        const { data: existingVendorUser } = await supabase
+          .from("vendor_users")
+          .select("vendor_id")
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        if (!existingVendorUser) {
+          // Create new vendor and link to user
+          await createVendor.mutateAsync({
+            categoryId: invitation.category_id,
+            companyName: invitation.company_name,
+            primaryContactName: formData.primary_contact_name || "Primary Contact",
+            primaryMobile: invitation.contact_phone,
+            primaryEmail: invitation.contact_email,
+            userId: userId,
+          });
+        }
+
+        await refetchVendor();
+        setIsInitializing(false);
+      } catch (error: any) {
+        console.error("Failed to initialize vendor session:", error);
+        setInitError(error.message || "Failed to initialize registration");
+        setIsInitializing(false);
+      }
+    };
+
+    initializeVendorSession();
+  }, [invitation, invitationLoading]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  // OTP Authentication handlers
-  const handleSendOTP = async () => {
-    if (phoneNumber.length !== 10) {
-      toast.error("Please enter a valid 10-digit mobile number");
-      return;
-    }
-
-    setAuthLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        phone: `+91${phoneNumber}`,
-      });
-
-      if (error) throw error;
-
-      toast.success("OTP sent to your mobile number");
-      setAuthStep("otp");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to send OTP");
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const handleVerifyOTP = async () => {
-    if (otp.length !== 6) {
-      toast.error("Please enter the 6-digit OTP");
-      return;
-    }
-
-    setAuthLoading(true);
-    try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        phone: `+91${phoneNumber}`,
-        token: otp,
-        type: "sms",
-      });
-
-      if (error) throw error;
-
-      setIsAuthenticated(true);
-      toast.success("Phone verified successfully!");
-
-      // Create vendor after successful auth
-      if (data.user && invitation) {
-        await createVendor.mutateAsync({
-          categoryId: invitation.category_id,
-          companyName: invitation.company_name,
-          primaryContactName: formData.primary_contact_name || "Primary Contact",
-          primaryMobile: invitation.contact_phone,
-          primaryEmail: invitation.contact_email,
-          userId: data.user.id,
-        });
-        
-        await refetchVendor();
-        setCurrentStep(2);
-      }
-    } catch (error: any) {
-      toast.error(error.message || "Invalid OTP");
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
   const handleNext = async () => {
-    if (currentStep === 1 && !isAuthenticated) {
-      // Handle authentication first
-      if (authStep === "phone") {
-        await handleSendOTP();
-      } else {
-        await handleVerifyOTP();
-      }
-      return;
-    }
-
-    if (currentStep === 2) {
+    if (currentStep === 1) {
       if (!formData.company_name.trim()) {
         toast.error("Company name is required");
         return;
       }
     }
 
-    if (currentStep === 3) {
+    if (currentStep === 2) {
       if (!formData.primary_contact_name.trim() || !formData.primary_mobile.trim() || !formData.primary_email.trim()) {
         toast.error("Primary contact details are required");
         return;
@@ -251,23 +167,19 @@ export default function VendorRegistration() {
     }
 
     // Save data if we have a vendor
-    if (vendor && currentStep >= 2) {
+    if (vendor) {
       await updateVendor.mutateAsync({
         vendorId: vendor.id,
         data: formData,
       });
     }
 
-    if (currentStep < 5) {
+    if (currentStep < 4) {
       setCurrentStep(prev => prev + 1);
     }
   };
 
   const handleBack = () => {
-    // Don't allow going back to step 1 if already authenticated
-    if (isAuthenticated && currentStep === 2) {
-      return;
-    }
     if (currentStep > 1) {
       setCurrentStep(prev => prev - 1);
     }
@@ -275,7 +187,7 @@ export default function VendorRegistration() {
 
   const handleDocumentUpload = async (documentTypeId: string, file: File) => {
     if (!vendor) {
-      toast.error("Vendor profile not found. Please complete previous steps first.");
+      toast.error("Vendor profile not found. Please refresh the page.");
       return;
     }
 
@@ -369,83 +281,47 @@ export default function VendorRegistration() {
     );
   }
 
+  // Show loading while initializing vendor session
+  if (isInitializing) {
+    return (
+      <MobileLayout title="Registration">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
+            <p className="text-muted-foreground">Setting up your registration...</p>
+          </div>
+        </div>
+      </MobileLayout>
+    );
+  }
+
+  // Show error if initialization failed
+  if (initError) {
+    return (
+      <MobileLayout title="Registration">
+        <div className="flex-1 flex items-center justify-center p-6">
+          <Card className="w-full max-w-md">
+            <CardContent className="pt-6 text-center space-y-4">
+              <div className="mx-auto h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center">
+                <AlertTriangle className="h-8 w-8 text-destructive" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold">Setup Error</h2>
+                <p className="text-muted-foreground mt-2">{initError}</p>
+              </div>
+              <Button onClick={() => window.location.reload()} className="mt-4">
+                Try Again
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </MobileLayout>
+    );
+  }
+
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
-        return (
-          <Card className="border shadow-sm">
-            <CardHeader className="text-center pb-2">
-              <div className="mx-auto mb-3 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <KeyRound className="h-6 w-6 text-primary" />
-              </div>
-              <CardTitle className="text-xl">Verify Your Phone</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                {authStep === "phone" 
-                  ? "We'll send an OTP to verify your phone number"
-                  : `Enter the OTP sent to +91 ${phoneNumber}`
-                }
-              </p>
-            </CardHeader>
-            <CardContent className="pt-4 space-y-4">
-              {/* Show invitation info */}
-              <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
-                <p className="text-sm font-medium">{invitation?.company_name}</p>
-                <p className="text-xs text-muted-foreground">{invitation?.vendor_categories?.name}</p>
-              </div>
-
-              {authStep === "phone" ? (
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Mobile Number</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">
-                      +91
-                    </span>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      inputMode="numeric"
-                      placeholder="Enter 10-digit number"
-                      value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                      className="pl-12 h-12"
-                      maxLength={10}
-                    />
-                    <Phone className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="otp">Enter OTP</Label>
-                    <Input
-                      id="otp"
-                      type="text"
-                      inputMode="numeric"
-                      placeholder="Enter 6-digit OTP"
-                      value={otp}
-                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                      className="h-12 text-xl text-center tracking-[0.3em] font-mono"
-                      maxLength={6}
-                    />
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setAuthStep("phone");
-                      setOtp("");
-                    }}
-                    className="w-full"
-                  >
-                    Change Number
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        );
-
-      case 2:
         return (
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">Company Details</h2>
@@ -548,7 +424,7 @@ export default function VendorRegistration() {
           </div>
         );
 
-      case 3:
+      case 2:
         return (
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">Contact Details</h2>
@@ -640,7 +516,7 @@ export default function VendorRegistration() {
           </div>
         );
 
-      case 4:
+      case 3:
         return (
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">Banking Details</h2>
@@ -706,23 +582,13 @@ export default function VendorRegistration() {
           </div>
         );
 
-      case 5:
+      case 4:
         return (
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">Upload Documents</h2>
             <p className="text-sm text-muted-foreground">
               Upload required documents. Supported formats: PDF, JPG, PNG (max 5MB)
             </p>
-            
-            {!vendor && (
-              <Card className="border-warning bg-warning/10">
-                <CardContent className="p-4">
-                  <p className="text-sm text-warning-foreground">
-                    Please complete the previous steps before uploading documents.
-                  </p>
-                </CardContent>
-              </Card>
-            )}
             
             <div className="space-y-4">
               {categoryDocs?.map((doc) => (
@@ -761,25 +627,6 @@ export default function VendorRegistration() {
     }
   };
 
-  const getNextButtonText = () => {
-    if (currentStep === 1) {
-      if (isAuthenticated) {
-        return "Continue";
-      }
-      return authStep === "phone" ? "Get OTP" : "Verify OTP";
-    }
-    return "Next";
-  };
-
-  const isNextDisabled = () => {
-    if (currentStep === 1) {
-      if (isAuthenticated) return false;
-      if (authStep === "phone") return phoneNumber.length !== 10 || authLoading;
-      return otp.length !== 6 || authLoading;
-    }
-    return updateVendor.isPending;
-  };
-
   return (
     <MobileLayout title="Registration">
       <div className="flex-1 flex flex-col">
@@ -795,24 +642,24 @@ export default function VendorRegistration() {
 
         {/* Navigation */}
         <div className="p-4 bg-card border-t flex gap-3">
-          {currentStep > 1 && !(isAuthenticated && currentStep === 2) && (
+          {currentStep > 1 && (
             <Button variant="outline" onClick={handleBack} className="flex-1 h-12">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
             </Button>
           )}
           
-          {currentStep < 5 ? (
+          {currentStep < 4 ? (
             <Button 
               onClick={handleNext} 
               className="flex-1 h-12" 
-              disabled={isNextDisabled()}
+              disabled={updateVendor.isPending}
             >
-              {authLoading || updateVendor.isPending ? (
+              {updateVendor.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <>
-                  {getNextButtonText()}
+                  Next
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </>
               )}
