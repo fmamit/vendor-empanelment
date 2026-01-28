@@ -147,49 +147,65 @@ export default function VendorRegistration() {
     switch (currentStep) {
       case 1:
         return (
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-center">Select Vendor Category</h2>
-            <p className="text-sm text-muted-foreground text-center">
-              Choose the category that best describes your business
-            </p>
-            
-            {categoriesLoading ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Card className="border shadow-sm">
+            <CardHeader className="text-center pb-2">
+              <div className="mx-auto mb-3 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                <Building2 className="h-6 w-6 text-primary" />
               </div>
-            ) : (
-              <div className="grid gap-3">
-                {categories?.map((category) => (
-                  <Card
-                    key={category.id}
-                    className={cn(
-                      "cursor-pointer transition-all",
-                      selectedCategory === category.id
-                        ? "border-2 border-primary bg-primary/5"
-                        : "hover:border-primary/50"
-                    )}
-                    onClick={() => setSelectedCategory(category.id)}
-                  >
-                    <CardContent className="flex items-center gap-4 p-4">
-                      <div className={cn(
-                        "h-12 w-12 rounded-full flex items-center justify-center",
-                        selectedCategory === category.id ? "bg-primary text-primary-foreground" : "bg-muted"
-                      )}>
-                        <Building2 className="h-6 w-6" />
+              <CardTitle className="text-xl">Select Vendor Category</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Choose the category that best describes your business
+              </p>
+            </CardHeader>
+            <CardContent className="pt-4">
+              {categoriesLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Business Category *</Label>
+                  <div className="grid gap-3">
+                    {categories?.map((category) => (
+                      <div
+                        key={category.id}
+                        className={cn(
+                          "relative flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all",
+                          selectedCategory === category.id
+                            ? "border-primary bg-primary/5 shadow-sm"
+                            : "border-muted hover:border-primary/50 hover:bg-muted/50"
+                        )}
+                        onClick={() => setSelectedCategory(category.id)}
+                      >
+                        <div className={cn(
+                          "h-10 w-10 rounded-full flex items-center justify-center shrink-0",
+                          selectedCategory === category.id ? "bg-primary text-primary-foreground" : "bg-muted"
+                        )}>
+                          <Building2 className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium">{category.name}</p>
+                          {category.description && (
+                            <p className="text-sm text-muted-foreground truncate">{category.description}</p>
+                          )}
+                        </div>
+                        <div className={cn(
+                          "h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0",
+                          selectedCategory === category.id
+                            ? "border-primary bg-primary"
+                            : "border-muted-foreground/30"
+                        )}>
+                          {selectedCategory === category.id && (
+                            <div className="h-2 w-2 rounded-full bg-primary-foreground" />
+                          )}
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <p className="font-semibold">{category.name}</p>
-                        <p className="text-sm text-muted-foreground">{category.description}</p>
-                      </div>
-                      {selectedCategory === category.id && (
-                        <CheckCircle2 className="h-6 w-6 text-primary" />
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         );
 
       case 2:
