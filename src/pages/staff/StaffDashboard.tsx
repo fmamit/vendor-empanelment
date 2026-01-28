@@ -29,8 +29,10 @@ export default function StaffDashboard() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log("[StaffDashboard] Effect check:", { loading, userTypeLoading, hasUser: !!user, userType });
     // Wait for both auth loading AND userType loading to complete before redirecting
     if (!loading && !userTypeLoading && (!user || userType !== "staff")) {
+      console.log("[StaffDashboard] Redirecting to login...");
       navigate("/staff/login");
     }
   }, [user, userType, loading, userTypeLoading, navigate]);
