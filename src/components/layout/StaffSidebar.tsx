@@ -247,7 +247,7 @@ export function StaffSidebar() {
           <Button
             variant="outline"
             size="sm"
-            className="w-full justify-start"
+            className="w-full justify-start bg-white/10 border-white/30 text-sidebar-foreground hover:bg-white/20 hover:text-sidebar-foreground"
             onClick={handleSignOut}
           >
             <LogOut className="h-4 w-4 mr-2" />
