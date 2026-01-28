@@ -9,8 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useVendorCategories, useCategoryDocuments } from "@/hooks/useVendorData";
-import { useVendorProfile, useUpdateVendor, useUploadDocument, useSubmitVendorApplication } from "@/hooks/useVendor";
+import { useVendorProfile, useUpdateVendor, useUploadDocument, useSubmitVendorApplication, useCreateVendor } from "@/hooks/useVendor";
 import { useValidateInvitation, useConsumeInvitation } from "@/hooks/useVendorInvitations";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { 
   Building2, 
@@ -23,12 +25,13 @@ import {
   Loader2,
   AlertTriangle,
   Phone,
-  Mail
+  Mail,
+  KeyRound
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const STEPS = [
-  { id: 1, title: "Category" },
+  { id: 1, title: "Verify" },
   { id: 2, title: "Company" },
   { id: 3, title: "Contact" },
   { id: 4, title: "Bank" },
@@ -39,11 +42,19 @@ export default function VendorRegistration() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
+  const { user } = useAuth();
   
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [uploadingDocId, setUploadingDocId] = useState<string | null>(null);
   const [uploadedDocs, setUploadedDocs] = useState<Set<string>>(new Set());
+
+  // Auth state for step 1
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [otp, setOtp] = useState("");
+  const [authStep, setAuthStep] = useState<"phone" | "otp">("phone");
+  const [authLoading, setAuthLoading] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Validate invitation token
   const { data: invitation, isLoading: invitationLoading, isError: invitationError } = useValidateInvitation(token);
@@ -55,6 +66,7 @@ export default function VendorRegistration() {
   const updateVendor = useUpdateVendor();
   const uploadDocument = useUploadDocument();
   const submitApplication = useSubmitVendorApplication();
+  const createVendor = useCreateVendor();
 
   // Form state
   const [formData, setFormData] = useState({
@@ -80,24 +92,147 @@ export default function VendorRegistration() {
   useEffect(() => {
     if (invitation) {
       setSelectedCategory(invitation.category_id);
+      setPhoneNumber(invitation.contact_phone);
       setFormData(prev => ({
         ...prev,
         company_name: invitation.company_name,
         primary_mobile: invitation.contact_phone,
         primary_email: invitation.contact_email,
       }));
-      // Skip to step 2 since category is pre-selected
-      setCurrentStep(2);
     }
   }, [invitation]);
+
+  // Check if user is already authenticated
+  useEffect(() => {
+    if (user) {
+      setIsAuthenticated(true);
+      // If user is authenticated and we have invitation data, skip to step 2
+      if (invitation && currentStep === 1) {
+        // Create vendor if not exists
+        handleCreateVendorIfNeeded();
+      }
+    }
+  }, [user, invitation]);
+
+  // If vendor already exists, track current step based on data
+  useEffect(() => {
+    if (vendor && isAuthenticated && currentStep === 1) {
+      setCurrentStep(2);
+    }
+  }, [vendor, isAuthenticated]);
+
+  const handleCreateVendorIfNeeded = async () => {
+    if (!user || !invitation) return;
+
+    // Check if vendor already exists for this user
+    const { data: existingVendor } = await supabase
+      .from("vendor_users")
+      .select("vendor_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (existingVendor) {
+      // Vendor already exists, move to step 2
+      setCurrentStep(2);
+      refetchVendor();
+      return;
+    }
+
+    // Create new vendor
+    try {
+      await createVendor.mutateAsync({
+        categoryId: invitation.category_id,
+        companyName: invitation.company_name,
+        primaryContactName: formData.primary_contact_name || "Primary Contact",
+        primaryMobile: invitation.contact_phone,
+        primaryEmail: invitation.contact_email,
+        userId: user.id,
+      });
+      
+      await refetchVendor();
+      setCurrentStep(2);
+      toast.success("Registration started successfully!");
+    } catch (error) {
+      console.error("Failed to create vendor:", error);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  // OTP Authentication handlers
+  const handleSendOTP = async () => {
+    if (phoneNumber.length !== 10) {
+      toast.error("Please enter a valid 10-digit mobile number");
+      return;
+    }
+
+    setAuthLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: `+91${phoneNumber}`,
+      });
+
+      if (error) throw error;
+
+      toast.success("OTP sent to your mobile number");
+      setAuthStep("otp");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to send OTP");
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async () => {
+    if (otp.length !== 6) {
+      toast.error("Please enter the 6-digit OTP");
+      return;
+    }
+
+    setAuthLoading(true);
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        phone: `+91${phoneNumber}`,
+        token: otp,
+        type: "sms",
+      });
+
+      if (error) throw error;
+
+      setIsAuthenticated(true);
+      toast.success("Phone verified successfully!");
+
+      // Create vendor after successful auth
+      if (data.user && invitation) {
+        await createVendor.mutateAsync({
+          categoryId: invitation.category_id,
+          companyName: invitation.company_name,
+          primaryContactName: formData.primary_contact_name || "Primary Contact",
+          primaryMobile: invitation.contact_phone,
+          primaryEmail: invitation.contact_email,
+          userId: data.user.id,
+        });
+        
+        await refetchVendor();
+        setCurrentStep(2);
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Invalid OTP");
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   const handleNext = async () => {
-    if (currentStep === 1 && !selectedCategory) {
-      toast.error("Please select a category");
+    if (currentStep === 1 && !isAuthenticated) {
+      // Handle authentication first
+      if (authStep === "phone") {
+        await handleSendOTP();
+      } else {
+        await handleVerifyOTP();
+      }
       return;
     }
 
@@ -116,7 +251,7 @@ export default function VendorRegistration() {
     }
 
     // Save data if we have a vendor
-    if (vendor && currentStep > 1) {
+    if (vendor && currentStep >= 2) {
       await updateVendor.mutateAsync({
         vendorId: vendor.id,
         data: formData,
@@ -129,8 +264,8 @@ export default function VendorRegistration() {
   };
 
   const handleBack = () => {
-    // Don't allow going back to step 1 if invitation pre-selected category
-    if (invitation && currentStep === 2) {
+    // Don't allow going back to step 1 if already authenticated
+    if (isAuthenticated && currentStep === 2) {
       return;
     }
     if (currentStep > 1) {
@@ -140,7 +275,7 @@ export default function VendorRegistration() {
 
   const handleDocumentUpload = async (documentTypeId: string, file: File) => {
     if (!vendor) {
-      toast.error("Vendor profile not found");
+      toast.error("Vendor profile not found. Please complete previous steps first.");
       return;
     }
 
@@ -241,58 +376,69 @@ export default function VendorRegistration() {
           <Card className="border shadow-sm">
             <CardHeader className="text-center pb-2">
               <div className="mx-auto mb-3 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <Building2 className="h-6 w-6 text-primary" />
+                <KeyRound className="h-6 w-6 text-primary" />
               </div>
-              <CardTitle className="text-xl">Select Vendor Category</CardTitle>
+              <CardTitle className="text-xl">Verify Your Phone</CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                Choose the category that best describes your business
+                {authStep === "phone" 
+                  ? "We'll send an OTP to verify your phone number"
+                  : `Enter the OTP sent to +91 ${phoneNumber}`
+                }
               </p>
             </CardHeader>
-            <CardContent className="pt-4">
-              {categoriesLoading ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <CardContent className="pt-4 space-y-4">
+              {/* Show invitation info */}
+              <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                <p className="text-sm font-medium">{invitation?.company_name}</p>
+                <p className="text-xs text-muted-foreground">{invitation?.vendor_categories?.name}</p>
+              </div>
+
+              {authStep === "phone" ? (
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Mobile Number</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">
+                      +91
+                    </span>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      inputMode="numeric"
+                      placeholder="Enter 10-digit number"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                      className="pl-12 h-12"
+                      maxLength={10}
+                    />
+                    <Phone className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  </div>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">Business Category *</Label>
-                  <div className="grid gap-3">
-                    {categories?.map((category) => (
-                      <div
-                        key={category.id}
-                        className={cn(
-                          "relative flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all",
-                          selectedCategory === category.id
-                            ? "border-primary bg-primary/5 shadow-sm"
-                            : "border-muted hover:border-primary/50 hover:bg-muted/50"
-                        )}
-                        onClick={() => setSelectedCategory(category.id)}
-                      >
-                        <div className={cn(
-                          "h-10 w-10 rounded-full flex items-center justify-center shrink-0",
-                          selectedCategory === category.id ? "bg-primary text-primary-foreground" : "bg-muted"
-                        )}>
-                          <Building2 className="h-5 w-5" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium">{category.name}</p>
-                          {category.description && (
-                            <p className="text-sm text-muted-foreground truncate">{category.description}</p>
-                          )}
-                        </div>
-                        <div className={cn(
-                          "h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0",
-                          selectedCategory === category.id
-                            ? "border-primary bg-primary"
-                            : "border-muted-foreground/30"
-                        )}>
-                          {selectedCategory === category.id && (
-                            <div className="h-2 w-2 rounded-full bg-primary-foreground" />
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="otp">Enter OTP</Label>
+                    <Input
+                      id="otp"
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="Enter 6-digit OTP"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      className="h-12 text-xl text-center tracking-[0.3em] font-mono"
+                      maxLength={6}
+                    />
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setAuthStep("phone");
+                      setOtp("");
+                    }}
+                    className="w-full"
+                  >
+                    Change Number
+                  </Button>
                 </div>
               )}
             </CardContent>
@@ -304,15 +450,13 @@ export default function VendorRegistration() {
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">Company Details</h2>
             
-            {/* Show pre-selected category info if from invitation */}
-            {invitation && (
-              <Card className="bg-primary/5 border-primary/20">
-                <CardContent className="p-4">
-                  <p className="text-sm text-muted-foreground">Pre-selected Category</p>
-                  <p className="font-medium">{invitation.vendor_categories?.name}</p>
-                </CardContent>
-              </Card>
-            )}
+            {/* Show pre-selected category info */}
+            <Card className="bg-primary/5 border-primary/20">
+              <CardContent className="p-4">
+                <p className="text-sm text-muted-foreground">Pre-selected Category</p>
+                <p className="font-medium">{invitation?.vendor_categories?.name}</p>
+              </CardContent>
+            </Card>
             
             <div className="space-y-3">
               <div>
@@ -516,19 +660,19 @@ export default function VendorRegistration() {
                     name="bank_name"
                     value={formData.bank_name}
                     onChange={handleInputChange}
-                    placeholder="e.g., State Bank of India"
+                    placeholder="Enter bank name"
                     className="h-12"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="bank_branch">Branch Name</Label>
+                  <Label htmlFor="bank_branch">Branch</Label>
                   <Input
                     id="bank_branch"
                     name="bank_branch"
                     value={formData.bank_branch}
                     onChange={handleInputChange}
-                    placeholder="e.g., Mumbai Main Branch"
+                    placeholder="Enter branch name"
                     className="h-12"
                   />
                 </div>
@@ -540,7 +684,7 @@ export default function VendorRegistration() {
                     name="bank_account_number"
                     value={formData.bank_account_number}
                     onChange={handleInputChange}
-                    placeholder="Enter bank account number"
+                    placeholder="Enter account number"
                     className="h-12"
                   />
                 </div>
@@ -570,6 +714,16 @@ export default function VendorRegistration() {
               Upload required documents. Supported formats: PDF, JPG, PNG (max 5MB)
             </p>
             
+            {!vendor && (
+              <Card className="border-warning bg-warning/10">
+                <CardContent className="p-4">
+                  <p className="text-sm text-warning-foreground">
+                    Please complete the previous steps before uploading documents.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+            
             <div className="space-y-4">
               {categoryDocs?.map((doc) => (
                 <Card key={doc.id} className={cn(
@@ -590,7 +744,7 @@ export default function VendorRegistration() {
                   <CardContent>
                     <DocumentCapture
                       onCapture={(file) => handleDocumentUpload(doc.document_type_id, file)}
-                      disabled={uploadingDocId === doc.document_type_id}
+                      disabled={uploadingDocId === doc.document_type_id || !vendor}
                     />
                     {uploadingDocId === doc.document_type_id && (
                       <div className="flex items-center justify-center gap-2 mt-2 text-sm text-muted-foreground">
@@ -605,6 +759,25 @@ export default function VendorRegistration() {
           </div>
         );
     }
+  };
+
+  const getNextButtonText = () => {
+    if (currentStep === 1) {
+      if (isAuthenticated) {
+        return "Continue";
+      }
+      return authStep === "phone" ? "Get OTP" : "Verify OTP";
+    }
+    return "Next";
+  };
+
+  const isNextDisabled = () => {
+    if (currentStep === 1) {
+      if (isAuthenticated) return false;
+      if (authStep === "phone") return phoneNumber.length !== 10 || authLoading;
+      return otp.length !== 6 || authLoading;
+    }
+    return updateVendor.isPending;
   };
 
   return (
@@ -622,7 +795,7 @@ export default function VendorRegistration() {
 
         {/* Navigation */}
         <div className="p-4 bg-card border-t flex gap-3">
-          {currentStep > 1 && !(invitation && currentStep === 2) && (
+          {currentStep > 1 && !(isAuthenticated && currentStep === 2) && (
             <Button variant="outline" onClick={handleBack} className="flex-1 h-12">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
@@ -630,12 +803,16 @@ export default function VendorRegistration() {
           )}
           
           {currentStep < 5 ? (
-            <Button onClick={handleNext} className="flex-1 h-12" disabled={updateVendor.isPending}>
-              {updateVendor.isPending ? (
+            <Button 
+              onClick={handleNext} 
+              className="flex-1 h-12" 
+              disabled={isNextDisabled()}
+            >
+              {authLoading || updateVendor.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <>
-                  Next
+                  {getNextButtonText()}
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </>
               )}
@@ -644,7 +821,7 @@ export default function VendorRegistration() {
             <Button 
               onClick={handleSubmit} 
               className="flex-1 h-12 bg-success hover:bg-success/90"
-              disabled={submitApplication.isPending}
+              disabled={submitApplication.isPending || !vendor}
             >
               {submitApplication.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
