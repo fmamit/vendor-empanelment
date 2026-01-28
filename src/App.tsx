@@ -37,8 +37,8 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<StaffLogin />} />
+{/* Public Routes */}
+            <Route path="/" element={<Index />} />
             <Route path="/install" element={<InstallApp />} />
             
             {/* Vendor Routes */}
