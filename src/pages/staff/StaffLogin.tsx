@@ -7,16 +7,18 @@ import { Users, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function StaffLogin() {
-  const { user, loading } = useAuth();
+  const { user, loading, userTypeLoading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && user) {
+    // Only redirect after we're sure userType is determined
+    if (!loading && !userTypeLoading && user) {
       navigate("/staff/dashboard", { replace: true });
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, userTypeLoading, navigate]);
 
-  if (loading) {
+  // Show loading while checking auth or determining user type
+  if (loading || userTypeLoading) {
     return (
       <MobileLayout title="Staff Login">
         <div className="flex-1 flex items-center justify-center">

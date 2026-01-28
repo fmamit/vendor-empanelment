@@ -23,18 +23,20 @@ import {
 } from "lucide-react";
 
 export default function StaffDashboard() {
-  const { user, userType, loading } = useAuth();
+  const { user, userType, loading, userTypeLoading } = useAuth();
   const { roles, isAdmin, isMaker, isChecker, isApprover, isLoading: rolesLoading } = useUserRoles();
   const { data: vendors, isLoading: vendorsLoading } = useStaffVendorQueue();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && (!user || userType !== "staff")) {
+    // Wait for both auth loading AND userType loading to complete before redirecting
+    if (!loading && !userTypeLoading && (!user || userType !== "staff")) {
       navigate("/staff/login");
     }
-  }, [user, userType, loading, navigate]);
+  }, [user, userType, loading, userTypeLoading, navigate]);
 
-  if (loading || rolesLoading) {
+  // Show loading while auth or userType is being determined
+  if (loading || userTypeLoading || rolesLoading) {
     return (
       <StaffLayout title="Dashboard">
         <div className="flex-1 flex items-center justify-center">

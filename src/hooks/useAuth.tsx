@@ -12,6 +12,7 @@ interface AuthContextType {
   session: Session | null;
   userType: UserType;
   loading: boolean;
+  userTypeLoading: boolean;
   isTestMode: boolean;
   signOut: () => Promise<void>;
   setTestMode: (enabled: boolean) => void;
@@ -24,6 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [userType, setUserType] = useState<UserType>(null);
   const [loading, setLoading] = useState(true);
+  const [userTypeLoading, setUserTypeLoading] = useState(false);
   const [isTestMode, setIsTestMode] = useState(() => {
     return sessionStorage.getItem(TEST_MODE_KEY) === "true";
   });
@@ -49,7 +51,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // IMPORTANT: Set up listener BEFORE getting session to avoid race conditions
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log("Auth state changed:", _event, session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -57,7 +58,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Get initial session after listener is set up
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log("Initial session:", session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -71,40 +71,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Skip if test mode
     if (isTestMode) {
       setUserType("vendor");
+      setUserTypeLoading(false);
       return;
     }
 
     if (!user) {
       setUserType(null);
+      setUserTypeLoading(false);
       return;
     }
 
+    // Start loading user type
+    setUserTypeLoading(true);
+
     const checkUserType = async () => {
-      // Check staff first
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      try {
+        // Check staff first
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle();
 
-      if (profile) {
-        setUserType("staff");
-        return;
+        if (profile) {
+          setUserType("staff");
+          return;
+        }
+
+        // Check vendor
+        const { data: vendorUser } = await supabase
+          .from("vendor_users")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (vendorUser) {
+          setUserType("vendor");
+          return;
+        }
+
+        setUserType(null);
+      } finally {
+        setUserTypeLoading(false);
       }
-
-      // Check vendor
-      const { data: vendorUser } = await supabase
-        .from("vendor_users")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (vendorUser) {
-        setUserType("vendor");
-        return;
-      }
-
-      setUserType(null);
     };
 
     checkUserType();
@@ -122,7 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, userType, loading, isTestMode, signOut, setTestMode }}>
+    <AuthContext.Provider value={{ user, session, userType, loading, userTypeLoading, isTestMode, signOut, setTestMode }}>
       {children}
     </AuthContext.Provider>
   );
