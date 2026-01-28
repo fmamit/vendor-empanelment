@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Phone, ArrowRight, Loader2 } from "lucide-react";
 
 // Development bypass credentials
@@ -17,6 +18,7 @@ export function VendorPhoneLogin() {
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { setTestMode } = useAuth();
 
   const formatPhoneNumber = (value: string) => {
     // Remove non-digits
@@ -65,6 +67,7 @@ export function VendorPhoneLogin() {
     // Development bypass: validate test OTP and navigate directly
     if (phone === TEST_PHONE) {
       if (otp === TEST_OTP) {
+        setTestMode(true);
         toast.success("Test login successful!");
         navigate("/vendor/dashboard");
       } else {
