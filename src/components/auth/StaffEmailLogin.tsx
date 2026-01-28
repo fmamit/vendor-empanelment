@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,7 +19,6 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export function StaffEmailLogin() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const navigate = useNavigate();
 
   const {
     register,
@@ -41,7 +39,6 @@ export function StaffEmailLogin() {
       if (error) throw error;
 
       toast.success("Login successful!");
-      navigate("/staff/dashboard");
     } catch (error: any) {
       toast.error(error.message || "Login failed");
     } finally {
