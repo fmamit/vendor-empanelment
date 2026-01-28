@@ -1,39 +1,65 @@
 
-
-# Set Up Test Phone Number for Vendor Login
+# Development Bypass Mode for Vendor Login
 
 ## Overview
-Configure a test phone number that bypasses the real SMS OTP flow, allowing you to test vendor login without receiving actual SMS messages. This is done through the backend authentication settings.
+Add a development/test mode to the vendor phone login that allows you to use a test phone number (`9999999999`) with a fixed OTP code (`123456`) without triggering real SMS delivery or backend authentication.
 
-## How Test Phone Numbers Work
-The backend authentication system supports configuring test phone numbers with pre-defined OTP codes. When a user tries to log in with a test phone number:
-- No real SMS is sent
-- A fixed OTP code (that you define) is accepted
-- The user is authenticated normally
+## How It Will Work
+When you enter the test phone number:
+1. **Send OTP step**: Instead of calling the backend, it will skip the SMS and go directly to the OTP entry screen
+2. **Verify OTP step**: Instead of calling the backend, it will check if the OTP matches `123456` and create a mock session
 
-## Implementation Steps
+## Test Credentials
+- **Phone Number**: `9999999999`
+- **OTP Code**: `123456`
 
-### Step 1: Configure Test Phone Number
-I'll use the authentication configuration tool to add a test phone number. You'll need to provide:
-- **Test phone number**: e.g., `+919999999999` (with country code)
-- **Test OTP code**: e.g., `123456`
+## Implementation Details
 
-### Step 2: Usage
-Once configured, you can:
-1. Go to the Vendor Login page
-2. Enter `9999999999` as the phone number
-3. Click "Get OTP" (no SMS will be sent)
-4. Enter `123456` as the OTP
-5. Successfully log in as a test vendor
+### File to Modify
+`src/components/auth/VendorPhoneLogin.tsx`
 
-## Important Notes
-- Test phone numbers only work in the test/development environment
-- Real phone numbers will still receive actual SMS messages
-- You can configure multiple test phone numbers if needed
-- This is a standard feature for testing phone authentication
+### Changes
+1. Add a constant for the test phone number and OTP code
+2. Modify `handleSendOTP` to detect the test number and skip the backend call
+3. Modify `handleVerifyOTP` to detect the test number and validate against the fixed OTP
+4. For test mode, use `signInWithPassword` with a pre-created test account OR navigate directly to the dashboard
 
-## Next Step
-After you approve this plan, I'll configure the test phone number in your backend authentication settings. Please let me know:
-- What phone number would you like to use for testing? (default: `9999999999`)
-- What OTP code should be accepted? (default: `123456`)
+### Technical Approach
 
+```text
++-------------------+     +------------------+     +-------------------+
+|  Enter Phone      | --> |  Is Test Number? | --> |  Skip SMS Call    |
+|  9999999999       |     |  (9999999999)    |     |  Go to OTP Screen |
++-------------------+     +------------------+     +-------------------+
+                                 |
+                                 v (No)
+                          +------------------+
+                          |  Call Backend    |
+                          |  signInWithOtp   |
+                          +------------------+
+
++-------------------+     +------------------+     +-------------------+
+|  Enter OTP        | --> |  Is Test Number? | --> |  Check OTP=123456 |
+|  123456           |     |  (9999999999)    |     |  Navigate to      |
++-------------------+     +------------------+     |  /vendor/dashboard|
+                                                   +-------------------+
+```
+
+### Code Changes Summary
+
+1. Add test mode constants at the top of the file:
+   - `TEST_PHONE = "9999999999"`
+   - `TEST_OTP = "123456"`
+
+2. In `handleSendOTP`:
+   - Check if phone matches `TEST_PHONE`
+   - If yes: show success toast and go to OTP step (no backend call)
+   - If no: proceed with normal backend flow
+
+3. In `handleVerifyOTP`:
+   - Check if phone matches `TEST_PHONE`
+   - If yes: validate OTP against `TEST_OTP`, then navigate to dashboard
+   - If no: proceed with normal backend verification
+
+## Security Note
+This bypass only works for the specific test phone number. All other phone numbers will continue to use the real authentication flow. In a production environment, you may want to add an environment check to disable this feature.
