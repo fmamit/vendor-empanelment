@@ -63,7 +63,9 @@ export function CreateInvitationDialog({ trigger }: CreateInvitationDialogProps)
 
     try {
       const invitation = await createInvitation.mutateAsync(formData);
-      const link = `${window.location.origin}/vendor/register?token=${invitation.token}`;
+      // Use published URL for vendors (they don't have Lovable access)
+      const publishedUrl = import.meta.env.VITE_PUBLIC_URL || "https://onboardly-path.lovable.app";
+      const link = `${publishedUrl}/vendor/register?token=${invitation.token}`;
       setGeneratedLink(link);
     } catch (error) {
       // Error handled in hook
