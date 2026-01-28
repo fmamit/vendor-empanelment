@@ -47,15 +47,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // IMPORTANT: Set up listener BEFORE getting session to avoid race conditions
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log("Auth state changed:", _event, session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // Get initial session after listener is set up
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("Initial session:", session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
