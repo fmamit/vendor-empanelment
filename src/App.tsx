@@ -54,12 +54,6 @@ const App = () => (
             <Route path="/staff/vendor/:vendorId" element={<VendorReviewDetail />} />
             <Route path="/staff/fraud-alerts" element={<FraudAlertsDashboard />} />
             
-            {/* Staff Routes */}
-            <Route path="/staff/login" element={<StaffLogin />} />
-            <Route path="/staff/dashboard" element={<StaffDashboard />} />
-            <Route path="/staff/queue" element={<StaffReviewQueue />} />
-            <Route path="/staff/vendor/:vendorId" element={<VendorReviewDetail />} />
-            
             {/* Admin Routes */}
             <Route path="/admin/users" element={<AdminUserManagement />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
