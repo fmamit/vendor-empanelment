@@ -7,17 +7,25 @@ import { Users, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function StaffLogin() {
-  const { user, loading, userTypeLoading } = useAuth();
+  const { user, loading, userTypeLoading, isTestMode, setTestMode } = useAuth();
   const navigate = useNavigate();
 
+  // Clear test mode when accessing staff login - staff should use real auth
   useEffect(() => {
-    console.log("[StaffLogin] Effect check:", { loading, userTypeLoading, hasUser: !!user });
-    // Only redirect after we're sure userType is determined
-    if (!loading && !userTypeLoading && user) {
+    if (isTestMode) {
+      console.log("[StaffLogin] Clearing test mode for staff login");
+      setTestMode(false);
+    }
+  }, [isTestMode, setTestMode]);
+
+  useEffect(() => {
+    console.log("[StaffLogin] Effect check:", { loading, userTypeLoading, hasUser: !!user, isTestMode });
+    // Only redirect after we're sure userType is determined and test mode is off
+    if (!loading && !userTypeLoading && !isTestMode && user) {
       console.log("[StaffLogin] Redirecting to dashboard...");
       navigate("/staff/dashboard", { replace: true });
     }
-  }, [user, loading, userTypeLoading, navigate]);
+  }, [user, loading, userTypeLoading, isTestMode, navigate]);
 
   // Show loading while checking auth or determining user type
   if (loading || userTypeLoading) {
