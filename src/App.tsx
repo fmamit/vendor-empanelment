@@ -38,7 +38,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             {/* Public Routes */}
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={<StaffLogin />} />
             <Route path="/install" element={<InstallApp />} />
             
             {/* Vendor Routes */}
