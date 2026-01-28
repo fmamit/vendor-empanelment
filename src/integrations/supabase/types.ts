@@ -304,6 +304,63 @@ export type Database = {
           },
         ]
       }
+      vendor_invitations: {
+        Row: {
+          category_id: string
+          company_name: string
+          contact_email: string
+          contact_phone: string
+          created_at: string
+          created_by: string
+          expires_at: string
+          id: string
+          token: string
+          used_at: string | null
+          vendor_id: string | null
+        }
+        Insert: {
+          category_id: string
+          company_name: string
+          contact_email: string
+          contact_phone: string
+          created_at?: string
+          created_by: string
+          expires_at?: string
+          id?: string
+          token: string
+          used_at?: string | null
+          vendor_id?: string | null
+        }
+        Update: {
+          category_id?: string
+          company_name?: string
+          contact_email?: string
+          contact_phone?: string
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          id?: string
+          token?: string
+          used_at?: string | null
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_invitations_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_invitations_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vendor_users: {
         Row: {
           created_at: string

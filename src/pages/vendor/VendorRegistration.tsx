@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { MobileLayout } from "@/components/layout/MobileLayout";
 import { RegistrationStepper } from "@/components/vendor/RegistrationStepper";
 import { DocumentCapture } from "@/components/vendor/DocumentCapture";
@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useVendorCategories, useCategoryDocuments } from "@/hooks/useVendorData";
 import { useVendorProfile, useUpdateVendor, useUploadDocument, useSubmitVendorApplication } from "@/hooks/useVendor";
+import { useValidateInvitation, useConsumeInvitation } from "@/hooks/useVendorInvitations";
 import { toast } from "sonner";
 import { 
   Building2, 
@@ -19,7 +20,10 @@ import {
   ArrowRight, 
   ArrowLeft,
   CheckCircle2,
-  Loader2 
+  Loader2,
+  AlertTriangle,
+  Phone,
+  Mail
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -33,10 +37,17 @@ const STEPS = [
 
 export default function VendorRegistration() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get("token");
+  
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [uploadingDocId, setUploadingDocId] = useState<string | null>(null);
   const [uploadedDocs, setUploadedDocs] = useState<Set<string>>(new Set());
+
+  // Validate invitation token
+  const { data: invitation, isLoading: invitationLoading, isError: invitationError } = useValidateInvitation(token);
+  const consumeInvitation = useConsumeInvitation();
 
   const { data: categories, isLoading: categoriesLoading } = useVendorCategories();
   const { data: categoryDocs } = useCategoryDocuments(selectedCategory);
@@ -64,6 +75,21 @@ export default function VendorRegistration() {
     bank_name: "",
     bank_branch: "",
   });
+
+  // Pre-fill form data from invitation
+  useEffect(() => {
+    if (invitation) {
+      setSelectedCategory(invitation.category_id);
+      setFormData(prev => ({
+        ...prev,
+        company_name: invitation.company_name,
+        primary_mobile: invitation.contact_phone,
+        primary_email: invitation.contact_email,
+      }));
+      // Skip to step 2 since category is pre-selected
+      setCurrentStep(2);
+    }
+  }, [invitation]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -103,6 +129,10 @@ export default function VendorRegistration() {
   };
 
   const handleBack = () => {
+    // Don't allow going back to step 1 if invitation pre-selected category
+    if (invitation && currentStep === 2) {
+      return;
+    }
     if (currentStep > 1) {
       setCurrentStep(prev => prev - 1);
     }
@@ -139,9 +169,70 @@ export default function VendorRegistration() {
       return;
     }
 
+    // Consume the invitation if present
+    if (token) {
+      await consumeInvitation.mutateAsync({ token, vendorId: vendor.id });
+    }
+
     await submitApplication.mutateAsync(vendor.id);
     navigate("/vendor/dashboard");
   };
+
+  // Show loading while validating invitation
+  if (invitationLoading) {
+    return (
+      <MobileLayout title="Registration">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
+            <p className="text-muted-foreground">Validating invitation...</p>
+          </div>
+        </div>
+      </MobileLayout>
+    );
+  }
+
+  // Show error if no token or invalid/expired token
+  if (!token || invitationError || (!invitationLoading && !invitation)) {
+    return (
+      <MobileLayout title="Registration">
+        <div className="flex-1 flex items-center justify-center p-6">
+          <Card className="w-full max-w-md">
+            <CardContent className="pt-6 text-center space-y-4">
+              <div className="mx-auto h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center">
+                <AlertTriangle className="h-8 w-8 text-destructive" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold">Access Denied</h2>
+                <p className="text-muted-foreground mt-2">
+                  {!token 
+                    ? "Registration requires a valid invitation link from Capital India."
+                    : "This invitation link is invalid or has expired."
+                  }
+                </p>
+              </div>
+              <div className="pt-4 border-t space-y-3">
+                <p className="text-sm font-medium">Contact Capital India for assistance:</p>
+                <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+                  <div className="flex items-center justify-center gap-2">
+                    <Phone className="h-4 w-4" />
+                    <span>+91 1800-XXX-XXXX</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    <span>vendors@capitalindia.com</span>
+                  </div>
+                </div>
+              </div>
+              <Button variant="outline" onClick={() => navigate("/")} className="mt-4">
+                Go to Home
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </MobileLayout>
+    );
+  }
 
   const renderStepContent = () => {
     switch (currentStep) {
@@ -212,6 +303,16 @@ export default function VendorRegistration() {
         return (
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">Company Details</h2>
+            
+            {/* Show pre-selected category info if from invitation */}
+            {invitation && (
+              <Card className="bg-primary/5 border-primary/20">
+                <CardContent className="p-4">
+                  <p className="text-sm text-muted-foreground">Pre-selected Category</p>
+                  <p className="font-medium">{invitation.vendor_categories?.name}</p>
+                </CardContent>
+              </Card>
+            )}
             
             <div className="space-y-3">
               <div>
@@ -521,7 +622,7 @@ export default function VendorRegistration() {
 
         {/* Navigation */}
         <div className="p-4 bg-card border-t flex gap-3">
-          {currentStep > 1 && (
+          {currentStep > 1 && !(invitation && currentStep === 2) && (
             <Button variant="outline" onClick={handleBack} className="flex-1 h-12">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back

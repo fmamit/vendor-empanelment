@@ -7,6 +7,7 @@ import { useStaffVendorQueue } from "@/hooks/useStaffWorkflow";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { CreateInvitationDialog } from "@/components/staff/CreateInvitationDialog";
 import { 
   FileSearch, 
   CheckSquare, 
@@ -17,7 +18,8 @@ import {
   Building2,
   ChevronRight,
   Loader2,
-  ShieldAlert
+  ShieldAlert,
+  UserPlus
 } from "lucide-react";
 
 export default function StaffDashboard() {
@@ -98,6 +100,25 @@ export default function StaffDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Quick Actions */}
+        {(isMaker || isAdmin) && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CreateInvitationDialog 
+                trigger={
+                  <Button className="w-full h-12" variant="default">
+                    <UserPlus className="h-5 w-5 mr-2" />
+                    Invite New Vendor
+                  </Button>
+                }
+              />
+            </CardContent>
+          </Card>
+        )}
 
         {/* Role-Based Actions */}
         <Card>
