@@ -4,12 +4,17 @@ import { supabase } from "@/integrations/supabase/client";
 
 type UserType = "vendor" | "staff" | null;
 
+// Test mode constants
+const TEST_MODE_KEY = "test_vendor_mode";
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   userType: UserType;
   loading: boolean;
+  isTestMode: boolean;
   signOut: () => Promise<void>;
+  setTestMode: (enabled: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,8 +24,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [userType, setUserType] = useState<UserType>(null);
   const [loading, setLoading] = useState(true);
+  const [isTestMode, setIsTestMode] = useState(() => {
+    return sessionStorage.getItem(TEST_MODE_KEY) === "true";
+  });
+
+  const setTestMode = (enabled: boolean) => {
+    setIsTestMode(enabled);
+    if (enabled) {
+      sessionStorage.setItem(TEST_MODE_KEY, "true");
+      setUserType("vendor");
+    } else {
+      sessionStorage.removeItem(TEST_MODE_KEY);
+      setUserType(null);
+    }
+  };
 
   useEffect(() => {
+    // If test mode is active, skip real auth
+    if (isTestMode) {
+      setUserType("vendor");
+      setLoading(false);
+      return;
+    }
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -36,10 +62,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [isTestMode]);
 
   // Determine user type when user changes
   useEffect(() => {
+    // Skip if test mode
+    if (isTestMode) {
+      setUserType("vendor");
+      return;
+    }
+
     if (!user) {
       setUserType(null);
       return;
@@ -74,9 +106,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     checkUserType();
-  }, [user]);
+  }, [user, isTestMode]);
 
   const signOut = async () => {
+    // Clear test mode on sign out
+    if (isTestMode) {
+      setTestMode(false);
+    }
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
@@ -84,7 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, userType, loading, signOut }}>
+    <AuthContext.Provider value={{ user, session, userType, loading, isTestMode, signOut, setTestMode }}>
       {children}
     </AuthContext.Provider>
   );

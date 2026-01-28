@@ -30,7 +30,7 @@ const STATUS_CONFIG = {
 };
 
 export default function VendorDashboard() {
-  const { user, userType, loading, signOut } = useAuth();
+  const { user, userType, loading, signOut, isTestMode } = useAuth();
   const navigate = useNavigate();
   const { data: vendor, isLoading: vendorLoading } = useVendorProfile();
   const { data: documents } = useVendorDocuments(vendor?.id || null);
@@ -38,10 +38,11 @@ export default function VendorDashboard() {
   const submitApplication = useSubmitVendorApplication();
 
   useEffect(() => {
-    if (!loading && (!user || userType !== "vendor")) {
+    // Allow access if test mode is active OR if user is a vendor
+    if (!loading && !isTestMode && (!user || userType !== "vendor")) {
       navigate("/vendor/login");
     }
-  }, [user, userType, loading, navigate]);
+  }, [user, userType, loading, navigate, isTestMode]);
 
   if (loading || vendorLoading) {
     return (
