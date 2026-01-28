@@ -25,7 +25,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [userType, setUserType] = useState<UserType>(null);
   const [loading, setLoading] = useState(true);
-  const [userTypeLoading, setUserTypeLoading] = useState(false);
+  // Start as true - we don't know the userType until we check
+  const [userTypeLoading, setUserTypeLoading] = useState(true);
   const [isTestMode, setIsTestMode] = useState(() => {
     return sessionStorage.getItem(TEST_MODE_KEY) === "true";
   });
