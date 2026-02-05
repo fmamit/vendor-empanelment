@@ -185,7 +185,7 @@
      console.log(`Sending ${email_type} email to ${to_email}`);
  
      const emailResponse = await resend.emails.send({
-       from: 'Capital India <onboarding@resend.dev>',
+        from: 'Capital India <noreply@in-sync.co.in>',
        to: [to_email],
        subject: subject,
        html: html,
