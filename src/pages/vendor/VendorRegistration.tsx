@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { MobileLayout } from "@/components/layout/MobileLayout";
 import { RegistrationStepper } from "@/components/vendor/RegistrationStepper";
@@ -47,9 +47,12 @@ export default function VendorRegistration() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [uploadingDocId, setUploadingDocId] = useState<string | null>(null);
   const [uploadedDocs, setUploadedDocs] = useState<Set<string>>(new Set());
-  const [isInitializing, setIsInitializing] = useState(true);
+  const [isInitializing, setIsInitializing] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
    const [isPhoneVerified, setIsPhoneVerified] = useState(false);
+
+  // Ref to prevent double execution of registration
+  const registrationInProgressRef = useRef(false);
 
   // Validate invitation token
   const { data: invitation, isLoading: invitationLoading, isError: invitationError } = useValidateInvitation(token);
@@ -99,29 +102,38 @@ export default function VendorRegistration() {
    // Auto-authenticate and create vendor when invitation is valid AND phone is verified
   useEffect(() => {
     const initializeVendorSession = async () => {
-       if (!invitation || invitationLoading || !isPhoneVerified || !token) return;
+      // Prevent double execution
+      if (registrationInProgressRef.current) return;
+      if (!invitation || invitationLoading || !isPhoneVerified || !token) return;
       
+      registrationInProgressRef.current = true;
       setIsInitializing(true);
       setInitError(null);
 
       try {
          // Use edge function to create vendor (bypasses RLS)
-         await createVendorViaEdge.mutateAsync({
+         const result = await createVendorViaEdge.mutateAsync({
            invitationToken: token,
            phoneNumber: invitation.contact_phone,
          });
 
-        await refetchVendor();
-        setIsInitializing(false);
+        // Wait for session to fully propagate before any navigation
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        // Navigate directly to dashboard instead of refetching
+        // The vendor_id is already created, dashboard will load the profile
+        console.log("Vendor registration successful, navigating to dashboard", result.vendor_id);
+        navigate("/vendor/dashboard");
       } catch (error: any) {
         console.error("Failed to initialize vendor session:", error);
         setInitError(error.message || "Failed to initialize registration");
         setIsInitializing(false);
+        registrationInProgressRef.current = false;
       }
     };
 
     initializeVendorSession();
-   }, [invitation, invitationLoading, isPhoneVerified, token]);
+  }, [invitation, invitationLoading, isPhoneVerified, token, navigate]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
