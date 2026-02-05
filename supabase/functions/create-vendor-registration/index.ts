@@ -94,9 +94,25 @@
        );
      }
  
-     console.log('OTP verification confirmed for phone:', phoneDigits);
- 
-     // 3. Create anonymous user using Admin Auth API
+      console.log('OTP verification confirmed for phone:', phoneDigits);
+
+      // 3. Check if vendor already exists for this invitation (duplicate prevention)
+      const { data: existingVendor } = await supabaseAdmin
+        .from('vendor_invitations')
+        .select('vendor_id')
+        .eq('token', invitation_token)
+        .not('vendor_id', 'is', null)
+        .maybeSingle();
+
+      if (existingVendor?.vendor_id) {
+        console.log('Vendor already exists for this invitation:', existingVendor.vendor_id);
+        return new Response(
+          JSON.stringify({ success: false, error: 'This invitation has already been used to create a vendor.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // 4. Create anonymous user using Admin Auth API
      const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
        email: `vendor_${Date.now()}@anonymous.local`,
        password: crypto.randomUUID(),
@@ -157,9 +173,25 @@
        throw new Error('Failed to link user to vendor');
      }
  
-     console.log('Linked user to vendor');
- 
-     // 6. Generate a session for the new user
+      console.log('Linked user to vendor');
+
+      // 6. Mark invitation as used
+      const { error: updateInvError } = await supabaseAdmin
+        .from('vendor_invitations')
+        .update({
+          used_at: new Date().toISOString(),
+          vendor_id: vendor.id,
+        })
+        .eq('token', invitation_token);
+
+      if (updateInvError) {
+        console.error('Failed to mark invitation as used:', updateInvError);
+        // Non-fatal - continue with registration
+      } else {
+        console.log('Marked invitation as used');
+      }
+
+      // 7. Generate a session for the new user
      const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.admin.generateLink({
        type: 'magiclink',
        email: userData.user.email!,
