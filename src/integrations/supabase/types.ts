@@ -550,6 +550,36 @@ export type Database = {
           },
         ]
       }
+      verifiedu_settings: {
+        Row: {
+          api_base_url: string | null
+          api_token: string | null
+          company_id: string | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          api_base_url?: string | null
+          api_token?: string | null
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          api_base_url?: string | null
+          api_token?: string | null
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       whatsapp_messages: {
         Row: {
           created_at: string

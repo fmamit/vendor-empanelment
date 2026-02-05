@@ -12,16 +12,18 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { 
-  Building2, 
-  FileText,
-  Plus,
-  Edit,
-  Trash2,
-  Loader2,
-  MessageSquare
-} from "lucide-react";
+ import { 
+   Building2, 
+   FileText,
+   Plus,
+   Edit,
+   Trash2,
+   Loader2,
+   MessageSquare,
+   Shield
+ } from "lucide-react";
 import { WhatsAppSettingsForm } from "@/components/admin/WhatsAppSettingsForm";
+ import { VerifiedUSettingsForm } from "@/components/admin/VerifiedUSettingsForm";
 
 export default function AdminSettings() {
   const { isAdmin } = useUserRoles();
@@ -180,6 +182,10 @@ export default function AdminSettings() {
               <MessageSquare className="h-4 w-4" />
               WhatsApp
             </TabsTrigger>
+             <TabsTrigger value="verification" className="flex items-center gap-2">
+               <Shield className="h-4 w-4" />
+               Verification API
+             </TabsTrigger>
           </TabsList>
 
           {/* Categories Tab */}
@@ -273,6 +279,11 @@ export default function AdminSettings() {
           <TabsContent value="whatsapp" className="flex-1 flex flex-col mt-0 p-6">
             <WhatsAppSettingsForm />
           </TabsContent>
+ 
+         {/* Verification API Tab */}
+         <TabsContent value="verification" className="flex-1 flex flex-col mt-0 p-6">
+           <VerifiedUSettingsForm />
+         </TabsContent>
         </Tabs>
       </div>
 
