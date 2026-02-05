@@ -16,6 +16,10 @@
    }
  
    try {
+    console.log('=== CREATE VENDOR REGISTRATION ===');
+    console.log('Service role key present:', !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
+    console.log('Supabase URL:', Deno.env.get('SUPABASE_URL'));
+    
      const supabaseAdmin = createClient(
        Deno.env.get('SUPABASE_URL') ?? '',
        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
