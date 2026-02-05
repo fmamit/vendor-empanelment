@@ -2,6 +2,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useStaffVendorQueue } from "@/hooks/useStaffWorkflow";
+ import { useInvitationsList } from "@/hooks/useVendorInvitations";
 import { NavLink } from "@/components/NavLink";
 import capitalIndiaLogo from "@/assets/capital-india-logo.jpg";
 import {
@@ -30,6 +31,7 @@ import {
   Settings,
   LogOut,
   MessageSquare,
+   UserPlus,
 } from "lucide-react";
 
 export function StaffSidebar() {
@@ -39,11 +41,15 @@ export function StaffSidebar() {
   const { isAdmin, isMaker, isChecker, isApprover } = useUserRoles();
   const { data: vendors } = useStaffVendorQueue();
   const { setOpenMobile, isMobile } = useSidebar();
+   const { data: invitations } = useInvitationsList();
 
   // Calculate counts
   const pendingReview = vendors?.filter(v => v.current_status === "pending_review").length || 0;
   const inVerification = vendors?.filter(v => v.current_status === "in_verification").length || 0;
   const pendingApproval = vendors?.filter(v => v.current_status === "pending_approval").length || 0;
+   const pendingInvitations = invitations?.filter(inv => 
+     !inv.used_at && new Date(inv.expires_at) > new Date()
+   ).length || 0;
 
   const handleSignOut = async () => {
     await signOut();
@@ -96,6 +102,27 @@ export function StaffSidebar() {
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+               
+               {(isMaker || isAdmin) && (
+                 <SidebarMenuItem>
+                   <SidebarMenuButton
+                     asChild
+                     isActive={isActive("/staff/invitations")}
+                     tooltip="Invitations"
+                   >
+                     <NavLink
+                       to="/staff/invitations"
+                       onClick={() => isMobile && setOpenMobile(false)}
+                     >
+                       <UserPlus className="h-4 w-4" />
+                       <span>Invitations</span>
+                     </NavLink>
+                   </SidebarMenuButton>
+                   {pendingInvitations > 0 && (
+                     <SidebarMenuBadge>{pendingInvitations}</SidebarMenuBadge>
+                   )}
+                 </SidebarMenuItem>
+               )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
