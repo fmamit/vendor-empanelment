@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { useVendorCategories } from "@/hooks/useVendorData";
 import { useCreateInvitation } from "@/hooks/useVendorInvitations";
+ import { useSendInvitationEmail } from "@/hooks/useEmailNotifications";
 import { toast } from "sonner";
 import { Copy, Loader2, UserPlus, Check } from "lucide-react";
 
@@ -41,6 +42,7 @@ export function CreateInvitationDialog({ trigger }: CreateInvitationDialogProps)
 
   const { data: categories, isLoading: categoriesLoading } = useVendorCategories();
   const createInvitation = useCreateInvitation();
+   const sendInvitationEmail = useSendInvitationEmail();
 
   const resetForm = () => {
     setFormData({
@@ -67,6 +69,18 @@ export function CreateInvitationDialog({ trigger }: CreateInvitationDialogProps)
       const publishedUrl = import.meta.env.VITE_PUBLIC_URL || "https://onboardly-path.lovable.app";
       const link = `${publishedUrl}/vendor/register?token=${invitation.token}`;
       setGeneratedLink(link);
+       
+       // Send invitation email
+       try {
+         await sendInvitationEmail.mutateAsync({
+           to_email: formData.contact_email,
+           company_name: formData.company_name,
+           registration_link: link,
+         });
+       } catch (emailError) {
+         // Email failure shouldn't block the invitation creation
+         console.error("Failed to send invitation email:", emailError);
+       }
     } catch (error) {
       // Error handled in hook
     }
