@@ -52,6 +52,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    // Skip auth entirely on registration paths - let registration page handle everything
+    if (shouldSkipAuth()) {
+      console.log("[Auth] On skip-auth path, skipping ALL auth setup");
+      setLoading(false);
+      setUserTypeLoading(false);
+      return;
+    }
+
     // If test mode is active, skip real auth
     if (isTestMode) {
       console.log("[Auth] Test mode active, setting userType to vendor");
@@ -63,6 +71,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // IMPORTANT: Set up listener BEFORE getting session to avoid race conditions
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // Double-check we're not on a skip path (in case of navigation)
+      if (shouldSkipAuth()) {
+        console.log("[Auth] onAuthStateChange on skip path, ignoring");
+        return;
+      }
       console.log("[Auth] onAuthStateChange:", event, "user:", session?.user?.email ?? "none");
       setSession(session);
       setUser(session?.user ?? null);
@@ -71,6 +84,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Get initial session after listener is set up
     supabase.auth.getSession().then(({ data: { session } }) => {
+      // Double-check we're not on a skip path
+      if (shouldSkipAuth()) {
+        console.log("[Auth] getSession on skip path, ignoring");
+        setLoading(false);
+        return;
+      }
       console.log("[Auth] getSession:", session?.user?.email ?? "no session");
       setSession(session);
       setUser(session?.user ?? null);
