@@ -2,6 +2,16 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
+ 
+ interface CreateVendorRegistrationResponse {
+   success: boolean;
+   vendor_id?: string;
+   user_id?: string;
+   access_token?: string;
+   refresh_token?: string;
+   error?: string;
+   message?: string;
+ }
 
 export interface Vendor {
   id: string;
@@ -82,6 +92,45 @@ export function useVendorProfile() {
     enabled: !!user && userType === "vendor",
   });
 }
+ 
+ // Hook to create vendor via edge function (bypasses RLS)
+ export function useCreateVendorViaEdgeFunction() {
+   const queryClient = useQueryClient();
+ 
+   return useMutation({
+     mutationFn: async ({
+       invitationToken,
+       phoneNumber,
+     }: {
+       invitationToken: string;
+       phoneNumber: string;
+     }): Promise<CreateVendorRegistrationResponse> => {
+       const { data, error } = await supabase.functions.invoke("create-vendor-registration", {
+         body: { invitation_token: invitationToken, phone_number: phoneNumber },
+       });
+ 
+       if (error) throw error;
+       if (!data.success) throw new Error(data.error || "Failed to create vendor");
+ 
+       // Set the session if tokens are returned
+       if (data.access_token && data.refresh_token) {
+         await supabase.auth.setSession({
+           access_token: data.access_token,
+           refresh_token: data.refresh_token,
+         });
+       }
+ 
+       return data;
+     },
+     onSuccess: () => {
+       queryClient.invalidateQueries({ queryKey: ["vendor-profile"] });
+     },
+     onError: (error: Error) => {
+       console.error("Vendor registration error:", error);
+       toast.error(error.message || "Failed to create vendor profile");
+     },
+   });
+ }
 
 export function useVendorDocuments(vendorId: string | null) {
   return useQuery({

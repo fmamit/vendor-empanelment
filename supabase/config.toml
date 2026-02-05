@@ -11,3 +11,12 @@ project_id = "knsdcrnslpaprfilwvda"
  
  [functions.sync-whatsapp-templates]
  verify_jwt = false
+ 
+ [functions.send-otp]
+ verify_jwt = false
+ 
+ [functions.verify-otp]
+ verify_jwt = false
+ 
+ [functions.create-vendor-registration]
+ verify_jwt = false

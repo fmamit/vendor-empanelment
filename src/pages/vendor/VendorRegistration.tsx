@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useVendorCategories, useCategoryDocuments } from "@/hooks/useVendorData";
-import { useVendorProfile, useUpdateVendor, useUploadDocument, useSubmitVendorApplication, useCreateVendor } from "@/hooks/useVendor";
+ import { useVendorProfile, useUpdateVendor, useUploadDocument, useSubmitVendorApplication, useCreateVendorViaEdgeFunction } from "@/hooks/useVendor";
 import { useValidateInvitation, useConsumeInvitation } from "@/hooks/useVendorInvitations";
  import { OTPVerification } from "@/components/vendor/OTPVerification";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,7 +59,7 @@ export default function VendorRegistration() {
   const updateVendor = useUpdateVendor();
   const uploadDocument = useUploadDocument();
   const submitApplication = useSubmitVendorApplication();
-  const createVendor = useCreateVendor();
+   const createVendorViaEdge = useCreateVendorViaEdgeFunction();
 
   // Form state
   const [formData, setFormData] = useState({
@@ -97,45 +97,17 @@ export default function VendorRegistration() {
    // Auto-authenticate and create vendor when invitation is valid AND phone is verified
   useEffect(() => {
     const initializeVendorSession = async () => {
-       if (!invitation || invitationLoading || !isPhoneVerified) return;
+       if (!invitation || invitationLoading || !isPhoneVerified || !token) return;
       
       setIsInitializing(true);
       setInitError(null);
 
       try {
-        // Check if already authenticated
-        const { data: { session } } = await supabase.auth.getSession();
-        let userId = session?.user?.id;
-
-        // If not authenticated, sign in anonymously
-        if (!userId) {
-          const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
-          if (anonError) throw anonError;
-          userId = anonData.user?.id;
-        }
-
-        if (!userId) {
-          throw new Error("Failed to create session");
-        }
-
-        // Check if vendor already exists for this user
-        const { data: existingVendorUser } = await supabase
-          .from("vendor_users")
-          .select("vendor_id")
-          .eq("user_id", userId)
-          .maybeSingle();
-
-        if (!existingVendorUser) {
-          // Create new vendor and link to user
-          await createVendor.mutateAsync({
-            categoryId: invitation.category_id,
-            companyName: invitation.company_name,
-            primaryContactName: formData.primary_contact_name || "Primary Contact",
-            primaryMobile: invitation.contact_phone,
-            primaryEmail: invitation.contact_email,
-            userId: userId,
-          });
-        }
+         // Use edge function to create vendor (bypasses RLS)
+         await createVendorViaEdge.mutateAsync({
+           invitationToken: token,
+           phoneNumber: invitation.contact_phone,
+         });
 
         await refetchVendor();
         setIsInitializing(false);
@@ -147,7 +119,7 @@ export default function VendorRegistration() {
     };
 
     initializeVendorSession();
-   }, [invitation, invitationLoading, isPhoneVerified]);
+   }, [invitation, invitationLoading, isPhoneVerified, token]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
