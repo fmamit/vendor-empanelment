@@ -1,42 +1,80 @@
 
-
-# Verify Vendor Registration Fix
+# Root Cause Analysis: Vendor Registration RLS Error
 
 ## Summary
 
-After thorough investigation, I found that:
+The RLS error persists due to a **race condition** in the registration flow, not an RLS policy misconfiguration.
 
-1. **The RLS fix has been applied correctly** - Both `vendors` and `vendor_users` tables now have permissive INSERT policies
-2. **The error you saw was from BEFORE the fix** - The database error timestamps (09:37 UTC) occurred before the migration was applied (09:38 UTC)
-3. **The edge function is working correctly** - It validates invitation tokens, verifies OTP, and uses the service role key
+## Root Cause
 
-## Current Database Policy State
+When the phone verification completes, the following sequence occurs:
 
-| Table | Policy | Status |
-|-------|--------|--------|
-| `vendors` | `Allow vendor creation via edge function` | `WITH CHECK (true)` ✅ |
-| `vendor_users` | `Allow vendor user creation via edge function` | `WITH CHECK (true)` ✅ |
+1. `isPhoneVerified` becomes `true`
+2. `useEffect` triggers `createVendorViaEdge.mutateAsync()`
+3. Edge function creates user, vendor, and returns session tokens
+4. Frontend calls `supabase.auth.setSession()` (async operation)
+5. **RACE**: `refetchVendor()` is called BEFORE the session is fully propagated
+6. The vendor profile query executes as an unauthenticated user, causing failures
 
-## Why This Happened
+Additionally, the `useEffect` can fire multiple times if dependencies change, potentially causing duplicate registration attempts.
 
-The original INSERT policies required `auth.uid() IS NOT NULL`, but during vendor registration:
-- The user doesn't have an authenticated session yet
-- Even though the edge function uses Service Role (which should bypass RLS), the restrictive policy was still causing issues
+## Evidence
 
-## The Fix That Was Applied
+| Timestamp | Event | User ID |
+|-----------|-------|---------|
+| 10:13:46 | Anonymous signup (frontend) | `9797de04...` (no metadata) |
+| 10:14:17 | Anonymous signup (frontend) | `74fa191a...` (no metadata) |
+| 06:47:49 | Proper user (edge function) | `cf62f562...` (has `is_vendor:true`) |
 
-The migrations updated the INSERT policies to be permissive for both tables. This is secure because:
-- The edge function already validates the invitation token and OTP before creating records
-- All other operations (SELECT, UPDATE, DELETE) remain protected by role-based RLS policies
+The users with empty metadata are created by the frontend's auth system, not the edge function.
 
-## Action Required
+## Solution
 
-**Please test the registration flow again:**
+### Changes Required
 
-1. Create a new invitation for a vendor
-2. Open the invitation link in an incognito/private browser window
-3. Complete the phone verification (OTP)
-4. The registration should now proceed without RLS errors
+| File | Change |
+|------|--------|
+| `src/pages/vendor/VendorRegistration.tsx` | Add ref guard to prevent double execution; use returned vendor_id directly instead of refetching; add proper session waiting |
+| `src/hooks/useVendor.tsx` | Return vendor data from mutation for immediate use |
 
-If you still encounter the error, please share a fresh screenshot and I'll investigate further - there may be a deployment timing issue or browser cache.
+### Implementation Details
 
+1. **Add Ref Guard**: Prevent the useEffect from running multiple times
+2. **Use Returned Data**: The edge function returns `vendor_id` - use it directly instead of calling `refetchVendor()`
+3. **Wait for Session**: Add a small delay or listener to ensure `setSession()` has propagated before any subsequent queries
+4. **Navigation**: After successful registration, navigate directly to the dashboard instead of staying on the page
+
+### Code Pattern
+
+```typescript
+const registrationInProgressRef = useRef(false);
+
+useEffect(() => {
+  const initializeVendorSession = async () => {
+    // Prevent double execution
+    if (registrationInProgressRef.current) return;
+    if (!invitation || invitationLoading || !isPhoneVerified || !token) return;
+    
+    registrationInProgressRef.current = true;
+    setIsInitializing(true);
+
+    try {
+      const result = await createVendorViaEdge.mutateAsync({...});
+      
+      // Wait for session to propagate
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Navigate directly - don't refetch
+      navigate("/vendor/dashboard");
+    } catch (error) {
+      registrationInProgressRef.current = false;
+      setInitError(error.message);
+    }
+  };
+  initializeVendorSession();
+}, [invitation, invitationLoading, isPhoneVerified, token]);
+```
+
+## Summary
+
+The fix involves adding safeguards against race conditions and double-execution, and using the data returned by the edge function directly rather than immediately querying the database.
