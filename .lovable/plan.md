@@ -1,42 +1,87 @@
 
-# Update Email Sender Domain
+# Vendor Invitations Management Page
 
-## Problem
+## Overview
+Create a dedicated page where staff can view and manage all vendor invitations, track their status, copy links, and resend notifications.
 
-The `send-vendor-email` edge function is currently using the default Resend testing domain (`onboarding@resend.dev`), which only allows sending emails to the Resend account owner. Your domain `in-sync.co.in` is now verified and ready to use.
-
-## Solution
-
-Update the `from` address in the edge function to use your verified domain.
-
-## Change Required
-
-**File:** `supabase/functions/send-vendor-email/index.ts`
-
-**Line 188 - Current:**
-```typescript
-from: 'Capital India <onboarding@resend.dev>',
-```
-
-**Updated:**
-```typescript
-from: 'Capital India <noreply@in-sync.co.in>',
-```
-
-## Impact
-
-After this change:
-- Emails can be sent to any recipient (not just the account owner)
-- Emails will have better deliverability with verified SPF/DKIM
-- The sender will appear as "Capital India" with the address `noreply@in-sync.co.in`
+## Status Categories
+Based on the invitation data:
+- **Pending**: `used_at` is null AND `expires_at` is in the future
+- **Accepted**: `used_at` is not null (vendor completed registration)
+- **Expired**: `used_at` is null AND `expires_at` is in the past
 
 ## Implementation
 
-This is a single-line change in the edge function. Once deployed, the system will immediately be able to send emails to vendors at any email address.
+### 1. Create New Page: `src/pages/staff/VendorInvitations.tsx`
 
-## Testing
+A table-based view showing all invitations with:
+- Company name and category
+- Contact details (phone, email)
+- Status badge (Pending/Accepted/Expired)
+- Creation date
+- Expiry date
+- Actions column with:
+  - Copy link button
+  - Resend email button
+  - Resend WhatsApp button
 
-After the update, we can:
-1. Send a test invitation to verify delivery
-2. Check that the email appears correctly with the Capital India branding
-3. Confirm it doesn't land in spam
+The page will include:
+- Filter tabs to quickly view by status (All, Pending, Accepted, Expired)
+- Search functionality for company name
+- A prominent "Invite New Vendor" button at the top
+
+### 2. Update Routing: `src/App.tsx`
+
+Add new route:
+```text
+/staff/invitations -> VendorInvitations page
+```
+
+### 3. Update Sidebar Navigation: `src/components/layout/StaffSidebar.tsx`
+
+Add "Invitations" link under the Main section (visible to Makers and Admins) with a badge showing pending invitation count.
+
+### 4. Features
+
+| Feature | Description |
+|---------|-------------|
+| Status Badges | Color-coded badges (green for accepted, yellow for pending, red for expired) |
+| Copy Link | Quick copy of the registration URL to clipboard |
+| Resend Email | Re-trigger invitation email using existing hook |
+| Resend WhatsApp | Re-trigger WhatsApp message using existing hook |
+| Filter Tabs | Quick filters for All/Pending/Accepted/Expired |
+| Search | Filter by company name |
+| Responsive | Works on both desktop and mobile |
+
+---
+
+## Technical Details
+
+### Data Flow
+```text
+useInvitationsList() hook
+        |
+        v
+VendorInvitations page
+        |
+        +-- Filter by status (computed from expires_at/used_at)
+        +-- Render table with action buttons
+        +-- useSendInvitationEmail() for resend
+        +-- useSendInvitationWhatsApp() for resend
+```
+
+### Status Computation Logic
+```text
+function getInvitationStatus(invitation):
+    if invitation.used_at is not null:
+        return "accepted"
+    else if invitation.expires_at < now:
+        return "expired"
+    else:
+        return "pending"
+```
+
+### Files to Create/Modify
+- **Create**: `src/pages/staff/VendorInvitations.tsx` - Main management page
+- **Modify**: `src/App.tsx` - Add route
+- **Modify**: `src/components/layout/StaffSidebar.tsx` - Add navigation link
