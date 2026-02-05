@@ -1,38 +1,111 @@
 
+# Complete Vendor Registration Flow Redesign
 
-# Root Cause Analysis: Vendor Registration RLS Error
+## Problem Summary
+The vendor registration page fails because it inherits the staff user's browser session. When the `useAuth` hook runs, it detects the existing staff session and triggers database queries that fail under the vendor context.
 
-## Summary
+## Root Cause
+The registration page is NOT truly isolated from the authentication system. When opened in the same browser as a logged-in staff user:
+1. The `AuthProvider` wraps the entire app, including the registration page
+2. The existing session triggers `checkUserType()` in `useAuth`
+3. RLS policies block access because the staff user isn't a vendor
 
-After thorough investigation, the registration page **is now working correctly**. The RLS errors you saw were from previous attempts before the latest fixes were applied.
+## Solution: Isolated Registration Flow
 
-## Root Cause Findings
+### Phase 1: Make Registration Page Session-Independent
 
-| Issue | Cause | Status |
-|-------|-------|--------|
-| Race condition | `useEffect` triggering multiple times before session was established | Fixed |
-| Double execution | No guard against re-running registration logic | Fixed |
-| Session propagation | Queries running before `setSession()` completed | Fixed (800ms delay added) |
-| Stale errors | Database logs showing old errors from before fixes | Resolved |
+**File: `src/pages/vendor/VendorRegistration.tsx`**
 
-## Evidence
+Add session clearing at the very start of the registration flow:
+- Before any validation, sign out any existing session silently
+- This ensures the registration page starts with a clean slate
+- The edge function handles all authentication, so we don't need an existing session
 
-1. **Browser test shows OTP screen loading correctly** - The invitation link now displays the phone verification screen as expected
-2. **Edge function logs show successful registration** - Last successful vendor creation at 10:30:42 UTC
-3. **RLS errors were from earlier attempts** - Timestamps (10:26, 10:33) predate the latest fixes
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                    CURRENT (BROKEN) FLOW                        │
+├─────────────────────────────────────────────────────────────────┤
+│  1. User visits /vendor/register                                │
+│  2. AuthProvider detects EXISTING staff session                 │
+│  3. useAuth runs checkUserType() → queries profiles table       │
+│  4. VendorRegistration starts → calls validate-invitation       │
+│  5. Page loads BUT AuthProvider continues in background         │
+│  6. Something triggers vendors table query → RLS ERROR          │
+└─────────────────────────────────────────────────────────────────┘
 
-## Remaining Improvement Recommendations
+┌─────────────────────────────────────────────────────────────────┐
+│                     NEW (FIXED) FLOW                            │
+├─────────────────────────────────────────────────────────────────┤
+│  1. User visits /vendor/register                                │
+│  2. VendorRegistration calls supabase.auth.signOut() FIRST      │
+│  3. AuthProvider now has NO session                             │
+│  4. validate-invitation edge function runs                      │
+│  5. OTP verification completes                                  │
+│  6. create-vendor-registration creates user + session           │
+│  7. Clean redirect to dashboard                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-### 1. Mark Invitations as Used
-Currently, invitations are not marked as `used_at` when registration completes, allowing reuse of the same link.
+### Phase 2: Prevent AuthProvider Queries During Registration
 
-### 2. Remove Dead Code
-The `useCreateVendor` hook (lines 267-324 in `useVendor.tsx`) is unused and performs direct client-side inserts that would fail RLS. Should be removed to prevent accidental usage.
+**File: `src/hooks/useAuth.tsx`**
 
-### 3. Add Duplicate Prevention
-The edge function should check if a vendor already exists for the invitation before creating a new one.
+Add a check for registration path to skip user type checking:
+- When on `/vendor/register`, skip the `checkUserType` queries entirely
+- This prevents any RLS-protected queries during registration
 
-## Next Steps
+### Phase 3: Add Registration-Specific Route Guard
 
-Please test the registration flow with a **fresh invitation link** (create a new one from the Invitations page). The existing invitation for "ash" was already used to successfully create vendor CI-2026-0003.
+**File: `src/App.tsx`**
 
+Consider using a separate route wrapper for registration that doesn't use the full `AuthProvider` context, or conditionally skip auth checks for the registration route.
+
+## Technical Implementation Details
+
+### Changes to VendorRegistration.tsx
+
+1. **Add session clearing on mount**:
+   - Call `supabase.auth.signOut()` before validation
+   - Add a `sessionCleared` state to track this
+   - Only proceed with token validation after session is cleared
+
+2. **Prevent race conditions**:
+   - Use a `useRef` to track if clearing is in progress
+   - Show loading state during session clearing
+
+### Changes to useAuth.tsx
+
+1. **Add path-aware behavior**:
+   - Import `useLocation` from react-router
+   - Skip `checkUserType` when on registration paths
+   - Return empty/loading state for registration routes
+
+### Expected Behavior After Fix
+
+1. Staff clicks registration link → session is cleared → clean registration flow
+2. No RLS errors during registration
+3. After successful registration, new vendor session is established
+4. Staff's original session is lost (they need to log in again if they return to staff pages)
+
+## Alternative Approach: Incognito Window
+
+If the session clearing approach causes issues, the alternative is to:
+1. Detect if there's an existing staff session
+2. Show a warning: "Please open this link in an incognito window or log out first"
+3. Provide a button to sign out and continue with registration
+
+## Files to Modify
+
+| File | Change |
+|------|--------|
+| `src/pages/vendor/VendorRegistration.tsx` | Add session clearing on mount, add loading state |
+| `src/hooks/useAuth.tsx` | Skip user type queries on registration paths |
+
+## Testing Plan
+
+1. Log in as staff on the invitations page
+2. Create a new invitation
+3. Click the registration link (should work now)
+4. Complete OTP verification
+5. Verify vendor is created and dashboard loads
+6. Navigate back to staff login and confirm staff session was cleared
