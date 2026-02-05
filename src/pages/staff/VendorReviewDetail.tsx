@@ -14,6 +14,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+ import { SendWhatsAppDialog } from "@/components/staff/SendWhatsAppDialog";
+ import { WhatsAppHistory } from "@/components/staff/WhatsAppHistory";
 import { 
   Building2, 
   FileText, 
@@ -27,7 +30,8 @@ import {
   CreditCard,
   Phone,
   Mail,
-  MapPin
+   MapPin,
+   MessageSquare
 } from "lucide-react";
 
 const STATUS_LABELS = {
@@ -62,6 +66,7 @@ export default function VendorReviewDetail() {
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+   const [showWhatsAppDialog, setShowWhatsAppDialog] = useState(false);
 
   if (vendorLoading || docsLoading) {
     return (
@@ -160,14 +165,36 @@ export default function VendorReviewDetail() {
                 <p className="font-semibold text-xl">{vendor.company_name}</p>
                 <p className="text-sm opacity-80">{vendor.vendor_code}</p>
               </div>
-              <Badge className="bg-white/20">
-                {STATUS_LABELS[vendor.current_status]}
-              </Badge>
+               <div className="flex items-center gap-2">
+                 <Button
+                   size="sm"
+                   variant="secondary"
+                   onClick={() => setShowWhatsAppDialog(true)}
+                   className="bg-white/20 hover:bg-white/30"
+                 >
+                   <MessageSquare className="h-4 w-4 mr-1" />
+                   WhatsApp
+                 </Button>
+                 <Badge className="bg-white/20">
+                   {STATUS_LABELS[vendor.current_status]}
+                 </Badge>
+               </div>
             </div>
           </CardContent>
         </Card>
 
-        <div className="grid md:grid-cols-2 gap-6">
+         <Tabs defaultValue="details" className="space-y-4">
+           <TabsList>
+             <TabsTrigger value="details">Details</TabsTrigger>
+             <TabsTrigger value="documents">Documents ({documents?.length || 0})</TabsTrigger>
+             <TabsTrigger value="communication">
+               <MessageSquare className="h-4 w-4 mr-1" />
+               Communication
+             </TabsTrigger>
+           </TabsList>
+ 
+           <TabsContent value="details" className="space-y-6">
+             <div className="grid md:grid-cols-2 gap-6">
           {/* Company Details */}
           <Card>
             <CardHeader className="pb-2">
@@ -276,7 +303,9 @@ export default function VendorReviewDetail() {
             </CardContent>
           </Card>
         )}
+           </TabsContent>
 
+           <TabsContent value="documents">
         {/* Documents */}
         <Card>
           <CardHeader className="pb-2">
@@ -351,6 +380,12 @@ export default function VendorReviewDetail() {
             )}
           </CardContent>
         </Card>
+           </TabsContent>
+ 
+           <TabsContent value="communication">
+             <WhatsAppHistory vendorId={vendor.id} />
+           </TabsContent>
+         </Tabs>
       </div>
 
       {/* Action Buttons */}
@@ -439,6 +474,15 @@ export default function VendorReviewDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+ 
+       {/* WhatsApp Dialog */}
+       <SendWhatsAppDialog
+         open={showWhatsAppDialog}
+         onOpenChange={setShowWhatsAppDialog}
+         vendorId={vendor.id}
+         vendorName={vendor.company_name}
+         phoneNumber={vendor.primary_mobile}
+       />
     </StaffLayout>
   );
 }

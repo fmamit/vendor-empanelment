@@ -5,6 +5,7 @@ import { useUserRoles } from "./useUserRoles";
 import { toast } from "sonner";
 import { Vendor, VendorDocument } from "./useVendor";
  import { useSendStatusEmail } from "./useEmailNotifications";
+ import { useSendStatusWhatsApp } from "./useWhatsAppNotifications";
 
 export interface VendorWithCategory extends Vendor {
   vendor_categories: {
@@ -84,6 +85,7 @@ export function useUpdateVendorStatus() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
    const sendStatusEmail = useSendStatusEmail();
+   const sendStatusWhatsApp = useSendStatusWhatsApp();
 
   return useMutation({
     mutationFn: async ({
@@ -137,7 +139,7 @@ export function useUpdateVendorStatus() {
        // Send email notification to vendor
        const { data: vendorData } = await supabase
          .from("vendors")
-         .select("primary_email, company_name, primary_contact_name, vendor_code")
+         .select("primary_email, company_name, primary_contact_name, vendor_code, primary_mobile")
          .eq("id", vendorId)
          .single();
        
@@ -175,6 +177,51 @@ export function useUpdateVendorStatus() {
          } catch (emailError) {
            console.error("Failed to send status email:", emailError);
            // Don't throw - email failure shouldn't block status update
+         }
+       }
+       
+       // Send WhatsApp notification to vendor
+       if (vendorData?.primary_mobile) {
+         try {
+           if (newStatus === "approved") {
+             await sendStatusWhatsApp.mutateAsync({
+               vendor_id: vendorId,
+               phone_number: vendorData.primary_mobile,
+               template_name: "status_approved",
+               template_variables: {
+                 "1": vendorData.primary_contact_name || vendorData.company_name,
+                 "2": vendorData.company_name,
+                 "3": vendorData.vendor_code || "N/A",
+               },
+             });
+           } else if (newStatus === "rejected") {
+             await sendStatusWhatsApp.mutateAsync({
+               vendor_id: vendorId,
+               phone_number: vendorData.primary_mobile,
+               template_name: "status_rejected",
+               template_variables: {
+                 "1": vendorData.primary_contact_name || vendorData.company_name,
+                 "2": vendorData.company_name,
+                 "3": comments || "Application did not meet requirements",
+               },
+             });
+           } else if (["in_verification", "pending_approval"].includes(newStatus)) {
+             const statusLabels: Record<string, string> = {
+               in_verification: "In Verification",
+               pending_approval: "Pending Final Approval",
+             };
+             await sendStatusWhatsApp.mutateAsync({
+               vendor_id: vendorId,
+               phone_number: vendorData.primary_mobile,
+               template_name: "status_update",
+               template_variables: {
+                 "1": vendorData.primary_contact_name || vendorData.company_name,
+                 "2": statusLabels[newStatus] || newStatus,
+               },
+             });
+           }
+         } catch (whatsappError) {
+           console.error("Failed to send status WhatsApp:", whatsappError);
          }
        }
     },

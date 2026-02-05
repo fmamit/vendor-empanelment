@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -21,8 +22,9 @@ import {
 import { useVendorCategories } from "@/hooks/useVendorData";
 import { useCreateInvitation } from "@/hooks/useVendorInvitations";
  import { useSendInvitationEmail } from "@/hooks/useEmailNotifications";
+ import { useSendInvitationWhatsApp } from "@/hooks/useWhatsAppNotifications";
 import { toast } from "sonner";
-import { Copy, Loader2, UserPlus, Check } from "lucide-react";
+ import { Copy, Loader2, UserPlus, Check, MessageSquare } from "lucide-react";
 
 interface CreateInvitationDialogProps {
   trigger?: React.ReactNode;
@@ -32,6 +34,7 @@ export function CreateInvitationDialog({ trigger }: CreateInvitationDialogProps)
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
+   const [sendWhatsApp, setSendWhatsApp] = useState(true);
   
   const [formData, setFormData] = useState({
     category_id: "",
@@ -43,6 +46,7 @@ export function CreateInvitationDialog({ trigger }: CreateInvitationDialogProps)
   const { data: categories, isLoading: categoriesLoading } = useVendorCategories();
   const createInvitation = useCreateInvitation();
    const sendInvitationEmail = useSendInvitationEmail();
+   const sendInvitationWhatsApp = useSendInvitationWhatsApp();
 
   const resetForm = () => {
     setFormData({
@@ -53,6 +57,7 @@ export function CreateInvitationDialog({ trigger }: CreateInvitationDialogProps)
     });
     setGeneratedLink(null);
     setCopied(false);
+     setSendWhatsApp(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -80,6 +85,20 @@ export function CreateInvitationDialog({ trigger }: CreateInvitationDialogProps)
        } catch (emailError) {
          // Email failure shouldn't block the invitation creation
          console.error("Failed to send invitation email:", emailError);
+       }
+       
+       // Send WhatsApp invitation if enabled
+       if (sendWhatsApp && formData.contact_phone) {
+         try {
+           await sendInvitationWhatsApp.mutateAsync({
+             phone_number: formData.contact_phone,
+             company_name: formData.company_name,
+             registration_link: link,
+           });
+           toast.success("WhatsApp invitation sent");
+         } catch (whatsappError) {
+           console.error("Failed to send WhatsApp invitation:", whatsappError);
+         }
        }
     } catch (error) {
       // Error handled in hook
@@ -182,6 +201,21 @@ export function CreateInvitationDialog({ trigger }: CreateInvitationDialogProps)
               />
             </div>
 
+             <div className="flex items-center space-x-2 pt-2">
+               <Checkbox
+                 id="sendWhatsApp"
+                 checked={sendWhatsApp}
+                 onCheckedChange={(checked) => setSendWhatsApp(checked === true)}
+               />
+               <label
+                 htmlFor="sendWhatsApp"
+                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-1"
+               >
+                 <MessageSquare className="h-4 w-4 text-green-600" />
+                 Also send WhatsApp invitation
+               </label>
+             </div>
+ 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                 Cancel
