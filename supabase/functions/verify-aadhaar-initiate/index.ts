@@ -1,5 +1,10 @@
- import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
- import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// VerifiedU API Credentials (hardcoded)
+const VERIFIEDU_TOKEN = "YOUR_API_TOKEN_HERE";
+const VERIFIEDU_COMPANY_ID = "YOUR_COMPANY_ID_HERE";
+const VERIFIEDU_BASE_URL = "https://api.verifiedu.in";
  
  const corsHeaders = {
    "Access-Control-Allow-Origin": "*",
@@ -32,23 +37,12 @@
        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
      );
  
-     // Fetch credentials from database
-     const { data: settings, error: settingsError } = await adminClient
-       .from("verifiedu_settings")
-       .select("*")
-       .eq("is_active", true)
-       .maybeSingle();
- 
-     const verifieduToken = settings?.api_token;
-     const companyId = settings?.company_id;
-     const baseUrl = settings?.api_base_url;
- 
      // Build callback URLs
      const surl = `${supabaseUrl}/functions/v1/digilocker-callback/success?vendorId=${vendorId}&returnUrl=${encodeURIComponent(returnUrl || frontendUrl)}`;
      const furl = `${supabaseUrl}/functions/v1/digilocker-callback/failure?vendorId=${vendorId}&returnUrl=${encodeURIComponent(returnUrl || frontendUrl)}`;
  
-     // Mock mode if credentials not configured or settings inactive
-     if (!settings || !verifieduToken || !companyId || !baseUrl) {
+    // Mock mode if credentials not configured
+    if (!VERIFIEDU_TOKEN || VERIFIEDU_TOKEN === "YOUR_API_TOKEN_HERE") {
        console.log("VerifiedU credentials not configured, using mock mode");
        
        const mockRequestNumber = `mock_aadhaar_${Date.now()}`;
@@ -78,12 +72,12 @@
  
      // Call VerifiedU API
      console.log("Calling VerifiedU Aadhaar DigiLocker API");
-     const response = await fetch(`${baseUrl}/api/verifiedu/VerifyAadhaarViaDigilocker`, {
+    const response = await fetch(`${VERIFIEDU_BASE_URL}/api/verifiedu/VerifyAadhaarViaDigilocker`, {
        method: "POST",
        headers: {
          "Content-Type": "application/json",
-         "token": verifieduToken,
-         "companyid": companyId,
+        "token": VERIFIEDU_TOKEN,
+        "companyid": VERIFIEDU_COMPANY_ID,
        },
        body: JSON.stringify({ surl, furl }),
      });
