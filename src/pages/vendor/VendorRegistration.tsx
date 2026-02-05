@@ -1,468 +1,545 @@
-import { useState, useEffect, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { MobileLayout } from "@/components/layout/MobileLayout";
+import { RegistrationStepper } from "@/components/vendor/RegistrationStepper";
+import { DocumentCapture } from "@/components/vendor/DocumentCapture";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import { supabase } from "@/integrations/supabase/client";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useVendorCategories, useCategoryDocuments } from "@/hooks/useVendorData";
+import { useVendorProfile, useUpdateVendor, useUploadDocument, useSubmitVendorApplication } from "@/hooks/useVendor";
 import { toast } from "sonner";
 import { 
   Building2, 
+  User, 
+  CreditCard, 
+  FileText, 
+  ArrowRight, 
+  ArrowLeft,
   CheckCircle2,
-  Loader2,
-  AlertTriangle,
-  Phone,
-  Mail,
-  MessageSquare,
-  RefreshCw,
-  Shield
+  Loader2 
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-/**
- * REDESIGNED VENDOR REGISTRATION FLOW
- * 
- * Architecture:
- * 1. Token validation via edge function (no client-side DB queries)
- * 2. OTP verification 
- * 3. Vendor creation + session in one atomic operation
- * 4. Redirect to dashboard
- * 
- * Key improvements:
- * - No RLS queries before authentication
- * - Single edge function handles validation + creation
- * - Simple state machine: VALIDATING → VERIFY_PHONE → REGISTERING → SUCCESS
- */
-
-type RegistrationState = 
-  | "VALIDATING"      // Checking token validity
-  | "INVALID_TOKEN"   // Token invalid or expired
-  | "VERIFY_PHONE"    // OTP verification step
-  | "REGISTERING"     // Creating vendor + session
-  | "ERROR"           // Something went wrong
-  | "SUCCESS";        // Done - redirecting
-
-interface InvitationData {
-  company_name: string;
-  contact_phone: string;
-  contact_email: string;
-  category_name: string;
-}
+const STEPS = [
+  { id: 1, title: "Category" },
+  { id: 2, title: "Company" },
+  { id: 3, title: "Contact" },
+  { id: 4, title: "Bank" },
+  { id: 5, title: "Documents" },
+];
 
 export default function VendorRegistration() {
-  const [searchParams] = useSearchParams();
-  const token = searchParams.get("token");
-  
-  // State machine - start with CLEARING_SESSION to ensure clean slate
-  const [state, setState] = useState<RegistrationState>("VALIDATING");
-  const [error, setError] = useState<string | null>(null);
-  const [sessionCleared, setSessionCleared] = useState(false);
-  
-  // Invitation data (fetched via edge function)
-  const [invitation, setInvitation] = useState<InvitationData | null>(null);
-  
-  // OTP state
-  const [otp, setOtp] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
-  const [countdown, setCountdown] = useState(0);
-  const [isSendingOtp, setIsSendingOtp] = useState(false);
-  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
-  
-  // Prevent double execution
-  const registrationInProgressRef = useRef(false);
-  const sessionClearingRef = useRef(false);
+  const navigate = useNavigate();
+  const [currentStep, setCurrentStep] = useState(1);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [uploadingDocId, setUploadingDocId] = useState<string | null>(null);
+  const [uploadedDocs, setUploadedDocs] = useState<Set<string>>(new Set());
 
-  // Step 0: Clear any existing session FIRST to prevent RLS issues
-  useEffect(() => {
-    const clearExistingSession = async () => {
-      if (sessionClearingRef.current || sessionCleared) return;
-      sessionClearingRef.current = true;
-      
-      try {
-        console.log("[VendorRegistration] Clearing any existing session...");
-        await supabase.auth.signOut();
-        console.log("[VendorRegistration] Session cleared successfully");
-      } catch (err) {
-        // Ignore errors - session might not exist
-        console.log("[VendorRegistration] No session to clear or error:", err);
-      } finally {
-        setSessionCleared(true);
-        sessionClearingRef.current = false;
-      }
-    };
+  const { data: categories, isLoading: categoriesLoading } = useVendorCategories();
+  const { data: categoryDocs } = useCategoryDocuments(selectedCategory);
+  const { data: vendor, refetch: refetchVendor } = useVendorProfile();
+  const updateVendor = useUpdateVendor();
+  const uploadDocument = useUploadDocument();
+  const submitApplication = useSubmitVendorApplication();
 
-    clearExistingSession();
-  }, []);
+  // Form state
+  const [formData, setFormData] = useState({
+    company_name: "",
+    trade_name: "",
+    gst_number: "",
+    pan_number: "",
+    cin_number: "",
+    registered_address: "",
+    operational_address: "",
+    primary_contact_name: "",
+    primary_mobile: "",
+    primary_email: "",
+    secondary_contact_name: "",
+    secondary_mobile: "",
+    bank_account_number: "",
+    bank_ifsc: "",
+    bank_name: "",
+    bank_branch: "",
+  });
 
-  // Countdown timer for OTP resend
-  useEffect(() => {
-    if (countdown > 0) {
-      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [countdown]);
-
-  // Step 1: Validate token via edge function (no RLS involved)
-  // ONLY runs after session is cleared
-  useEffect(() => {
-    const validateToken = async () => {
-      // Wait for session to be cleared first
-      if (!sessionCleared) {
-        console.log("[VendorRegistration] Waiting for session to clear...");
-        return;
-      }
-      
-      if (!token) {
-        setState("INVALID_TOKEN");
-        setError("Registration requires a valid invitation link from Capital India.");
-        return;
-      }
-
-      console.log("[VendorRegistration] Session cleared, validating token...");
-      
-      try {
-        const { data, error: fnError } = await supabase.functions.invoke("validate-invitation", {
-          body: { token },
-        });
-
-        if (fnError) throw fnError;
-
-        if (!data.valid) {
-          setState("INVALID_TOKEN");
-          setError(data.error || "This invitation link is invalid or has expired.");
-          return;
-        }
-
-        setInvitation({
-          company_name: data.company_name,
-          contact_phone: data.contact_phone,
-          contact_email: data.contact_email,
-          category_name: data.category_name,
-        });
-        setState("VERIFY_PHONE");
-        
-        // Auto-send OTP after validation
-        sendOTP(data.contact_phone);
-      } catch (err: any) {
-        console.error("Token validation error:", err);
-        setState("INVALID_TOKEN");
-        setError("Failed to validate invitation. Please try again.");
-      }
-    };
-
-    validateToken();
-  }, [token, sessionCleared]);
-
-  // Send OTP function
-  const sendOTP = async (phone: string) => {
-    setIsSendingOtp(true);
-    try {
-      const { data, error: fnError } = await supabase.functions.invoke("send-otp", {
-        body: { phone_number: phone },
-      });
-
-      if (fnError) throw fnError;
-      if (!data.success) throw new Error(data.error || "Failed to send OTP");
-
-      setOtpSent(true);
-      setCountdown(60);
-      toast.success("OTP sent to your WhatsApp");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to send OTP");
-    } finally {
-      setIsSendingOtp(false);
-    }
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  // Verify OTP and complete registration
-  const handleVerifyAndRegister = async () => {
-    if (otp.length !== 6) {
-      toast.error("Please enter the complete 6-digit OTP");
+  const handleNext = async () => {
+    if (currentStep === 1 && !selectedCategory) {
+      toast.error("Please select a category");
       return;
     }
 
-    if (!invitation || !token || registrationInProgressRef.current) return;
-    
-    registrationInProgressRef.current = true;
-    setIsVerifyingOtp(true);
-
-    try {
-      // First verify OTP
-      const { data: otpData, error: otpError } = await supabase.functions.invoke("verify-otp", {
-        body: { 
-          phone_number: invitation.contact_phone, 
-          otp_code: otp 
-        },
-      });
-
-      if (otpError) throw otpError;
-      if (!otpData.verified) {
-        toast.error(otpData.error || "Invalid OTP. Please try again.");
-        setOtp("");
-        registrationInProgressRef.current = false;
-        setIsVerifyingOtp(false);
+    if (currentStep === 2) {
+      if (!formData.company_name.trim()) {
+        toast.error("Company name is required");
         return;
       }
+    }
 
-      // OTP verified - now create vendor
-      setState("REGISTERING");
-
-      const { data: regData, error: regError } = await supabase.functions.invoke("create-vendor-registration", {
-        body: { 
-          invitation_token: token, 
-          phone_number: invitation.contact_phone 
-        },
-      });
-
-      if (regError) throw regError;
-      if (!regData.success) throw new Error(regData.error || "Failed to create vendor");
-
-      // Set session if tokens returned
-      if (regData.access_token && regData.refresh_token) {
-        const { error: sessionError } = await supabase.auth.setSession({
-          access_token: regData.access_token,
-          refresh_token: regData.refresh_token,
-        });
-
-        if (sessionError) {
-          console.error("[VendorRegistration] Session error:", sessionError);
-          throw new Error("Failed to establish session");
-        }
-
-        // Verify session is active
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        if (userError || !user) {
-          console.error("[VendorRegistration] User verification failed:", userError);
-          throw new Error("Session verification failed");
-        }
-
-        console.log("[VendorRegistration] Session verified for user:", user.id);
+    if (currentStep === 3) {
+      if (!formData.primary_contact_name.trim() || !formData.primary_mobile.trim() || !formData.primary_email.trim()) {
+        toast.error("Primary contact details are required");
+        return;
       }
+    }
 
-      // Success!
-      setState("SUCCESS");
-      toast.success("Registration successful!");
-      
-      // Use full page reload to ensure App.tsx re-evaluates isRegistrationPath
-      // and mounts AuthProvider correctly for the dashboard
-      window.location.href = "/vendor/dashboard";
+    // Save data if we have a vendor
+    if (vendor && currentStep > 1) {
+      await updateVendor.mutateAsync({
+        vendorId: vendor.id,
+        data: formData,
+      });
+    }
 
-    } catch (err: any) {
-      console.error("Registration error:", err);
-      setError(err.message || "Registration failed. Please try again.");
-      setState("ERROR");
-      registrationInProgressRef.current = false;
+    if (currentStep < 5) {
+      setCurrentStep(prev => prev + 1);
     }
   };
 
-  // Helper: masked phone number
-  const maskedPhone = invitation?.contact_phone 
-    ? `******${invitation.contact_phone.slice(-4)}` 
-    : "";
+  const handleBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep(prev => prev - 1);
+    }
+  };
 
-  // RENDER: Loading state
-  if (state === "VALIDATING") {
-    return (
-      <MobileLayout title="Registration">
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
-            <p className="text-muted-foreground">Validating invitation...</p>
-          </div>
-        </div>
-      </MobileLayout>
-    );
-  }
+  const handleDocumentUpload = async (documentTypeId: string, file: File) => {
+    if (!vendor) {
+      toast.error("Vendor profile not found");
+      return;
+    }
 
-  // RENDER: Invalid token
-  if (state === "INVALID_TOKEN") {
-    return (
-      <MobileLayout title="Registration">
-        <div className="flex-1 flex items-center justify-center p-6">
-          <Card className="w-full max-w-md">
-            <CardContent className="pt-6 text-center space-y-4">
-              <div className="mx-auto h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center">
-                <AlertTriangle className="h-8 w-8 text-destructive" />
-              </div>
-              <div>
-                <h2 className="text-xl font-semibold">Access Denied</h2>
-                <p className="text-muted-foreground mt-2">{error}</p>
-              </div>
-              <div className="pt-4 border-t space-y-3">
-                <p className="text-sm font-medium">Contact Capital India for assistance:</p>
-                <div className="flex flex-col gap-2 text-sm text-muted-foreground">
-                  <div className="flex items-center justify-center gap-2">
-                    <Phone className="h-4 w-4" />
-                    <span>+91 1800-XXX-XXXX</span>
-                  </div>
-                  <div className="flex items-center justify-center gap-2">
-                    <Mail className="h-4 w-4" />
-                    <span>vendors@capitalindia.com</span>
-                  </div>
-                </div>
-              </div>
-              <Button variant="outline" onClick={() => window.location.href = "/"} className="mt-4">
-                Go to Home
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </MobileLayout>
-    );
-  }
+    setUploadingDocId(documentTypeId);
+    try {
+      await uploadDocument.mutateAsync({
+        vendorId: vendor.id,
+        documentTypeId,
+        file,
+      });
+      setUploadedDocs(prev => new Set(prev).add(documentTypeId));
+    } finally {
+      setUploadingDocId(null);
+    }
+  };
 
-  // RENDER: Error state
-  if (state === "ERROR") {
-    return (
-      <MobileLayout title="Registration">
-        <div className="flex-1 flex items-center justify-center p-6">
-          <Card className="w-full max-w-md">
-            <CardContent className="pt-6 text-center space-y-4">
-              <div className="mx-auto h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center">
-                <AlertTriangle className="h-8 w-8 text-destructive" />
-              </div>
-              <div>
-                <h2 className="text-xl font-semibold">Registration Error</h2>
-                <p className="text-muted-foreground mt-2">{error}</p>
-              </div>
-              <Button onClick={() => window.location.reload()} className="mt-4">
-                Try Again
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </MobileLayout>
-    );
-  }
+  const handleSubmit = async () => {
+    if (!vendor) return;
 
-  // RENDER: Registering state
-  if (state === "REGISTERING" || state === "SUCCESS") {
-    return (
-      <MobileLayout title="Registration">
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
-            <p className="text-muted-foreground">
-              {state === "SUCCESS" ? "Redirecting to dashboard..." : "Setting up your account..."}
+    // Check mandatory documents
+    const mandatoryDocs = categoryDocs?.filter(d => d.is_mandatory) || [];
+    const missingDocs = mandatoryDocs.filter(d => !uploadedDocs.has(d.document_type_id));
+
+    if (missingDocs.length > 0) {
+      toast.error(`Please upload all mandatory documents: ${missingDocs.map(d => d.document_types.name).join(", ")}`);
+      return;
+    }
+
+    await submitApplication.mutateAsync(vendor.id);
+    navigate("/vendor/dashboard");
+  };
+
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold text-center">Select Vendor Category</h2>
+            <p className="text-sm text-muted-foreground text-center">
+              Choose the category that best describes your business
             </p>
+            
+            {categoriesLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <div className="grid gap-3">
+                {categories?.map((category) => (
+                  <Card
+                    key={category.id}
+                    className={cn(
+                      "cursor-pointer transition-all",
+                      selectedCategory === category.id
+                        ? "border-2 border-primary bg-primary/5"
+                        : "hover:border-primary/50"
+                    )}
+                    onClick={() => setSelectedCategory(category.id)}
+                  >
+                    <CardContent className="flex items-center gap-4 p-4">
+                      <div className={cn(
+                        "h-12 w-12 rounded-full flex items-center justify-center",
+                        selectedCategory === category.id ? "bg-primary text-primary-foreground" : "bg-muted"
+                      )}>
+                        <Building2 className="h-6 w-6" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-semibold">{category.name}</p>
+                        <p className="text-sm text-muted-foreground">{category.description}</p>
+                      </div>
+                      {selectedCategory === category.id && (
+                        <CheckCircle2 className="h-6 w-6 text-primary" />
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
-      </MobileLayout>
-    );
-  }
+        );
 
-  // RENDER: OTP Verification (main state)
+      case 2:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">Company Details</h2>
+            
+            <div className="space-y-3">
+              <div>
+                <Label htmlFor="company_name">Company Name *</Label>
+                <Input
+                  id="company_name"
+                  name="company_name"
+                  value={formData.company_name}
+                  onChange={handleInputChange}
+                  placeholder="Enter registered company name"
+                  className="h-12"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="trade_name">Trade Name</Label>
+                <Input
+                  id="trade_name"
+                  name="trade_name"
+                  value={formData.trade_name}
+                  onChange={handleInputChange}
+                  placeholder="Enter trade/brand name if different"
+                  className="h-12"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="gst_number">GST Number</Label>
+                <Input
+                  id="gst_number"
+                  name="gst_number"
+                  value={formData.gst_number}
+                  onChange={handleInputChange}
+                  placeholder="e.g., 22AAAAA0000A1Z5"
+                  className="h-12 uppercase"
+                  maxLength={15}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="pan_number">PAN Number</Label>
+                <Input
+                  id="pan_number"
+                  name="pan_number"
+                  value={formData.pan_number}
+                  onChange={handleInputChange}
+                  placeholder="e.g., ABCDE1234F"
+                  className="h-12 uppercase"
+                  maxLength={10}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="cin_number">CIN Number</Label>
+                <Input
+                  id="cin_number"
+                  name="cin_number"
+                  value={formData.cin_number}
+                  onChange={handleInputChange}
+                  placeholder="Corporate Identification Number"
+                  className="h-12 uppercase"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="registered_address">Registered Address</Label>
+                <Textarea
+                  id="registered_address"
+                  name="registered_address"
+                  value={formData.registered_address}
+                  onChange={handleInputChange}
+                  placeholder="Enter full registered address"
+                  rows={3}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="operational_address">Operational Address</Label>
+                <Textarea
+                  id="operational_address"
+                  name="operational_address"
+                  value={formData.operational_address}
+                  onChange={handleInputChange}
+                  placeholder="Enter operational address if different"
+                  rows={3}
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 3:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">Contact Details</h2>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Primary Contact *
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <Label htmlFor="primary_contact_name">Full Name *</Label>
+                  <Input
+                    id="primary_contact_name"
+                    name="primary_contact_name"
+                    value={formData.primary_contact_name}
+                    onChange={handleInputChange}
+                    placeholder="Enter full name"
+                    className="h-12"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="primary_mobile">Mobile Number *</Label>
+                  <Input
+                    id="primary_mobile"
+                    name="primary_mobile"
+                    type="tel"
+                    value={formData.primary_mobile}
+                    onChange={handleInputChange}
+                    placeholder="10-digit mobile number"
+                    className="h-12"
+                    maxLength={10}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="primary_email">Email Address *</Label>
+                  <Input
+                    id="primary_email"
+                    name="primary_email"
+                    type="email"
+                    value={formData.primary_email}
+                    onChange={handleInputChange}
+                    placeholder="email@company.com"
+                    className="h-12"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Secondary Contact (Optional)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <Label htmlFor="secondary_contact_name">Full Name</Label>
+                  <Input
+                    id="secondary_contact_name"
+                    name="secondary_contact_name"
+                    value={formData.secondary_contact_name}
+                    onChange={handleInputChange}
+                    placeholder="Enter full name"
+                    className="h-12"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="secondary_mobile">Mobile Number</Label>
+                  <Input
+                    id="secondary_mobile"
+                    name="secondary_mobile"
+                    type="tel"
+                    value={formData.secondary_mobile}
+                    onChange={handleInputChange}
+                    placeholder="10-digit mobile number"
+                    className="h-12"
+                    maxLength={10}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+
+      case 4:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">Banking Details</h2>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  Bank Account Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <Label htmlFor="bank_name">Bank Name</Label>
+                  <Input
+                    id="bank_name"
+                    name="bank_name"
+                    value={formData.bank_name}
+                    onChange={handleInputChange}
+                    placeholder="e.g., State Bank of India"
+                    className="h-12"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="bank_branch">Branch Name</Label>
+                  <Input
+                    id="bank_branch"
+                    name="bank_branch"
+                    value={formData.bank_branch}
+                    onChange={handleInputChange}
+                    placeholder="e.g., Mumbai Main Branch"
+                    className="h-12"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="bank_account_number">Account Number</Label>
+                  <Input
+                    id="bank_account_number"
+                    name="bank_account_number"
+                    value={formData.bank_account_number}
+                    onChange={handleInputChange}
+                    placeholder="Enter bank account number"
+                    className="h-12"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="bank_ifsc">IFSC Code</Label>
+                  <Input
+                    id="bank_ifsc"
+                    name="bank_ifsc"
+                    value={formData.bank_ifsc}
+                    onChange={handleInputChange}
+                    placeholder="e.g., SBIN0000123"
+                    className="h-12 uppercase"
+                    maxLength={11}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+
+      case 5:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">Upload Documents</h2>
+            <p className="text-sm text-muted-foreground">
+              Upload required documents. Supported formats: PDF, JPG, PNG (max 5MB)
+            </p>
+            
+            <div className="space-y-4">
+              {categoryDocs?.map((doc) => (
+                <Card key={doc.id} className={cn(
+                  uploadedDocs.has(doc.document_type_id) && "border-success"
+                )}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      {doc.document_types.name}
+                      {doc.is_mandatory && (
+                        <span className="text-destructive text-sm">*</span>
+                      )}
+                      {uploadedDocs.has(doc.document_type_id) && (
+                        <CheckCircle2 className="h-4 w-4 text-success ml-auto" />
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <DocumentCapture
+                      onCapture={(file) => handleDocumentUpload(doc.document_type_id, file)}
+                      disabled={uploadingDocId === doc.document_type_id}
+                    />
+                    {uploadingDocId === doc.document_type_id && (
+                      <div className="flex items-center justify-center gap-2 mt-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Uploading...
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        );
+    }
+  };
+
   return (
-    <MobileLayout title="Verify Mobile">
-      <div className="flex-1 flex items-center justify-center p-6">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center space-y-4">
-            {/* Company badge */}
-            <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mx-auto">
-              <div className="flex items-center gap-2">
-                <Building2 className="h-5 w-5 text-primary" />
-                <span className="font-medium text-sm">{invitation?.company_name}</span>
-              </div>
-            </div>
-            
-            <div className="mx-auto h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-              <MessageSquare className="h-8 w-8 text-primary" />
-            </div>
-            
-            <div>
-              <CardTitle className="text-xl">Verify Your Mobile Number</CardTitle>
-              <CardDescription className="mt-2">
-                Enter the 6-digit OTP sent to your WhatsApp
-              </CardDescription>
-            </div>
-          </CardHeader>
+    <MobileLayout title="Registration">
+      <div className="flex-1 flex flex-col">
+        {/* Stepper */}
+        <div className="px-4 py-4 bg-card border-b">
+          <RegistrationStepper steps={STEPS} currentStep={currentStep} />
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-auto p-4">
+          {renderStepContent()}
+        </div>
+
+        {/* Navigation */}
+        <div className="p-4 bg-card border-t flex gap-3">
+          {currentStep > 1 && (
+            <Button variant="outline" onClick={handleBack} className="flex-1 h-12">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+          )}
           
-          <CardContent className="space-y-6">
-            {/* Phone number display */}
-            <div className="bg-muted/50 rounded-lg p-4 text-center">
-              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-1">
-                <Phone className="h-4 w-4" />
-                <span>Mobile Number</span>
-              </div>
-              <p className="text-lg font-medium font-mono">{maskedPhone}</p>
-            </div>
-
-            {/* OTP Input */}
-            <div className="flex flex-col items-center space-y-4">
-              <InputOTP
-                maxLength={6}
-                value={otp}
-                onChange={setOtp}
-                disabled={isVerifyingOtp}
-              >
-                <InputOTPGroup>
-                  <InputOTPSlot index={0} />
-                  <InputOTPSlot index={1} />
-                  <InputOTPSlot index={2} />
-                  <InputOTPSlot index={3} />
-                  <InputOTPSlot index={4} />
-                  <InputOTPSlot index={5} />
-                </InputOTPGroup>
-              </InputOTP>
-
-              <p className="text-xs text-muted-foreground text-center">
-                Enter the 6-digit code sent to your WhatsApp
-              </p>
-            </div>
-
-            {/* Verify Button */}
-            <Button
-              className="w-full h-12"
-              onClick={handleVerifyAndRegister}
-              disabled={otp.length !== 6 || isVerifyingOtp}
-            >
-              {isVerifyingOtp ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Verifying...
-                </>
+          {currentStep < 5 ? (
+            <Button onClick={handleNext} className="flex-1 h-12" disabled={updateVendor.isPending}>
+              {updateVendor.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <>
-                  <Shield className="h-4 w-4 mr-2" />
-                  Verify & Continue
+                  Next
+                  <ArrowRight className="h-4 w-4 ml-2" />
                 </>
               )}
             </Button>
-
-            {/* Resend OTP */}
-            <div className="text-center">
-              {countdown > 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Resend OTP in <span className="font-medium">{countdown}s</span>
-                </p>
+          ) : (
+            <Button 
+              onClick={handleSubmit} 
+              className="flex-1 h-12 bg-success hover:bg-success/90"
+              disabled={submitApplication.isPending}
+            >
+              {submitApplication.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => invitation && sendOTP(invitation.contact_phone)}
-                  disabled={isSendingOtp}
-                >
-                  {isSendingOtp ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                  )}
-                  Resend OTP
-                </Button>
+                <>
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Submit Application
+                </>
               )}
-            </div>
-
-            {/* Security notice */}
-            <div className="bg-muted/30 rounded-lg p-3 text-center">
-              <p className="text-xs text-muted-foreground">
-                <Shield className="h-3 w-3 inline-block mr-1" />
-                Secure registration powered by Capital India
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+            </Button>
+          )}
+        </div>
       </div>
     </MobileLayout>
   );

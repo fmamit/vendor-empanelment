@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { StaffLayout } from "@/components/layout/StaffLayout";
+import { MobileLayout } from "@/components/layout/MobileLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { 
@@ -14,9 +14,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
- import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
- import { SendWhatsAppDialog } from "@/components/staff/SendWhatsAppDialog";
- import { WhatsAppHistory } from "@/components/staff/WhatsAppHistory";
 import { 
   Building2, 
   FileText, 
@@ -30,11 +27,8 @@ import {
   CreditCard,
   Phone,
   Mail,
-   MapPin,
-   MessageSquare,
-   Shield
+  MapPin
 } from "lucide-react";
- import { VerificationPanel } from "@/components/verification/VerificationPanel";
 
 const STATUS_LABELS = {
   draft: "Draft",
@@ -68,25 +62,24 @@ export default function VendorReviewDetail() {
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-   const [showWhatsAppDialog, setShowWhatsAppDialog] = useState(false);
 
   if (vendorLoading || docsLoading) {
     return (
-      <StaffLayout title="Vendor Details">
+      <MobileLayout title="Vendor Details">
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      </StaffLayout>
+      </MobileLayout>
     );
   }
 
   if (!vendor) {
     return (
-      <StaffLayout title="Vendor Details">
+      <MobileLayout title="Vendor Details">
         <div className="flex-1 flex items-center justify-center p-4">
           <p className="text-muted-foreground">Vendor not found</p>
         </div>
-      </StaffLayout>
+      </MobileLayout>
     );
   }
 
@@ -154,121 +147,93 @@ export default function VendorReviewDetail() {
   };
 
   return (
-    <StaffLayout title="Review Vendor">
-      <div className="flex-1 overflow-auto p-6 space-y-6">
+    <MobileLayout title="Review Vendor">
+      <div className="flex-1 overflow-auto p-4 space-y-4">
         {/* Header */}
         <Card className="bg-primary text-primary-foreground">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="h-14 w-14 rounded-full bg-white/20 flex items-center justify-center">
-                <Building2 className="h-7 w-7" />
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center">
+                <Building2 className="h-6 w-6" />
               </div>
               <div className="flex-1">
-                <p className="font-semibold text-xl">{vendor.company_name}</p>
+                <p className="font-semibold text-lg">{vendor.company_name}</p>
                 <p className="text-sm opacity-80">{vendor.vendor_code}</p>
               </div>
-               <div className="flex items-center gap-2">
-                 <Button
-                   size="sm"
-                   variant="secondary"
-                   onClick={() => setShowWhatsAppDialog(true)}
-                   className="bg-white/20 hover:bg-white/30"
-                 >
-                   <MessageSquare className="h-4 w-4 mr-1" />
-                   WhatsApp
-                 </Button>
-                 <Badge className="bg-white/20">
-                   {STATUS_LABELS[vendor.current_status]}
-                 </Badge>
-               </div>
+              <Badge className="bg-white/20">
+                {STATUS_LABELS[vendor.current_status]}
+              </Badge>
             </div>
           </CardContent>
         </Card>
 
-         <Tabs defaultValue="details" className="space-y-4">
-           <TabsList>
-             <TabsTrigger value="details">Details</TabsTrigger>
-             <TabsTrigger value="documents">Documents ({documents?.length || 0})</TabsTrigger>
-             <TabsTrigger value="verifications">
-               <Shield className="h-4 w-4 mr-1" />
-               Verifications
-             </TabsTrigger>
-             <TabsTrigger value="communication">
-               <MessageSquare className="h-4 w-4 mr-1" />
-               Communication
-             </TabsTrigger>
-           </TabsList>
- 
-           <TabsContent value="details" className="space-y-6">
-             <div className="grid md:grid-cols-2 gap-6">
-          {/* Company Details */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Building2 className="h-4 w-4" />
-                Company Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              {vendor.trade_name && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Trade Name</span>
-                  <span className="font-medium">{vendor.trade_name}</span>
-                </div>
-              )}
-              {vendor.gst_number && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">GST Number</span>
-                  <span className="font-medium font-mono">{vendor.gst_number}</span>
-                </div>
-              )}
-              {vendor.pan_number && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">PAN Number</span>
-                  <span className="font-medium font-mono">{vendor.pan_number}</span>
-                </div>
-              )}
-              {vendor.cin_number && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">CIN Number</span>
-                  <span className="font-medium font-mono">{vendor.cin_number}</span>
-                </div>
-              )}
-              {vendor.registered_address && (
-                <div className="pt-2 border-t">
-                  <p className="text-muted-foreground flex items-center gap-1 mb-1">
-                    <MapPin className="h-3 w-3" /> Registered Address
-                  </p>
-                  <p>{vendor.registered_address}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+        {/* Company Details */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Building2 className="h-4 w-4" />
+              Company Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {vendor.trade_name && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Trade Name</span>
+                <span className="font-medium">{vendor.trade_name}</span>
+              </div>
+            )}
+            {vendor.gst_number && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">GST Number</span>
+                <span className="font-medium font-mono">{vendor.gst_number}</span>
+              </div>
+            )}
+            {vendor.pan_number && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">PAN Number</span>
+                <span className="font-medium font-mono">{vendor.pan_number}</span>
+              </div>
+            )}
+            {vendor.cin_number && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">CIN Number</span>
+                <span className="font-medium font-mono">{vendor.cin_number}</span>
+              </div>
+            )}
+            {vendor.registered_address && (
+              <div className="pt-2 border-t">
+                <p className="text-muted-foreground flex items-center gap-1 mb-1">
+                  <MapPin className="h-3 w-3" /> Registered Address
+                </p>
+                <p>{vendor.registered_address}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-          {/* Contact Details */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <User className="h-4 w-4" />
-                Primary Contact
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <span>{vendor.primary_contact_name}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-                <span>{vendor.primary_mobile}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <span>{vendor.primary_email}</span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Contact Details */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <User className="h-4 w-4" />
+              Primary Contact
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex items-center gap-2">
+              <User className="h-4 w-4 text-muted-foreground" />
+              <span>{vendor.primary_contact_name}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Phone className="h-4 w-4 text-muted-foreground" />
+              <span>{vendor.primary_mobile}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Mail className="h-4 w-4 text-muted-foreground" />
+              <span>{vendor.primary_email}</span>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Banking Details */}
         {vendor.bank_name && (
@@ -280,38 +245,34 @@ export default function VendorReviewDetail() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Bank</span>
-                  <span className="font-medium">{vendor.bank_name}</span>
-                </div>
-                {vendor.bank_branch && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Branch</span>
-                    <span className="font-medium">{vendor.bank_branch}</span>
-                  </div>
-                )}
-                {vendor.bank_account_number && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Account No.</span>
-                    <span className="font-medium font-mono">
-                      {'•'.repeat(vendor.bank_account_number.length - 4)}{vendor.bank_account_number.slice(-4)}
-                    </span>
-                  </div>
-                )}
-                {vendor.bank_ifsc && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">IFSC</span>
-                    <span className="font-medium font-mono">{vendor.bank_ifsc}</span>
-                  </div>
-                )}
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Bank</span>
+                <span className="font-medium">{vendor.bank_name}</span>
               </div>
+              {vendor.bank_branch && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Branch</span>
+                  <span className="font-medium">{vendor.bank_branch}</span>
+                </div>
+              )}
+              {vendor.bank_account_number && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Account No.</span>
+                  <span className="font-medium font-mono">
+                    {'•'.repeat(vendor.bank_account_number.length - 4)}{vendor.bank_account_number.slice(-4)}
+                  </span>
+                </div>
+              )}
+              {vendor.bank_ifsc && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">IFSC</span>
+                  <span className="font-medium font-mono">{vendor.bank_ifsc}</span>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
-           </TabsContent>
 
-           <TabsContent value="documents">
         {/* Documents */}
         <Card>
           <CardHeader className="pb-2">
@@ -386,21 +347,6 @@ export default function VendorReviewDetail() {
             )}
           </CardContent>
         </Card>
-           </TabsContent>
- 
-           <TabsContent value="communication">
-             <WhatsAppHistory vendorId={vendor.id} />
-           </TabsContent>
- 
-           <TabsContent value="verifications">
-             <VerificationPanel
-               vendorId={vendor.id}
-               panNumber={vendor.pan_number || undefined}
-               accountNumber={vendor.bank_account_number || undefined}
-               ifscCode={vendor.bank_ifsc || undefined}
-             />
-           </TabsContent>
-         </Tabs>
       </div>
 
       {/* Action Buttons */}
@@ -489,15 +435,6 @@ export default function VendorReviewDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
- 
-       {/* WhatsApp Dialog */}
-       <SendWhatsAppDialog
-         open={showWhatsAppDialog}
-         onOpenChange={setShowWhatsAppDialog}
-         vendorId={vendor.id}
-         vendorName={vendor.company_name}
-         phoneNumber={vendor.primary_mobile}
-       />
-    </StaffLayout>
+    </MobileLayout>
   );
 }

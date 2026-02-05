@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { StaffLayout } from "@/components/layout/StaffLayout";
+import { MobileLayout } from "@/components/layout/MobileLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useStaffVendorQueue, VendorWithCategory } from "@/hooks/useStaffWorkflow";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,7 @@ import {
   Building2, 
   Clock, 
   ChevronRight,
+  Filter,
   Loader2
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -45,11 +47,11 @@ export default function StaffReviewQueue() {
 
   if (loading || rolesLoading) {
     return (
-      <StaffLayout title="Review Queue">
+      <MobileLayout title="Review Queue">
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      </StaffLayout>
+      </MobileLayout>
     );
   }
 
@@ -114,11 +116,11 @@ export default function StaffReviewQueue() {
   ].filter(tab => tab.show);
 
   return (
-    <StaffLayout title="Vendor Queue">
+    <MobileLayout title="Vendor Queue">
       <div className="flex-1 flex flex-col">
         {/* Search */}
         <div className="p-4 border-b bg-card">
-          <div className="relative max-w-md">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search vendors..."
@@ -196,7 +198,14 @@ export default function StaffReviewQueue() {
             </>
           )}
         </Tabs>
+
+        {/* Back to Dashboard */}
+        <div className="p-4 border-t">
+          <Button variant="outline" className="w-full" onClick={() => navigate("/staff/dashboard")}>
+            Back to Dashboard
+          </Button>
+        </div>
       </div>
-    </StaffLayout>
+    </MobileLayout>
   );
 }

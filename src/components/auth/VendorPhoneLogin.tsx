@@ -5,12 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { Phone, ArrowRight, Loader2 } from "lucide-react";
-
-// Development bypass credentials
-const TEST_PHONE = "9999999999";
-const TEST_OTP = "123456";
 
 export function VendorPhoneLogin() {
   const [phone, setPhone] = useState("");
@@ -18,7 +13,6 @@ export function VendorPhoneLogin() {
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { setTestMode } = useAuth();
 
   const formatPhoneNumber = (value: string) => {
     // Remove non-digits
@@ -30,13 +24,6 @@ export function VendorPhoneLogin() {
   const handleSendOTP = async () => {
     if (phone.length !== 10) {
       toast.error("Please enter a valid 10-digit mobile number");
-      return;
-    }
-
-    // Development bypass: skip SMS for test number
-    if (phone === TEST_PHONE) {
-      toast.success("Test mode: OTP is 123456");
-      setStep("otp");
       return;
     }
 
@@ -61,18 +48,6 @@ export function VendorPhoneLogin() {
   const handleVerifyOTP = async () => {
     if (otp.length !== 6) {
       toast.error("Please enter the 6-digit OTP");
-      return;
-    }
-
-    // Development bypass: validate test OTP and navigate directly
-    if (phone === TEST_PHONE) {
-      if (otp === TEST_OTP) {
-        setTestMode(true);
-        toast.success("Test login successful!");
-        navigate("/vendor/dashboard");
-      } else {
-        toast.error("Invalid OTP. Use 123456 for test mode.");
-      }
       return;
     }
 

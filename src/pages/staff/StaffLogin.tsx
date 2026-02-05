@@ -1,47 +1,9 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { MobileLayout } from "@/components/layout/MobileLayout";
 import { StaffEmailLogin } from "@/components/auth/StaffEmailLogin";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Users, Loader2 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { Users } from "lucide-react";
 
 export default function StaffLogin() {
-  const { user, loading, userTypeLoading, isTestMode, setTestMode } = useAuth();
-  const navigate = useNavigate();
-
-  // Clear test mode when accessing staff login - staff should use real auth
-  useEffect(() => {
-    if (isTestMode) {
-      console.log("[StaffLogin] Clearing test mode for staff login");
-      setTestMode(false);
-    }
-  }, [isTestMode, setTestMode]);
-
-  useEffect(() => {
-    console.log("[StaffLogin] Effect check:", { loading, userTypeLoading, hasUser: !!user, isTestMode });
-    // Only redirect after we're sure userType is determined and test mode is off
-    if (!loading && !userTypeLoading && !isTestMode && user) {
-      console.log("[StaffLogin] Redirecting to dashboard...");
-      navigate("/staff/dashboard", { replace: true });
-    }
-  }, [user, loading, userTypeLoading, isTestMode, navigate]);
-
-  // Show loading while checking auth or determining user type
-  if (loading || userTypeLoading) {
-    return (
-      <MobileLayout title="Staff Login">
-        <div className="flex-1 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </MobileLayout>
-    );
-  }
-
-  if (user) {
-    return null; // Will redirect
-  }
-
   return (
     <MobileLayout title="Staff Login">
       <div className="flex-1 flex flex-col items-center justify-center p-6">
