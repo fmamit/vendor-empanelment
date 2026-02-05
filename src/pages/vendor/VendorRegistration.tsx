@@ -56,9 +56,10 @@ export default function VendorRegistration() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
   
-  // State machine
+  // State machine - start with CLEARING_SESSION to ensure clean slate
   const [state, setState] = useState<RegistrationState>("VALIDATING");
   const [error, setError] = useState<string | null>(null);
+  const [sessionCleared, setSessionCleared] = useState(false);
   
   // Invitation data (fetched via edge function)
   const [invitation, setInvitation] = useState<InvitationData | null>(null);
@@ -72,6 +73,29 @@ export default function VendorRegistration() {
   
   // Prevent double execution
   const registrationInProgressRef = useRef(false);
+  const sessionClearingRef = useRef(false);
+
+  // Step 0: Clear any existing session FIRST to prevent RLS issues
+  useEffect(() => {
+    const clearExistingSession = async () => {
+      if (sessionClearingRef.current || sessionCleared) return;
+      sessionClearingRef.current = true;
+      
+      try {
+        console.log("[VendorRegistration] Clearing any existing session...");
+        await supabase.auth.signOut();
+        console.log("[VendorRegistration] Session cleared successfully");
+      } catch (err) {
+        // Ignore errors - session might not exist
+        console.log("[VendorRegistration] No session to clear or error:", err);
+      } finally {
+        setSessionCleared(true);
+        sessionClearingRef.current = false;
+      }
+    };
+
+    clearExistingSession();
+  }, []);
 
   // Countdown timer for OTP resend
   useEffect(() => {
@@ -82,14 +106,23 @@ export default function VendorRegistration() {
   }, [countdown]);
 
   // Step 1: Validate token via edge function (no RLS involved)
+  // ONLY runs after session is cleared
   useEffect(() => {
     const validateToken = async () => {
+      // Wait for session to be cleared first
+      if (!sessionCleared) {
+        console.log("[VendorRegistration] Waiting for session to clear...");
+        return;
+      }
+      
       if (!token) {
         setState("INVALID_TOKEN");
         setError("Registration requires a valid invitation link from Capital India.");
         return;
       }
 
+      console.log("[VendorRegistration] Session cleared, validating token...");
+      
       try {
         const { data, error: fnError } = await supabase.functions.invoke("validate-invitation", {
           body: { token },
@@ -121,7 +154,7 @@ export default function VendorRegistration() {
     };
 
     validateToken();
-  }, [token]);
+  }, [token, sessionCleared]);
 
   // Send OTP function
   const sendOTP = async (phone: string) => {
