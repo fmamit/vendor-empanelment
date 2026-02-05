@@ -497,6 +497,143 @@ export type Database = {
           },
         ]
       }
+      whatsapp_messages: {
+        Row: {
+          created_at: string
+          delivered_at: string | null
+          direction: string
+          error_message: string | null
+          exotel_message_id: string | null
+          id: string
+          message_content: string | null
+          phone_number: string
+          read_at: string | null
+          sent_at: string | null
+          sent_by: string | null
+          status: string | null
+          template_name: string | null
+          template_variables: Json | null
+          vendor_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          delivered_at?: string | null
+          direction: string
+          error_message?: string | null
+          exotel_message_id?: string | null
+          id?: string
+          message_content?: string | null
+          phone_number: string
+          read_at?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string | null
+          template_name?: string | null
+          template_variables?: Json | null
+          vendor_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          delivered_at?: string | null
+          direction?: string
+          error_message?: string | null
+          exotel_message_id?: string | null
+          id?: string
+          message_content?: string | null
+          phone_number?: string
+          read_at?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string | null
+          template_name?: string | null
+          template_variables?: Json | null
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_messages_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_settings: {
+        Row: {
+          created_at: string
+          exotel_api_key: string | null
+          exotel_api_token: string | null
+          exotel_sid: string | null
+          exotel_subdomain: string | null
+          id: string
+          is_active: boolean | null
+          updated_at: string
+          waba_id: string | null
+          whatsapp_source_number: string | null
+        }
+        Insert: {
+          created_at?: string
+          exotel_api_key?: string | null
+          exotel_api_token?: string | null
+          exotel_sid?: string | null
+          exotel_subdomain?: string | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+          waba_id?: string | null
+          whatsapp_source_number?: string | null
+        }
+        Update: {
+          created_at?: string
+          exotel_api_key?: string | null
+          exotel_api_token?: string | null
+          exotel_sid?: string | null
+          exotel_subdomain?: string | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+          waba_id?: string | null
+          whatsapp_source_number?: string | null
+        }
+        Relationships: []
+      }
+      whatsapp_templates: {
+        Row: {
+          category: string | null
+          content: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          status: string | null
+          template_name: string
+          updated_at: string
+          variables: Json | null
+        }
+        Insert: {
+          category?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          status?: string | null
+          template_name: string
+          updated_at?: string
+          variables?: Json | null
+        }
+        Update: {
+          category?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          status?: string | null
+          template_name?: string
+          updated_at?: string
+          variables?: Json | null
+        }
+        Relationships: []
+      }
       workflow_assignments: {
         Row: {
           assigned_at: string
