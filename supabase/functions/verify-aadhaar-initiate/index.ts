@@ -24,9 +24,6 @@
        });
      }
  
-     const verifieduToken = Deno.env.get("VERIFIEDU_TOKEN");
-     const companyId = Deno.env.get("VERIFIEDU_COMPANY_ID");
-     const baseUrl = Deno.env.get("VERIFIEDU_API_BASE_URL");
      const supabaseUrl = Deno.env.get("SUPABASE_URL");
      const frontendUrl = Deno.env.get("FRONTEND_URL") || returnUrl?.split("/digilocker")[0] || "";
  
@@ -35,12 +32,23 @@
        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
      );
  
+     // Fetch credentials from database
+     const { data: settings, error: settingsError } = await adminClient
+       .from("verifiedu_settings")
+       .select("*")
+       .eq("is_active", true)
+       .maybeSingle();
+ 
+     const verifieduToken = settings?.api_token;
+     const companyId = settings?.company_id;
+     const baseUrl = settings?.api_base_url;
+ 
      // Build callback URLs
      const surl = `${supabaseUrl}/functions/v1/digilocker-callback/success?vendorId=${vendorId}&returnUrl=${encodeURIComponent(returnUrl || frontendUrl)}`;
      const furl = `${supabaseUrl}/functions/v1/digilocker-callback/failure?vendorId=${vendorId}&returnUrl=${encodeURIComponent(returnUrl || frontendUrl)}`;
  
-     // Mock mode if credentials not configured
-     if (!verifieduToken || !companyId || !baseUrl) {
+     // Mock mode if credentials not configured or settings inactive
+     if (!settings || !verifieduToken || !companyId || !baseUrl) {
        console.log("VerifiedU credentials not configured, using mock mode");
        
        const mockRequestNumber = `mock_aadhaar_${Date.now()}`;
