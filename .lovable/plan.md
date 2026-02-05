@@ -1,194 +1,188 @@
 
-# Complete Fix for Staff Login Redirect Issue
 
-## Root Cause Summary
+# Email Notifications Implementation Plan
 
-Three interconnected issues are causing the login to fail:
+## Overview
 
-1. **Circular redirect loop**: `StaffDashboard` redirects to login when `userType !== "staff"`, but `userType` is determined asynchronously
-2. **Race condition**: After login, `user` is set immediately but `userType` takes time to be determined via database query
-3. **Missing loading state**: No way to know if `userType` is "still loading" vs "definitively null"
+This plan implements email notifications for the vendor management system using Resend as the email provider. The system will send transactional emails for vendor workflow events such as invitation creation, status changes, and approval/rejection notifications.
 
-## Solution Architecture
+## Current State Analysis
+
+- **Existing notifications table**: Already exists in the database with `recipient_id`, `title`, `message`, `notification_type`, and `related_vendor_id` columns
+- **No edge functions**: The `supabase/functions` directory is currently empty
+- **No RESEND_API_KEY**: Not yet configured in secrets
+- **Vendor workflow hooks**: `useUpdateVendorStatus` and `useCreateInvitation` are the key points where emails should be triggered
+
+## Email Notification Triggers
+
+| Event | Recipients | Email Type |
+|-------|-----------|------------|
+| Vendor invitation created | Vendor contact email | Invitation with registration link |
+| Vendor submits application | Staff (Makers) | New application notification |
+| Status: pending_review -> in_verification | Vendor | Status update |
+| Status: in_verification -> pending_approval | Vendor | Status update |
+| Status: approved | Vendor | Approval confirmation |
+| Status: rejected | Vendor | Rejection with reason |
+
+---
+
+## Implementation Steps
+
+### Phase 1: Setup and Configuration
+
+**Step 1.1: Configure Resend API Key**
+- You need to provide a Resend API key
+- Go to https://resend.com and create an account if you don't have one
+- Verify your sending domain at https://resend.com/domains
+- Create an API key at https://resend.com/api-keys
+
+**Step 1.2: Add Shared Utilities**
+Create reusable CORS headers and retry utilities for edge functions:
+- `supabase/functions/_shared/cors-headers.ts`
+
+### Phase 2: Edge Functions
+
+**Step 2.1: Create `send-vendor-email` Function**
+A single edge function that handles all vendor-related emails with different templates:
 
 ```text
-+------------------+     +-----------------+     +------------------+
-|  Login Success   | --> |  useAuth Hook   | --> |  StaffDashboard  |
-+------------------+     +-----------------+     +------------------+
-                               |
-                    Add: userTypeLoading state
-                               |
-                    Fix: Wait for userType before
-                         allowing protected routes
+supabase/functions/send-vendor-email/index.ts
 ```
 
-## Implementation
+Features:
+- Email type parameter (invitation, status_update, approved, rejected)
+- Merge tag replacement for personalization
+- CORS support for frontend calls
+- Error handling with proper responses
 
-### Step 1: Add userTypeLoading State to useAuth Hook
+**Email Templates:**
 
-**File**: `src/hooks/useAuth.tsx`
+1. **Invitation Email**
+   - Subject: "You're invited to register as a vendor with Capital India"
+   - Body: Welcome message + registration link + expiry notice
 
-Add a new state variable `userTypeLoading` that tracks whether the userType determination is in progress:
+2. **Status Update Email**
+   - Subject: "Your vendor application status has been updated"
+   - Body: New status + next steps
 
-- Add `userTypeLoading` state initialized to `false`
-- Set it to `true` when user changes and we need to determine type
-- Set it to `false` after the profile/vendor check completes
-- Export `userTypeLoading` in the context
+3. **Approval Email**
+   - Subject: "Congratulations! Your vendor application has been approved"
+   - Body: Approval confirmation + vendor code + login instructions
 
-### Step 2: Fix StaffDashboard Protection Logic
+4. **Rejection Email**
+   - Subject: "Update on your vendor application"
+   - Body: Rejection notice + reason + contact information
 
-**File**: `src/pages/staff/StaffDashboard.tsx`
+### Phase 3: Frontend Integration
 
-Modify the redirect logic to wait for `userTypeLoading` to complete:
+**Step 3.1: Create Email Service Hook**
+Create `src/hooks/useEmailNotifications.tsx` to call the edge function:
 
-- Import `userTypeLoading` from `useAuth`
-- Update the loading check to include `userTypeLoading`
-- Only redirect when we're sure userType is definitively not "staff"
+```text
+- useSendVendorEmail() mutation hook
+- Email type definitions
+- Error handling with toast notifications
+```
 
-### Step 3: Fix StaffLogin Redirect Logic
+**Step 3.2: Integrate with Invitation Flow**
+Update `CreateInvitationDialog.tsx` to send invitation email after link generation:
+- Call `sendVendorEmail` with type "invitation"
+- Include registration link in email body
+- Show success/error feedback
 
-**File**: `src/pages/staff/StaffLogin.tsx`
+**Step 3.3: Integrate with Workflow Status Updates**
+Update `useUpdateVendorStatus` in `useStaffWorkflow.tsx`:
+- Send appropriate email when status changes
+- Fetch vendor email from vendor record
+- Handle approval/rejection emails with appropriate content
 
-The login page should also wait for userType to be determined before redirecting:
+### Phase 4: Email Templates and Styling
 
-- Import `userTypeLoading` from `useAuth`
-- Wait for both `loading` AND `userTypeLoading` to be false before redirecting
-- This prevents premature rendering of the login form
+**Step 4.1: Create HTML Email Templates**
+Inline-styled HTML templates for consistent rendering across email clients:
 
-### Step 4: Remove Console Logs
+```text
+src/lib/email-templates.ts
+- getInvitationEmailHtml()
+- getStatusUpdateEmailHtml()
+- getApprovalEmailHtml()
+- getRejectionEmailHtml()
+```
 
-**File**: `src/hooks/useAuth.tsx`
+Template features:
+- Capital India branding
+- Mobile-responsive design
+- Professional layout with header/footer
+- Merge tags for personalization ({{company_name}}, {{vendor_code}}, etc.)
 
-Remove the debug console.log statements that were added previously.
+---
 
 ## Technical Details
 
-### Changes to useAuth.tsx
+### Edge Function Structure
 
-```typescript
-// Add new state
-const [userTypeLoading, setUserTypeLoading] = useState(false);
+```text
+supabase/functions/send-vendor-email/index.ts
 
-// In the userType determination useEffect:
-useEffect(() => {
-  if (isTestMode) {
-    setUserType("vendor");
-    return;
+Request body:
+{
+  "email_type": "invitation" | "status_update" | "approved" | "rejected",
+  "to_email": "vendor@example.com",
+  "to_name": "Company Name",
+  "merge_data": {
+    "company_name": "...",
+    "registration_link": "...",
+    "vendor_code": "...",
+    "rejection_reason": "...",
+    "new_status": "..."
   }
+}
 
-  if (!user) {
-    setUserType(null);
-    setUserTypeLoading(false);
-    return;
-  }
-
-  // Start loading
-  setUserTypeLoading(true);
-  
-  const checkUserType = async () => {
-    try {
-      // Check staff profile
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (profile) {
-        setUserType("staff");
-        return;
-      }
-
-      // Check vendor
-      const { data: vendorUser } = await supabase
-        .from("vendor_users")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (vendorUser) {
-        setUserType("vendor");
-        return;
-      }
-
-      setUserType(null);
-    } finally {
-      setUserTypeLoading(false);
-    }
-  };
-
-  checkUserType();
-}, [user, isTestMode]);
-
-// Update context value
-<AuthContext.Provider value={{ 
-  user, session, userType, loading, 
-  userTypeLoading,  // NEW
-  isTestMode, signOut, setTestMode 
-}}>
-```
-
-### Changes to StaffDashboard.tsx
-
-```typescript
-const { user, userType, loading, userTypeLoading } = useAuth();
-
-useEffect(() => {
-  // Wait for both auth loading AND userType loading to complete
-  if (!loading && !userTypeLoading && (!user || userType !== "staff")) {
-    navigate("/staff/login");
-  }
-}, [user, userType, loading, userTypeLoading, navigate]);
-
-// Show loading while either is loading
-if (loading || userTypeLoading || rolesLoading) {
-  return (
-    <StaffLayout title="Dashboard">
-      <div className="flex-1 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    </StaffLayout>
-  );
+Response:
+{
+  "success": true,
+  "email_id": "resend-email-id"
 }
 ```
 
-### Changes to StaffLogin.tsx
+### Security Considerations
 
-```typescript
-const { user, loading, userTypeLoading } = useAuth();
+- Edge function requires authentication (Authorization header)
+- Service role key used for database lookups
+- CORS headers configured for web access
+- No sensitive data in email logs
 
-useEffect(() => {
-  // Only redirect after we're sure userType is determined
-  if (!loading && !userTypeLoading && user) {
-    navigate("/staff/dashboard", { replace: true });
-  }
-}, [user, loading, userTypeLoading, navigate]);
+### File Changes Summary
 
-// Show loading while checking auth
-if (loading || userTypeLoading) {
-  return (
-    <MobileLayout title="Staff Login">
-      <div className="flex-1 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    </MobileLayout>
-  );
-}
-```
+| Action | File |
+|--------|------|
+| Create | `supabase/functions/_shared/cors-headers.ts` |
+| Create | `supabase/functions/send-vendor-email/index.ts` |
+| Create | `src/lib/email-templates.ts` |
+| Create | `src/hooks/useEmailNotifications.tsx` |
+| Modify | `src/components/staff/CreateInvitationDialog.tsx` |
+| Modify | `src/hooks/useStaffWorkflow.tsx` |
 
-## Files to Modify
+---
 
-1. `src/hooks/useAuth.tsx` - Add userTypeLoading state and export it
-2. `src/pages/staff/StaffDashboard.tsx` - Wait for userTypeLoading before redirect
-3. `src/pages/staff/StaffLogin.tsx` - Wait for userTypeLoading before redirect
+## Prerequisites Before Implementation
 
-## Why This Works
+1. **Resend Account Setup**
+   - Sign up at https://resend.com
+   - Add and verify your sending domain
+   - Create an API key
 
-1. After login, `user` is set
-2. `userTypeLoading` becomes `true`
-3. `StaffLogin` shows loading spinner (doesn't render form)
-4. Navigate to dashboard called
-5. `StaffDashboard` shows loading spinner (waits for userTypeLoading)
-6. Profile query completes, `userType` = "staff"
-7. `userTypeLoading` becomes `false`
-8. Dashboard renders correctly (no redirect back to login)
+2. **Provide API Key**
+   - After creating the API key, I'll need you to provide it so I can add it as a secret
+
+---
+
+## Next Steps After Approval
+
+1. I'll ask you to provide the RESEND_API_KEY
+2. Create the edge function and shared utilities
+3. Create the email templates
+4. Create the frontend hook
+5. Integrate with invitation and workflow flows
+6. Test the email sending
+
