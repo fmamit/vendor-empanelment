@@ -28,6 +28,8 @@ import {
   Mail
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+ import { PANVerificationButton } from "@/components/verification/PANVerificationButton";
+ import { BankVerificationButton } from "@/components/verification/BankVerificationButton";
 
 const STEPS = [
   { id: 1, title: "Company" },
@@ -361,15 +363,23 @@ export default function VendorRegistration() {
 
               <div>
                 <Label htmlFor="pan_number">PAN Number</Label>
-                <Input
-                  id="pan_number"
-                  name="pan_number"
-                  value={formData.pan_number}
-                  onChange={handleInputChange}
-                  placeholder="e.g., ABCDE1234F"
-                  className="h-12 uppercase"
-                  maxLength={10}
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="pan_number"
+                    name="pan_number"
+                    value={formData.pan_number}
+                    onChange={handleInputChange}
+                    placeholder="e.g., ABCDE1234F"
+                    className="h-12 uppercase flex-1"
+                    maxLength={10}
+                  />
+                  <div className="flex items-center">
+                    <PANVerificationButton
+                      panNumber={formData.pan_number}
+                      vendorId={vendor?.id}
+                    />
+                  </div>
+                </div>
               </div>
 
               <div>
@@ -554,15 +564,24 @@ export default function VendorRegistration() {
 
                 <div>
                   <Label htmlFor="bank_ifsc">IFSC Code</Label>
-                  <Input
-                    id="bank_ifsc"
-                    name="bank_ifsc"
-                    value={formData.bank_ifsc}
-                    onChange={handleInputChange}
-                    placeholder="e.g., SBIN0000123"
-                    className="h-12 uppercase"
-                    maxLength={11}
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      id="bank_ifsc"
+                      name="bank_ifsc"
+                      value={formData.bank_ifsc}
+                      onChange={handleInputChange}
+                      placeholder="e.g., SBIN0000123"
+                      className="h-12 uppercase flex-1"
+                      maxLength={11}
+                    />
+                    <div className="flex items-center">
+                      <BankVerificationButton
+                        accountNumber={formData.bank_account_number}
+                        ifscCode={formData.bank_ifsc}
+                        vendorId={vendor?.id}
+                      />
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>

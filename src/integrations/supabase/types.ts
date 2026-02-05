@@ -402,6 +402,59 @@ export type Database = {
           },
         ]
       }
+      vendor_verifications: {
+        Row: {
+          created_at: string
+          id: string
+          remarks: string | null
+          request_data: Json | null
+          response_data: Json | null
+          status: string
+          updated_at: string
+          vendor_id: string
+          verification_source: string
+          verification_type: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          remarks?: string | null
+          request_data?: Json | null
+          response_data?: Json | null
+          status?: string
+          updated_at?: string
+          vendor_id: string
+          verification_source?: string
+          verification_type: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          remarks?: string | null
+          request_data?: Json | null
+          response_data?: Json | null
+          status?: string
+          updated_at?: string
+          vendor_id?: string
+          verification_source?: string
+          verification_type?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_verifications_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vendors: {
         Row: {
           approved_at: string | null

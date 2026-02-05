@@ -20,3 +20,18 @@ project_id = "knsdcrnslpaprfilwvda"
  
  [functions.create-vendor-registration]
  verify_jwt = false
+ 
+ [functions.verify-pan]
+ verify_jwt = false
+ 
+ [functions.verify-bank-account]
+ verify_jwt = false
+ 
+ [functions.verify-aadhaar-initiate]
+ verify_jwt = false
+ 
+ [functions.verify-aadhaar-details]
+ verify_jwt = false
+ 
+ [functions.digilocker-callback]
+ verify_jwt = false
