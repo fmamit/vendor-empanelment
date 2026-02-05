@@ -1,20 +1,37 @@
  import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
  import { Button } from "@/components/ui/button";
  import { Input } from "@/components/ui/input";
  import { Label } from "@/components/ui/label";
  import { Switch } from "@/components/ui/switch";
  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
  import { 
    useWhatsAppSettings, 
    useUpdateWhatsAppSettings, 
    useSyncWhatsAppTemplates 
  } from "@/hooks/useWhatsAppNotifications";
- import { Loader2, MessageSquare, RefreshCw, Save } from "lucide-react";
+import { Loader2, MessageSquare, RefreshCw, Save, FileText, CheckCircle, XCircle, Clock } from "lucide-react";
  
  export function WhatsAppSettingsForm() {
    const { data: settings, isLoading } = useWhatsAppSettings();
    const updateSettings = useUpdateWhatsAppSettings();
    const syncTemplates = useSyncWhatsAppTemplates();
+
+  // Fetch templates
+  const { data: templates, isLoading: templatesLoading, refetch: refetchTemplates } = useQuery({
+    queryKey: ["whatsapp-templates"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("whatsapp_templates")
+        .select("*")
+        .order("template_name");
+      if (error) throw error;
+      return data;
+    },
+  });
  
    const [formData, setFormData] = useState({
      exotel_sid: "",
@@ -48,11 +65,34 @@
  
    const handleSyncTemplates = async () => {
      await syncTemplates.mutateAsync();
+    refetchTemplates();
    };
+
+  const getStatusIcon = (status: string | null) => {
+    switch (status?.toUpperCase()) {
+      case "APPROVED":
+        return <CheckCircle className="h-4 w-4 text-primary" />;
+      case "REJECTED":
+        return <XCircle className="h-4 w-4 text-destructive" />;
+      default:
+        return <Clock className="h-4 w-4 text-muted-foreground" />;
+    }
+  };
+
+  const getStatusVariant = (status: string | null): "default" | "secondary" | "destructive" | "outline" => {
+    switch (status?.toUpperCase()) {
+      case "APPROVED":
+        return "default";
+      case "REJECTED":
+        return "destructive";
+      default:
+        return "secondary";
+    }
+  };
  
    if (isLoading) {
      return (
-       <Card>
+      <Card>
          <CardContent className="flex items-center justify-center py-8">
            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
          </CardContent>
@@ -61,10 +101,11 @@
    }
  
    return (
-     <Card>
+    <>
+      <Card>
        <CardHeader>
          <CardTitle className="flex items-center gap-2">
-           <MessageSquare className="h-5 w-5 text-green-600" />
+            <MessageSquare className="h-5 w-5 text-primary" />
            WhatsApp Integration (Exotel)
          </CardTitle>
          <CardDescription>
@@ -179,5 +220,72 @@
          </form>
        </CardContent>
      </Card>
+    {/* Templates Section */}
+    <Card className="mt-6">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <FileText className="h-5 w-5" />
+          WhatsApp Templates
+        </CardTitle>
+        <CardDescription>
+          Templates synced from your Exotel/WhatsApp Business account. Click "Sync Templates" above to fetch the latest.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {templatesLoading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : templates && templates.length > 0 ? (
+          <div className="space-y-4">
+            {templates.map((template) => (
+              <div key={template.id} className="border rounded-lg p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-medium truncate">{template.template_name}</p>
+                      <Badge variant={getStatusVariant(template.status)} className="flex items-center gap-1">
+                        {getStatusIcon(template.status)}
+                        {template.status || "Unknown"}
+                      </Badge>
+                      {template.category && (
+                        <Badge variant="outline">{template.category}</Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-2 whitespace-pre-wrap">
+                      {template.content}
+                    </p>
+                    {template.variables && Array.isArray(template.variables) && template.variables.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        <span className="text-xs text-muted-foreground">Variables:</span>
+                        {(template.variables as string[]).map((v, i) => (
+                          <code key={i} className="text-xs bg-muted px-1 py-0.5 rounded">{`{{${i + 1}}}`}</code>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <Switch
+                    checked={template.is_active ?? true}
+                    disabled
+                    aria-label="Template active status"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
+            <p>No templates found.</p>
+            <p className="text-sm mt-1">
+              {formData.is_active 
+                ? "Click 'Sync Templates' to fetch templates from Exotel." 
+                : "Enable WhatsApp integration and save settings first."}
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+    </>
    );
  }
