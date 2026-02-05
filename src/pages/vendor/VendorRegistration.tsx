@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useVendorCategories, useCategoryDocuments } from "@/hooks/useVendorData";
 import { useVendorProfile, useUpdateVendor, useUploadDocument, useSubmitVendorApplication, useCreateVendor } from "@/hooks/useVendor";
 import { useValidateInvitation, useConsumeInvitation } from "@/hooks/useVendorInvitations";
+ import { OTPVerification } from "@/components/vendor/OTPVerification";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { 
@@ -46,6 +47,7 @@ export default function VendorRegistration() {
   const [uploadedDocs, setUploadedDocs] = useState<Set<string>>(new Set());
   const [isInitializing, setIsInitializing] = useState(true);
   const [initError, setInitError] = useState<string | null>(null);
+   const [isPhoneVerified, setIsPhoneVerified] = useState(false);
 
   // Validate invitation token
   const { data: invitation, isLoading: invitationLoading, isError: invitationError } = useValidateInvitation(token);
@@ -92,10 +94,10 @@ export default function VendorRegistration() {
     }
   }, [invitation]);
 
-  // Auto-authenticate and create vendor when invitation is valid
+   // Auto-authenticate and create vendor when invitation is valid AND phone is verified
   useEffect(() => {
     const initializeVendorSession = async () => {
-      if (!invitation || invitationLoading) return;
+       if (!invitation || invitationLoading || !isPhoneVerified) return;
       
       setIsInitializing(true);
       setInitError(null);
@@ -145,7 +147,7 @@ export default function VendorRegistration() {
     };
 
     initializeVendorSession();
-  }, [invitation, invitationLoading]);
+   }, [invitation, invitationLoading, isPhoneVerified]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -281,7 +283,20 @@ export default function VendorRegistration() {
     );
   }
 
-  // Show loading while initializing vendor session
+   // Show OTP verification screen before registration
+   if (!isPhoneVerified) {
+     return (
+       <MobileLayout title="Verify Mobile">
+         <OTPVerification
+           phoneNumber={invitation.contact_phone}
+           companyName={invitation.company_name}
+           onVerified={() => setIsPhoneVerified(true)}
+         />
+       </MobileLayout>
+     );
+   }
+ 
+   // Show loading while initializing vendor session (after phone verification)
   if (isInitializing) {
     return (
       <MobileLayout title="Registration">
