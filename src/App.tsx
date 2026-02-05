@@ -27,6 +27,10 @@ import FraudAlertsDashboard from "./pages/staff/FraudAlertsDashboard";
 // Admin Pages
 import AdminUserManagement from "./pages/admin/AdminUserManagement";
 import AdminSettings from "./pages/admin/AdminSettings";
+ 
+ // DigiLocker Callback Pages
+ import DigilockerSuccess from "./pages/DigilockerSuccess";
+ import DigilockerFailure from "./pages/DigilockerFailure";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +60,10 @@ const App = () => (
             <Route path="/staff/fraud-alerts" element={<FraudAlertsDashboard />} />
              <Route path="/staff/invitations" element={<VendorInvitations />} />
             
+             {/* DigiLocker Callback Routes */}
+             <Route path="/digilocker/success" element={<DigilockerSuccess />} />
+             <Route path="/digilocker/failure" element={<DigilockerFailure />} />
+             
             {/* Admin Routes */}
             <Route path="/admin/users" element={<AdminUserManagement />} />
             <Route path="/admin/settings" element={<AdminSettings />} />

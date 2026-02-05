@@ -31,8 +31,10 @@ import {
   Phone,
   Mail,
    MapPin,
-   MessageSquare
+   MessageSquare,
+   Shield
 } from "lucide-react";
+ import { VerificationPanel } from "@/components/verification/VerificationPanel";
 
 const STATUS_LABELS = {
   draft: "Draft",
@@ -187,6 +189,10 @@ export default function VendorReviewDetail() {
            <TabsList>
              <TabsTrigger value="details">Details</TabsTrigger>
              <TabsTrigger value="documents">Documents ({documents?.length || 0})</TabsTrigger>
+             <TabsTrigger value="verifications">
+               <Shield className="h-4 w-4 mr-1" />
+               Verifications
+             </TabsTrigger>
              <TabsTrigger value="communication">
                <MessageSquare className="h-4 w-4 mr-1" />
                Communication
@@ -384,6 +390,15 @@ export default function VendorReviewDetail() {
  
            <TabsContent value="communication">
              <WhatsAppHistory vendorId={vendor.id} />
+           </TabsContent>
+ 
+           <TabsContent value="verifications">
+             <VerificationPanel
+               vendorId={vendor.id}
+               panNumber={vendor.pan_number || undefined}
+               accountNumber={vendor.bank_account_number || undefined}
+               ifscCode={vendor.bank_ifsc || undefined}
+             />
            </TabsContent>
          </Tabs>
       </div>
