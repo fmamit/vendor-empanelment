@@ -1,87 +1,143 @@
 
-# Vendor Invitations Management Page
+# Fix Vendor Registration RLS Error and WhatsApp OTP Delivery
 
-## Overview
-Create a dedicated page where staff can view and manage all vendor invitations, track their status, copy links, and resend notifications.
+## Problem Summary
 
-## Status Categories
-Based on the invitation data:
-- **Pending**: `used_at` is null AND `expires_at` is in the future
-- **Accepted**: `used_at` is not null (vendor completed registration)
-- **Expired**: `used_at` is null AND `expires_at` is in the past
+There are two issues:
 
-## Implementation
+1. **RLS Error ("new row violates row-level security policy for table vendors")**: Anonymous sign-in is failing, so `auth.uid()` is null when trying to create the vendor record.
 
-### 1. Create New Page: `src/pages/staff/VendorInvitations.tsx`
+2. **WhatsApp OTP not received**: The system shows the message was sent successfully (Exotel returned HTTP 202), but the message may not be delivered due to template formatting or delivery delays.
 
-A table-based view showing all invitations with:
-- Company name and category
-- Contact details (phone, email)
-- Status badge (Pending/Accepted/Expired)
-- Creation date
-- Expiry date
-- Actions column with:
-  - Copy link button
-  - Resend email button
-  - Resend WhatsApp button
+## Root Cause Analysis
 
-The page will include:
-- Filter tabs to quickly view by status (All, Pending, Accepted, Expired)
-- Search functionality for company name
-- A prominent "Invite New Vendor" button at the top
-
-### 2. Update Routing: `src/App.tsx`
-
-Add new route:
+### RLS Error
+The current flow requires anonymous authentication to work:
 ```text
-/staff/invitations -> VendorInvitations page
+OTP Verified -> signInAnonymously() -> Create Vendor (requires auth.uid())
 ```
 
-### 3. Update Sidebar Navigation: `src/components/layout/StaffSidebar.tsx`
-
-Add "Invitations" link under the Main section (visible to Makers and Admins) with a badge showing pending invitation count.
-
-### 4. Features
-
-| Feature | Description |
-|---------|-------------|
-| Status Badges | Color-coded badges (green for accepted, yellow for pending, red for expired) |
-| Copy Link | Quick copy of the registration URL to clipboard |
-| Resend Email | Re-trigger invitation email using existing hook |
-| Resend WhatsApp | Re-trigger WhatsApp message using existing hook |
-| Filter Tabs | Quick filters for All/Pending/Accepted/Expired |
-| Search | Filter by company name |
-| Responsive | Works on both desktop and mobile |
-
----
-
-## Technical Details
-
-### Data Flow
-```text
-useInvitationsList() hook
-        |
-        v
-VendorInvitations page
-        |
-        +-- Filter by status (computed from expires_at/used_at)
-        +-- Render table with action buttons
-        +-- useSendInvitationEmail() for resend
-        +-- useSendInvitationWhatsApp() for resend
+The RLS policy on `vendors` table:
+```sql
+WITH CHECK (auth.uid() IS NOT NULL)
 ```
 
-### Status Computation Logic
+If anonymous auth fails or is disabled, `auth.uid()` returns null and the INSERT is blocked.
+
+### WhatsApp OTP
+The logs show successful API calls to Exotel, but the actual WhatsApp message may not be delivered due to:
+- Template content mismatch between Exotel configuration and what the code sends
+- Delivery delays on WhatsApp Business API
+
+## Solution
+
+### Part 1: Fix RLS Error - Use Edge Function for Vendor Creation
+
+Instead of relying on anonymous auth (which can be unreliable), create an edge function that uses the service role to bypass RLS and create the vendor record securely after OTP verification.
+
+**New Edge Function: `create-vendor-registration`**
+- Validates the invitation token
+- Verifies that OTP was completed (checks `otp_codes` table for a valid used code)
+- Creates vendor and vendor_user records using service role
+- Returns the session for the newly registered vendor
+
+**Changes to Registration Flow:**
 ```text
-function getInvitationStatus(invitation):
-    if invitation.used_at is not null:
-        return "accepted"
-    else if invitation.expires_at < now:
-        return "expired"
-    else:
-        return "pending"
+Before:
+  OTP Verified -> signInAnonymously() -> Client creates vendor (blocked by RLS)
+
+After:
+  OTP Verified -> Call edge function -> Edge function creates vendor with service role
 ```
 
-### Files to Create/Modify
-- **Create**: `src/pages/staff/VendorInvitations.tsx` - Main management page
-- **Modify**: `src/App.tsx` - Add route
-- **Modify**: `src/components/layout/StaffSidebar.tsx` - Add navigation link
+### Part 2: Improve OTP Delivery Visibility
+
+Add a fallback mechanism and better error handling:
+- Log detailed Exotel response in the edge function
+- Show the OTP code temporarily in development mode for testing (can be disabled)
+- Add SMS fallback option (future enhancement)
+
+## Implementation Details
+
+### 1. Create Edge Function: `supabase/functions/create-vendor-registration/index.ts`
+
+The function will:
+- Accept invitation token and phone number
+- Verify a valid used OTP exists for that phone number
+- Create vendor record (using service role - bypasses RLS)
+- Create vendor_user record linking to a new anonymous user
+- Return success with vendor ID
+
+### 2. Update `src/pages/vendor/VendorRegistration.tsx`
+
+After OTP verification:
+- Call the new edge function instead of using `signInAnonymously()` + client-side insert
+- The edge function handles all the secure database operations
+- Set the returned anonymous session for continued use
+
+### 3. Update `src/hooks/useVendor.tsx`
+
+Add a new hook `useCreateVendorViaEdgeFunction` that:
+- Calls the edge function
+- Handles the response and error states
+- Signs in with the returned session
+
+## Files to Create/Modify
+
+| File | Action | Description |
+|------|--------|-------------|
+| `supabase/functions/create-vendor-registration/index.ts` | Create | New edge function for secure vendor creation |
+| `src/pages/vendor/VendorRegistration.tsx` | Modify | Use edge function instead of client-side insert |
+| `src/hooks/useVendor.tsx` | Modify | Add hook for edge function call |
+
+## Security Considerations
+
+- The edge function validates the invitation token before creating records
+- OTP verification is confirmed by checking the database
+- Service role is only used in the edge function (server-side)
+- The anonymous user session is created server-side and returned to client
+
+## Data Flow Diagram
+
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│                      Vendor Registration Flow                        │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌──────────┐    ┌──────────┐    ┌─────────────────┐    ┌────────────┐
+│  Vendor  │    │  OTP     │    │  Edge Function  │    │  Database  │
+│  Browser │    │ Verified │    │  (Service Role) │    │            │
+└────┬─────┘    └────┬─────┘    └───────┬─────────┘    └──────┬─────┘
+     │               │                   │                     │
+     │ Enter OTP     │                   │                     │
+     ├──────────────>│                   │                     │
+     │               │                   │                     │
+     │  OTP Valid    │                   │                     │
+     │<──────────────┤                   │                     │
+     │               │                   │                     │
+     │ Call create-vendor-registration   │                     │
+     ├──────────────────────────────────>│                     │
+     │               │                   │                     │
+     │               │                   │  Create anon user   │
+     │               │                   ├────────────────────>│
+     │               │                   │                     │
+     │               │                   │  Insert vendor      │
+     │               │                   ├────────────────────>│
+     │               │                   │                     │
+     │               │                   │  Insert vendor_user │
+     │               │                   ├────────────────────>│
+     │               │                   │                     │
+     │ Return session + vendor_id        │                     │
+     │<──────────────────────────────────┤                     │
+     │               │                   │                     │
+     │ Continue registration wizard      │                     │
+     │               │                   │                     │
+```
+
+## Testing
+
+After implementation:
+1. Click an invitation link
+2. Enter the OTP (check edge function logs for the code if WhatsApp delivery is delayed)
+3. Verify the vendor record is created without RLS errors
+4. Complete the registration wizard
