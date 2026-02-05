@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { MobileLayout } from "@/components/layout/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,7 +52,6 @@ interface InvitationData {
 }
 
 export default function VendorRegistration() {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
   
@@ -222,19 +221,33 @@ export default function VendorRegistration() {
 
       // Set session if tokens returned
       if (regData.access_token && regData.refresh_token) {
-        await supabase.auth.setSession({
+        const { error: sessionError } = await supabase.auth.setSession({
           access_token: regData.access_token,
           refresh_token: regData.refresh_token,
         });
+
+        if (sessionError) {
+          console.error("[VendorRegistration] Session error:", sessionError);
+          throw new Error("Failed to establish session");
+        }
+
+        // Verify session is active
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError || !user) {
+          console.error("[VendorRegistration] User verification failed:", userError);
+          throw new Error("Session verification failed");
+        }
+
+        console.log("[VendorRegistration] Session verified for user:", user.id);
       }
 
       // Success!
       setState("SUCCESS");
       toast.success("Registration successful!");
       
-      // Wait for session to propagate
-      await new Promise(resolve => setTimeout(resolve, 800));
-      navigate("/vendor/dashboard");
+      // Use full page reload to ensure App.tsx re-evaluates isRegistrationPath
+      // and mounts AuthProvider correctly for the dashboard
+      window.location.href = "/vendor/dashboard";
 
     } catch (err: any) {
       console.error("Registration error:", err);
@@ -290,7 +303,7 @@ export default function VendorRegistration() {
                   </div>
                 </div>
               </div>
-              <Button variant="outline" onClick={() => navigate("/")} className="mt-4">
+              <Button variant="outline" onClick={() => window.location.href = "/"} className="mt-4">
                 Go to Home
               </Button>
             </CardContent>
