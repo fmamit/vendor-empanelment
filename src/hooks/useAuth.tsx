@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { useLocation } from "react-router-dom";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -6,6 +7,9 @@ type UserType = "vendor" | "staff" | null;
 
 // Test mode constants
 const TEST_MODE_KEY = "test_vendor_mode";
+
+// Paths where we skip user type queries to avoid RLS issues
+const SKIP_AUTH_PATHS = ["/vendor/register"];
 
 interface AuthContextType {
   user: User | null;
@@ -21,6 +25,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const location = useLocation();
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userType, setUserType] = useState<UserType>(null);
@@ -30,6 +35,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isTestMode, setIsTestMode] = useState(() => {
     return sessionStorage.getItem(TEST_MODE_KEY) === "true";
   });
+
+  // Check if we're on a path that should skip auth queries
+  const isSkipAuthPath = SKIP_AUTH_PATHS.some(path => location.pathname.startsWith(path));
 
   const setTestMode = (enabled: boolean) => {
     setIsTestMode(enabled);
@@ -73,6 +81,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Determine user type when user changes
   useEffect(() => {
+    // Skip all queries on registration paths to avoid RLS issues
+    if (isSkipAuthPath) {
+      console.log("[Auth] On skip-auth path, not checking userType");
+      setUserType(null);
+      setUserTypeLoading(false);
+      return;
+    }
+
     // Skip if test mode
     if (isTestMode) {
       console.log("[Auth] Test mode - setting userType to vendor");
@@ -129,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     checkUserType();
-  }, [user, isTestMode]);
+  }, [user, isTestMode, isSkipAuthPath]);
 
   const signOut = async () => {
     // Clear test mode on sign out
