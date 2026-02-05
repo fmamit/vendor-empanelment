@@ -29,6 +29,7 @@ import {
   Users,
   Settings,
   LogOut,
+  MessageSquare,
 } from "lucide-react";
 
 export function StaffSidebar() {
@@ -228,6 +229,22 @@ export function StaffSidebar() {
                     >
                       <Settings className="h-4 w-4" />
                       <span>System Settings</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive("/admin/settings") && location.search.includes("whatsapp")}
+                    tooltip="WhatsApp Settings"
+                  >
+                    <NavLink
+                      to="/admin/settings?tab=whatsapp"
+                      onClick={() => isMobile && setOpenMobile(false)}
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      <span>WhatsApp Settings</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

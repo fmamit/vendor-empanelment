@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { StaffLayout } from "@/components/layout/StaffLayout";
 import { useUserRoles } from "@/hooks/useUserRoles";
@@ -17,14 +18,18 @@ import {
   Plus,
   Edit,
   Trash2,
-  Loader2
+  Loader2,
+  MessageSquare
 } from "lucide-react";
+import { WhatsAppSettingsForm } from "@/components/admin/WhatsAppSettingsForm";
 
 export default function AdminSettings() {
   const { isAdmin } = useUserRoles();
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab") || "categories";
 
-  const [activeTab, setActiveTab] = useState("categories");
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
   const [showDocTypeDialog, setShowDocTypeDialog] = useState(false);
   const [editingCategory, setEditingCategory] = useState<any>(null);
@@ -171,6 +176,10 @@ export default function AdminSettings() {
               <FileText className="h-4 w-4" />
               Document Types
             </TabsTrigger>
+            <TabsTrigger value="whatsapp" className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              WhatsApp
+            </TabsTrigger>
           </TabsList>
 
           {/* Categories Tab */}
@@ -258,6 +267,11 @@ export default function AdminSettings() {
                 </div>
               )}
             </div>
+          </TabsContent>
+
+          {/* WhatsApp Tab */}
+          <TabsContent value="whatsapp" className="flex-1 flex flex-col mt-0 p-6">
+            <WhatsAppSettingsForm />
           </TabsContent>
         </Tabs>
       </div>
