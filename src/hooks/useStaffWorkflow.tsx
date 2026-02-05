@@ -4,6 +4,7 @@ import { useAuth } from "./useAuth";
 import { useUserRoles } from "./useUserRoles";
 import { toast } from "sonner";
 import { Vendor, VendorDocument } from "./useVendor";
+ import { useSendStatusEmail } from "./useEmailNotifications";
 
 export interface VendorWithCategory extends Vendor {
   vendor_categories: {
@@ -82,6 +83,7 @@ export function useVendorDocumentsForReview(vendorId: string | null) {
 export function useUpdateVendorStatus() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+   const sendStatusEmail = useSendStatusEmail();
 
   return useMutation({
     mutationFn: async ({
@@ -131,6 +133,50 @@ export function useUpdateVendorStatus() {
         });
 
       if (historyError) throw historyError;
+       
+       // Send email notification to vendor
+       const { data: vendorData } = await supabase
+         .from("vendors")
+         .select("primary_email, company_name, primary_contact_name, vendor_code")
+         .eq("id", vendorId)
+         .single();
+       
+       if (vendorData?.primary_email) {
+         try {
+           if (newStatus === "approved") {
+             await sendStatusEmail.mutateAsync({
+               email_type: "approved",
+               to_email: vendorData.primary_email,
+               company_name: vendorData.company_name,
+               contact_name: vendorData.primary_contact_name,
+               vendor_code: vendorData.vendor_code || undefined,
+             });
+           } else if (newStatus === "rejected") {
+             await sendStatusEmail.mutateAsync({
+               email_type: "rejected",
+               to_email: vendorData.primary_email,
+               company_name: vendorData.company_name,
+               contact_name: vendorData.primary_contact_name,
+               rejection_reason: comments,
+             });
+           } else if (["in_verification", "pending_approval"].includes(newStatus)) {
+             const statusLabels: Record<string, string> = {
+               in_verification: "In Verification",
+               pending_approval: "Pending Final Approval",
+             };
+             await sendStatusEmail.mutateAsync({
+               email_type: "status_update",
+               to_email: vendorData.primary_email,
+               company_name: vendorData.company_name,
+               contact_name: vendorData.primary_contact_name,
+               new_status: statusLabels[newStatus] || newStatus,
+             });
+           }
+         } catch (emailError) {
+           console.error("Failed to send status email:", emailError);
+           // Don't throw - email failure shouldn't block status update
+         }
+       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["staff-vendor-queue"] });
