@@ -1,146 +1,66 @@
 
-# Staff Admin Sidebar Navigation
+
+# Vendor Referral Registration Page
 
 ## Overview
 
-I'll create a collapsible left sidebar for the staff admin portal that provides easy navigation between all staff and admin pages. The sidebar will replace the current mobile-focused layout with a proper desktop-friendly layout while still working well on mobile devices.
+Build a public, unauthenticated, mobile-first vendor registration form at `/register/ref/:token`. Staff share the link; vendors complete onboarding without logging in. The invitation token (from `vendor_invitations`) is their access key.
 
-## Navigation Structure
+## User Flow (4 Steps)
 
-The sidebar will include these sections:
-
-**Main**
-- Dashboard (home view with stats)
-- Vendor Queue (review queue)
-- Fraud Alerts (security monitoring)
-
-**Administration** (Admin role only)
-- User Management
-- System Settings
-
-**Account**
-- Sign Out
-
----
-
-## Implementation Plan
-
-### 1. Create Staff Sidebar Component
-
-Create a new `StaffSidebar.tsx` component that:
-- Uses the existing Shadcn Sidebar components
-- Shows navigation items with icons
-- Highlights the active route using NavLink
-- Shows/hides admin section based on user roles
-- Collapses to icons on smaller screens
-- Works as a slide-out sheet on mobile
-
-### 2. Create Staff Layout Component
-
-Create a new `StaffLayout.tsx` that wraps all staff/admin pages:
-- Contains `SidebarProvider` with the sidebar
-- Includes a header with a menu toggle button (SidebarTrigger)
-- Shows the Capital India logo in the header
-- Provides a main content area for page content
-
-### 3. Update Staff Pages
-
-Modify all staff and admin pages to use the new `StaffLayout`:
-- `StaffDashboard.tsx`
-- `StaffReviewQueue.tsx`
-- `VendorReviewDetail.tsx`
-- `FraudAlertsDashboard.tsx`
-- `AdminUserManagement.tsx`
-- `AdminSettings.tsx`
-
-Remove the "Back to Dashboard" buttons since navigation is now via sidebar.
-
----
+1. **Company Details** -- Company Name (pre-filled), Trade Name, Category (locked), GST, PAN
+2. **Contact Details** -- Contact Name, Mobile + OTP verification, Email (all pre-filled from invitation)
+3. **Banking Details** -- Bank Name, Branch, Account Number, IFSC
+4. **Documents** -- Category-specific uploads from `category_documents` table, then submit
 
 ## Files to Create
 
 | File | Purpose |
 |------|---------|
-| `src/components/layout/StaffSidebar.tsx` | Sidebar component with navigation items |
-| `src/components/layout/StaffLayout.tsx` | Layout wrapper with sidebar + header |
+| `src/pages/vendor/VendorReferralRegistration.tsx` | Main page with step state machine and token validation |
+| `src/components/referral/ReferralHeader.tsx` | Sticky header with Capital India logo |
+| `src/components/referral/ReferralStepper.tsx` | 4-step progress bar |
+| `src/components/referral/CompanyDetailsStep.tsx` | Step 1 form |
+| `src/components/referral/ContactDetailsStep.tsx` | Step 2 form with phone OTP |
+| `src/components/referral/BankDetailsStep.tsx` | Step 3 form |
+| `src/components/referral/DocumentUploadStep.tsx` | Step 4 category-specific uploads |
+| `supabase/functions/submit-vendor-referral/index.ts` | Creates vendor, auth user, vendor_users link, marks invitation used |
+| `supabase/functions/upload-referral-document/index.ts` | Handles document uploads for unauthenticated users |
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/pages/staff/StaffDashboard.tsx` | Use StaffLayout, remove redundant nav |
-| `src/pages/staff/StaffReviewQueue.tsx` | Use StaffLayout, remove back button |
-| `src/pages/staff/VendorReviewDetail.tsx` | Use StaffLayout |
-| `src/pages/staff/FraudAlertsDashboard.tsx` | Use StaffLayout |
-| `src/pages/admin/AdminUserManagement.tsx` | Use StaffLayout, remove back button |
-| `src/pages/admin/AdminSettings.tsx` | Use StaffLayout, remove back button |
+| `src/App.tsx` | Add public route `/register/ref/:token` |
+| `supabase/config.toml` | Add `verify_jwt = false` for new edge functions |
 
----
+## Backend: Edge Functions
 
-## Visual Design
+**`submit-vendor-referral`** (service role, public):
+- Validates token (exists, not expired, not used)
+- Creates `vendors` record (status: `pending_review`)
+- Creates auth user via phone number
+- Creates `vendor_users` link
+- Marks invitation as used (`used_at = now()`, links `vendor_id`)
 
-```text
-+------------------+--------------------------------+
-|  [=] Capital     |                                |
-|     India        |      Page Content              |
-|------------------|                                |
-| MAIN             |                                |
-|  > Dashboard     |                                |
-|    Vendor Queue  |                                |
-|    Fraud Alerts  |                                |
-|------------------|                                |
-| ADMINISTRATION   |                                |
-|    Users         |                                |
-|    Settings      |                                |
-|------------------|                                |
-|                  |                                |
-|  [Sign Out]      |                                |
-+------------------+--------------------------------+
-```
+**`upload-referral-document`** (service role, public):
+- Validates token
+- Uploads file to storage
+- Creates `vendor_documents` record
 
----
+## State Management
+- `useState` in parent page for all form fields
+- `localStorage` key `vendor_referral_form_state` for persistence across reloads
+- Pre-fill from invitation data on mount
+- Clear on successful submission
 
-## Technical Details
+## Universal Link Accessibility
+- Links use `VITE_PUBLIC_URL` / fallback `https://onboardly-path.lovable.app`
+- Format: `https://onboardly-path.lovable.app/register/ref/{token}`
+- No login required -- fully public route
+- Token validated server-side before any writes
+- Expired and already-used tokens rejected
 
-### StaffSidebar Component Structure
+## No Database Changes Needed
+All required tables already exist: `vendor_invitations`, `vendors`, `vendor_users`, `vendor_documents`, `vendor_categories`, `category_documents`, `document_types`.
 
-```tsx
-// Navigation items configuration
-const navItems = [
-  { title: "Dashboard", url: "/staff/dashboard", icon: LayoutDashboard },
-  { title: "Vendor Queue", url: "/staff/queue", icon: ClipboardList },
-  { title: "Fraud Alerts", url: "/staff/fraud-alerts", icon: ShieldAlert },
-];
-
-const adminItems = [
-  { title: "User Management", url: "/admin/users", icon: Users },
-  { title: "System Settings", url: "/admin/settings", icon: Settings },
-];
-```
-
-### StaffLayout Component Structure
-
-```tsx
-<SidebarProvider>
-  <div className="min-h-screen flex w-full">
-    <StaffSidebar />
-    <SidebarInset>
-      <header className="h-14 flex items-center border-b px-4">
-        <SidebarTrigger />
-        <img src={logo} className="h-8 ml-3" />
-        <span className="ml-2 font-semibold">{title}</span>
-      </header>
-      <main className="flex-1 overflow-auto">
-        {children}
-      </main>
-    </SidebarInset>
-  </div>
-</SidebarProvider>
-```
-
-### Mobile Behavior
-
-On mobile devices (width < 768px):
-- Sidebar becomes a slide-out sheet
-- Menu button in header toggles the sidebar
-- Sidebar closes automatically after navigation
