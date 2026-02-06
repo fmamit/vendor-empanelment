@@ -9,6 +9,7 @@ import {
   Users,
   Settings,
   LogOut,
+  UserCircle,
 } from "lucide-react";
 import {
   Sidebar,
@@ -104,7 +105,21 @@ export function StaffSidebar() {
         )}
       </SidebarContent>
 
-      <SidebarFooter>
+      <SidebarFooter className="space-y-1">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="My Profile">
+              <NavLink
+                to="/staff/profile"
+                className="hover:bg-muted/50"
+                activeClassName="bg-primary/10 text-primary font-medium"
+              >
+                <UserCircle className="h-4 w-4" />
+                <span>My Profile</span>
+              </NavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
         <Button
           variant="ghost"
           className="w-full justify-start gap-2"

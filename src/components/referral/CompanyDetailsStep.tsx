@@ -1,7 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Building2, Lock } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Building2 } from "lucide-react";
 
 interface CompanyDetailsStepProps {
   formData: {
@@ -9,12 +9,16 @@ interface CompanyDetailsStepProps {
     trade_name: string;
     gst_number: string;
     pan_number: string;
+    category_id: string;
   };
   categoryName: string;
+  categories?: { id: string; name: string }[];
   onChange: (field: string, value: string) => void;
 }
 
-export function CompanyDetailsStep({ formData, categoryName, onChange }: CompanyDetailsStepProps) {
+export function CompanyDetailsStep({ formData, categoryName, categories, onChange }: CompanyDetailsStepProps) {
+  const hasCategories = categories && categories.length > 0;
+
   return (
     <div className="space-y-5 p-4">
       <div className="flex items-center gap-2">
@@ -46,11 +50,25 @@ export function CompanyDetailsStep({ formData, categoryName, onChange }: Company
         </div>
 
         <div>
-          <Label>Vendor Category</Label>
-          <div className="flex items-center gap-2 mt-1 h-12 px-3 rounded-md border border-input bg-muted/50">
-            <Lock className="h-4 w-4 text-muted-foreground" />
-            <Badge variant="secondary" className="text-sm">{categoryName}</Badge>
-          </div>
+          <Label>Vendor Category *</Label>
+          {hasCategories ? (
+            <Select value={formData.category_id} onValueChange={(val) => onChange("category_id", val)}>
+              <SelectTrigger className="h-12 mt-1">
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <div className="flex items-center gap-2 mt-1 h-12 px-3 rounded-md border border-input bg-muted/50">
+              <span className="text-sm text-muted-foreground">{categoryName || "Loading..."}</span>
+            </div>
+          )}
         </div>
 
         <div>
