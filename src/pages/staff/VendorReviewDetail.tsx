@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { MobileLayout } from "@/components/layout/MobileLayout";
-import { useAuth } from "@/hooks/useAuth";
+import { StaffLayout } from "@/components/layout/StaffLayout";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { 
   useVendorDetails, 
@@ -50,7 +49,6 @@ const DOC_STATUS_COLORS = {
 export default function VendorReviewDetail() {
   const { vendorId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { isAdmin, isMaker, isChecker, isApprover } = useUserRoles();
   
   const { data: vendor, isLoading: vendorLoading } = useVendorDetails(vendorId || null);
@@ -65,21 +63,21 @@ export default function VendorReviewDetail() {
 
   if (vendorLoading || docsLoading) {
     return (
-      <MobileLayout title="Vendor Details">
+      <StaffLayout title="Vendor Details">
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      </MobileLayout>
+      </StaffLayout>
     );
   }
 
   if (!vendor) {
     return (
-      <MobileLayout title="Vendor Details">
+      <StaffLayout title="Vendor Details">
         <div className="flex-1 flex items-center justify-center p-4">
           <p className="text-muted-foreground">Vendor not found</p>
         </div>
-      </MobileLayout>
+      </StaffLayout>
     );
   }
 
@@ -104,7 +102,6 @@ export default function VendorReviewDetail() {
   const handleForward = async () => {
     const nextStatus = getNextStatus();
     if (!nextStatus) return;
-
     setActionLoading("forward");
     try {
       await updateVendorStatus.mutateAsync({
@@ -119,7 +116,6 @@ export default function VendorReviewDetail() {
 
   const handleReject = async () => {
     if (!rejectReason.trim()) return;
-
     setActionLoading("reject");
     try {
       await updateVendorStatus.mutateAsync({
@@ -137,18 +133,15 @@ export default function VendorReviewDetail() {
   const handleDocumentAction = async (docId: string, status: "approved" | "rejected") => {
     setActionLoading(docId);
     try {
-      await updateDocumentStatus.mutateAsync({
-        documentId: docId,
-        status,
-      });
+      await updateDocumentStatus.mutateAsync({ documentId: docId, status });
     } finally {
       setActionLoading(null);
     }
   };
 
   return (
-    <MobileLayout title="Review Vendor">
-      <div className="flex-1 overflow-auto p-4 space-y-4">
+    <StaffLayout title="Review Vendor">
+      <div className="flex-1 overflow-auto p-4 md:p-6 space-y-4 max-w-3xl">
         {/* Header */}
         <Card className="bg-primary text-primary-foreground">
           <CardContent className="p-4">
@@ -283,67 +276,32 @@ export default function VendorReviewDetail() {
           </CardHeader>
           <CardContent className="space-y-3">
             {documents?.map((doc) => (
-              <div 
-                key={doc.id}
-                className={`p-3 rounded-lg ${DOC_STATUS_COLORS[doc.status]}`}
-              >
+              <div key={doc.id} className={`p-3 rounded-lg ${DOC_STATUS_COLORS[doc.status]}`}>
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium text-sm">{doc.document_types.name}</span>
                   <Badge variant="outline" className="text-xs capitalize">
                     {doc.status.replace("_", " ")}
                   </Badge>
                 </div>
-                
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => window.open(doc.file_url, "_blank")}
-                  >
-                    <ExternalLink className="h-3 w-3 mr-1" />
-                    View
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => window.open(doc.file_url, "_blank")}>
+                    <ExternalLink className="h-3 w-3 mr-1" /> View
                   </Button>
-                  
                   {doc.status !== "approved" && canForward && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-success border-success"
-                      onClick={() => handleDocumentAction(doc.id, "approved")}
-                      disabled={actionLoading === doc.id}
-                    >
-                      {actionLoading === doc.id ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <CheckCircle2 className="h-3 w-3" />
-                      )}
+                    <Button variant="outline" size="sm" className="text-success border-success" onClick={() => handleDocumentAction(doc.id, "approved")} disabled={actionLoading === doc.id}>
+                      {actionLoading === doc.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
                     </Button>
                   )}
-                  
                   {doc.status !== "rejected" && canForward && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-destructive border-destructive"
-                      onClick={() => handleDocumentAction(doc.id, "rejected")}
-                      disabled={actionLoading === doc.id}
-                    >
-                      {actionLoading === doc.id ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <XCircle className="h-3 w-3" />
-                      )}
+                    <Button variant="outline" size="sm" className="text-destructive border-destructive" onClick={() => handleDocumentAction(doc.id, "rejected")} disabled={actionLoading === doc.id}>
+                      {actionLoading === doc.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <XCircle className="h-3 w-3" />}
                     </Button>
                   )}
                 </div>
               </div>
             ))}
-
             {(!documents || documents.length === 0) && (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No documents uploaded yet
-              </p>
+              <p className="text-sm text-muted-foreground text-center py-4">No documents uploaded yet</p>
             )}
           </CardContent>
         </Card>
@@ -352,44 +310,16 @@ export default function VendorReviewDetail() {
       {/* Action Buttons */}
       {(canForward || canApprove || canReject) && vendor.current_status !== "approved" && vendor.current_status !== "rejected" && (
         <div className="p-4 border-t bg-card flex gap-3">
-          <Button
-            variant="outline"
-            className="flex-1 text-destructive border-destructive"
-            onClick={() => setShowRejectDialog(true)}
-          >
-            <XCircle className="h-4 w-4 mr-2" />
-            Reject
+          <Button variant="outline" className="flex-1 text-destructive border-destructive" onClick={() => setShowRejectDialog(true)}>
+            <XCircle className="h-4 w-4 mr-2" /> Reject
           </Button>
-          
           {canApprove && vendor.current_status === "pending_approval" ? (
-            <Button
-              className="flex-1 bg-success hover:bg-success/90"
-              onClick={handleForward}
-              disabled={actionLoading === "forward"}
-            >
-              {actionLoading === "forward" ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                  Approve
-                </>
-              )}
+            <Button className="flex-1 bg-success hover:bg-success/90" onClick={handleForward} disabled={actionLoading === "forward"}>
+              {actionLoading === "forward" ? <Loader2 className="h-4 w-4 animate-spin" /> : <><CheckCircle2 className="h-4 w-4 mr-2" /> Approve</>}
             </Button>
           ) : canForward ? (
-            <Button
-              className="flex-1"
-              onClick={handleForward}
-              disabled={actionLoading === "forward"}
-            >
-              {actionLoading === "forward" ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
-                  Forward
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </>
-              )}
+            <Button className="flex-1" onClick={handleForward} disabled={actionLoading === "forward"}>
+              {actionLoading === "forward" ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Forward <ArrowRight className="h-4 w-4 ml-2" /></>}
             </Button>
           ) : null}
         </div>
@@ -400,41 +330,21 @@ export default function VendorReviewDetail() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
-              Reject Application
+              <AlertTriangle className="h-5 w-5" /> Reject Application
             </DialogTitle>
           </DialogHeader>
-          
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Please provide a reason for rejecting this vendor application. The vendor will be notified.
-            </p>
-            <Textarea
-              placeholder="Enter rejection reason..."
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              rows={4}
-            />
+            <p className="text-sm text-muted-foreground">Please provide a reason for rejecting this vendor application.</p>
+            <Textarea placeholder="Enter rejection reason..." value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} rows={4} />
           </div>
-
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
-              Cancel
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleReject}
-              disabled={!rejectReason.trim() || actionLoading === "reject"}
-            >
-              {actionLoading === "reject" ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                "Confirm Rejection"
-              )}
+            <Button variant="outline" onClick={() => setShowRejectDialog(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleReject} disabled={!rejectReason.trim() || actionLoading === "reject"}>
+              {actionLoading === "reject" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm Rejection"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </MobileLayout>
+    </StaffLayout>
   );
 }

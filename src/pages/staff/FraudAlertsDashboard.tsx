@@ -1,13 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MobileLayout } from "@/components/layout/MobileLayout";
-import { useAuth } from "@/hooks/useAuth";
+import { StaffLayout } from "@/components/layout/StaffLayout";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useFraudAlerts, FraudAlert } from "@/hooks/useFraudAlerts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FraudAlertCard } from "@/components/fraud/FraudAlertCard";
 import { FraudAlertDetail } from "@/components/fraud/FraudAlertDetail";
 import { 
@@ -15,14 +13,11 @@ import {
   AlertTriangle, 
   Clock, 
   CheckCircle2,
-  Filter,
-  ArrowLeft
 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function FraudAlertsDashboard() {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { isAdmin } = useUserRoles();
   const [activeTab, setActiveTab] = useState<string>("pending");
   const [selectedAlert, setSelectedAlert] = useState<FraudAlert | null>(null);
@@ -44,20 +39,16 @@ export default function FraudAlertsDashboard() {
   };
 
   return (
-    <MobileLayout title="Fraud Alerts">
+    <StaffLayout title="Fraud Alerts">
       <div className="flex-1 overflow-auto">
         {/* Header */}
         <div className="p-4 border-b bg-card">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/staff/dashboard")} className="mb-2 -ml-2">
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Back
-          </Button>
           <h1 className="text-xl font-semibold">Fraud Detection</h1>
           <p className="text-sm text-muted-foreground">Monitor and review security alerts</p>
         </div>
 
         {/* Stats Cards */}
-        <div className="p-4 grid grid-cols-4 gap-2">
+        <div className="p-4 grid grid-cols-4 gap-2 max-w-2xl">
           <Card className="border-destructive/30">
             <CardContent className="p-3 text-center">
               <ShieldAlert className="h-5 w-5 text-destructive mx-auto mb-1" />
@@ -91,7 +82,7 @@ export default function FraudAlertsDashboard() {
         {/* Tabs */}
         <div className="px-4">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full grid grid-cols-4">
+            <TabsList className="w-full grid grid-cols-4 max-w-md">
               <TabsTrigger value="pending">Pending</TabsTrigger>
               <TabsTrigger value="reviewed">Reviewed</TabsTrigger>
               <TabsTrigger value="dismissed">Dismissed</TabsTrigger>
@@ -101,7 +92,7 @@ export default function FraudAlertsDashboard() {
         </div>
 
         {/* Alerts List */}
-        <div className="p-4 space-y-3">
+        <div className="p-4 space-y-3 max-w-2xl">
           {alerts.length === 0 ? (
             <Card>
               <CardContent className="p-8 text-center">
@@ -135,6 +126,6 @@ export default function FraudAlertsDashboard() {
           onViewVendor={handleViewVendor}
         />
       )}
-    </MobileLayout>
+    </StaffLayout>
   );
 }

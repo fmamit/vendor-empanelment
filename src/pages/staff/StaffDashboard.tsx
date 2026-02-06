@@ -1,6 +1,5 @@
-import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { MobileLayout } from "@/components/layout/MobileLayout";
+import { StaffLayout } from "@/components/layout/StaffLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useStaffVendorQueue } from "@/hooks/useStaffWorkflow";
@@ -11,9 +10,6 @@ import {
   FileSearch, 
   CheckSquare, 
   ThumbsUp,
-  Settings,
-  LogOut,
-  Users,
   TrendingUp,
   Clock,
   AlertTriangle,
@@ -24,31 +20,20 @@ import {
 } from "lucide-react";
 
 export default function StaffDashboard() {
-  const { user, userType, loading, signOut } = useAuth();
+  const { user } = useAuth();
   const { roles, isAdmin, isMaker, isChecker, isApprover, isLoading: rolesLoading } = useUserRoles();
   const { data: vendors, isLoading: vendorsLoading } = useStaffVendorQueue();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (!loading && (!user || userType !== "staff")) {
-      navigate("/staff/login");
-    }
-  }, [user, userType, loading, navigate]);
-
-  if (loading || rolesLoading) {
+  if (rolesLoading) {
     return (
-      <MobileLayout title="Dashboard">
+      <StaffLayout title="Dashboard">
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      </MobileLayout>
+      </StaffLayout>
     );
   }
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/");
-  };
 
   // Calculate stats
   const pendingReview = vendors?.filter(v => v.current_status === "pending_review").length || 0;
@@ -58,8 +43,8 @@ export default function StaffDashboard() {
   const approved = vendors?.filter(v => v.current_status === "approved").length || 0;
 
   return (
-    <MobileLayout title="Staff Dashboard">
-      <div className="flex-1 p-4 space-y-4 overflow-auto">
+    <StaffLayout title="Dashboard">
+      <div className="p-4 md:p-6 space-y-4 max-w-4xl">
         {/* Welcome & Roles */}
         <Card className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground">
           <CardContent className="p-4">
@@ -164,45 +149,7 @@ export default function StaffDashboard() {
             </Button>
           </CardContent>
         </Card>
-
-        {/* Admin Actions */}
-        {isAdmin && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Administration</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button variant="outline" className="w-full justify-start h-14" onClick={() => navigate("/admin/users")}>
-                <Users className="h-5 w-5 mr-3" />
-                <div className="flex-1 text-left">
-                  <p className="font-medium">User Management</p>
-                  <p className="text-xs text-muted-foreground">Manage staff and assign roles</p>
-                </div>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-              
-              <Button variant="outline" className="w-full justify-start h-14" onClick={() => navigate("/admin/settings")}>
-                <Settings className="h-5 w-5 mr-3" />
-                <div className="flex-1 text-left">
-                  <p className="font-medium">System Settings</p>
-                  <p className="text-xs text-muted-foreground">Categories, documents, configuration</p>
-                </div>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Sign Out */}
-        <Button 
-          variant="outline" 
-          className="w-full" 
-          onClick={handleSignOut}
-        >
-          <LogOut className="h-4 w-4 mr-2" />
-          Sign Out
-        </Button>
       </div>
-    </MobileLayout>
+    </StaffLayout>
   );
 }
