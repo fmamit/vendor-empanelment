@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRoles } from "@/hooks/useUserRoles";
@@ -41,6 +41,7 @@ export function StaffSidebar() {
   const { signOut } = useAuth();
   const { isAdmin } = useUserRoles();
   const navigate = useNavigate();
+  const location = useLocation();
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
 
@@ -64,7 +65,7 @@ export function StaffSidebar() {
             <SidebarMenu>
               {mainItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild tooltip={item.title}>
+                  <SidebarMenuButton asChild tooltip={item.title} isActive={location.pathname === item.url}>
                     <NavLink
                       to={item.url}
                       className="hover:bg-muted/50"
@@ -87,7 +88,7 @@ export function StaffSidebar() {
               <SidebarMenu>
                 {adminItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild tooltip={item.title}>
+                    <SidebarMenuButton asChild tooltip={item.title} isActive={location.pathname === item.url}>
                       <NavLink
                         to={item.url}
                         className="hover:bg-muted/50"
@@ -108,7 +109,7 @@ export function StaffSidebar() {
       <SidebarFooter className="space-y-1">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="My Profile">
+            <SidebarMenuButton asChild tooltip="My Profile" isActive={location.pathname === "/staff/profile"}>
               <NavLink
                 to="/staff/profile"
                 className="hover:bg-muted/50"
