@@ -13,27 +13,17 @@ import { toast } from "sonner";
 
 const STORAGE_KEY = "vendor_referral_form_state";
 
-interface InvitationData {
-  id: string;
-  token: string;
-  company_name: string;
-  contact_email: string;
-  contact_phone: string;
-  category_id: string;
-  category_name: string;
-  expires_at: string;
-}
-
 type PageState = "loading" | "invalid" | "form" | "submitting" | "success";
 
 export default function VendorReferralRegistration() {
   const { token } = useParams<{ token: string }>();
   const [pageState, setPageState] = useState<PageState>("loading");
-  const [invitation, setInvitation] = useState<InvitationData | null>(null);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [uploadedDocs, setUploadedDocs] = useState<Set<string>>(new Set());
   const [categoryDocs, setCategoryDocs] = useState<any[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
 
   const [formData, setFormData] = useState({
@@ -41,6 +31,7 @@ export default function VendorReferralRegistration() {
     trade_name: "",
     gst_number: "",
     pan_number: "",
+    category_id: "",
     primary_contact_name: "",
     primary_mobile: "",
     primary_email: "",
@@ -55,77 +46,60 @@ export default function VendorReferralRegistration() {
     supabase.auth.signOut();
   }, []);
 
-  // Validate token on mount
+  // Validate referral code on mount
   useEffect(() => {
     if (!token) {
-      setErrorMessage("No registration token provided.");
+      setErrorMessage("No referral code provided.");
       setPageState("invalid");
       return;
     }
-    validateToken(token);
+    validateReferralCode(token);
   }, [token]);
 
-  const validateToken = async (t: string) => {
+  const validateReferralCode = async (code: string) => {
     try {
       const { data, error } = await supabase
-        .from("vendor_invitations")
-        .select("*, vendor_categories(name)")
-        .eq("token", t)
-        .is("used_at", null)
-        .single();
+        .from("staff_referral_codes")
+        .select("referral_code, is_active")
+        .eq("referral_code", code)
+        .eq("is_active", true)
+        .maybeSingle();
 
       if (error || !data) {
-        setErrorMessage("This registration link is invalid or has already been used.");
+        setErrorMessage("This referral link is invalid or inactive.");
         setPageState("invalid");
         return;
       }
 
-      if (new Date(data.expires_at) < new Date()) {
-        setErrorMessage("This registration link has expired. Please request a new one from your contact.");
-        setPageState("invalid");
-        return;
-      }
+      setReferralCode(data.referral_code);
 
-      const inv: InvitationData = {
-        id: data.id,
-        token: data.token,
-        company_name: data.company_name,
-        contact_email: data.contact_email,
-        contact_phone: data.contact_phone,
-        category_id: data.category_id,
-        category_name: (data as any).vendor_categories?.name || "Unknown",
-        expires_at: data.expires_at,
-      };
+      // Load categories for the dropdown
+      const { data: cats } = await supabase
+        .from("vendor_categories")
+        .select("id, name")
+        .eq("is_active", true);
+      setCategories(cats || []);
 
-      setInvitation(inv);
-
-      // Restore from localStorage or pre-fill from invitation
+      // Restore from localStorage
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          if (parsed._token === t) {
+          if (parsed._token === code) {
             setFormData(parsed.formData);
             setCurrentStep(parsed.currentStep || 1);
             setPhoneVerified(parsed.phoneVerified || false);
             setUploadedDocs(new Set(parsed.uploadedDocs || []));
+            if (parsed.formData.category_id) {
+              loadCategoryDocs(parsed.formData.category_id);
+            }
             setPageState("form");
-            loadCategoryDocs(data.category_id);
             return;
           }
         } catch {}
       }
 
-      // Pre-fill from invitation
-      setFormData((prev) => ({
-        ...prev,
-        company_name: data.company_name || "",
-        primary_email: data.contact_email || "",
-        primary_mobile: data.contact_phone?.replace("+91", "") || "",
-      }));
-
       setPageState("form");
-      loadCategoryDocs(data.category_id);
     } catch {
       setErrorMessage("Something went wrong. Please try again.");
       setPageState("invalid");
@@ -140,6 +114,15 @@ export default function VendorReferralRegistration() {
       .order("display_order");
     setCategoryDocs(data || []);
   };
+
+  // Load docs when category changes
+  useEffect(() => {
+    if (formData.category_id) {
+      loadCategoryDocs(formData.category_id);
+    } else {
+      setCategoryDocs([]);
+    }
+  }, [formData.category_id]);
 
   // Persist state to localStorage
   useEffect(() => {
@@ -161,7 +144,7 @@ export default function VendorReferralRegistration() {
   const canProceed = () => {
     switch (currentStep) {
       case 1:
-        return formData.company_name.trim().length > 0;
+        return formData.company_name.trim().length > 0 && formData.category_id.length > 0;
       case 2:
         return (
           formData.primary_contact_name.trim().length > 0 &&
@@ -194,15 +177,14 @@ export default function VendorReferralRegistration() {
   };
 
   const handleSubmit = async () => {
-    if (!invitation || !token) return;
+    if (!referralCode || !token) return;
     setPageState("submitting");
     try {
       const { data, error } = await supabase.functions.invoke("submit-vendor-referral", {
         body: {
-          token,
+          referral_code: referralCode,
           formData: {
             ...formData,
-            category_id: invitation.category_id,
             primary_mobile: `+91${formData.primary_mobile.replace(/\D/g, "")}`,
           },
         },
@@ -278,6 +260,8 @@ export default function VendorReferralRegistration() {
   }
 
   // Form state
+  const selectedCategoryName = categories.find((c) => c.id === formData.category_id)?.name || "";
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <ReferralHeader />
@@ -287,7 +271,8 @@ export default function VendorReferralRegistration() {
         {currentStep === 1 && (
           <CompanyDetailsStep
             formData={formData}
-            categoryName={invitation?.category_name || ""}
+            categoryName={selectedCategoryName}
+            categories={categories}
             onChange={handleFieldChange}
           />
         )}

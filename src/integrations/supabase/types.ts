@@ -193,6 +193,30 @@ export type Database = {
         }
         Relationships: []
       }
+      staff_referral_codes: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          referral_code: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          referral_code: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          referral_code?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -474,6 +498,7 @@ export type Database = {
           primary_contact_name: string
           primary_email: string
           primary_mobile: string
+          referred_by: string | null
           registered_address: string | null
           rejected_at: string | null
           rejection_reason: string | null
@@ -502,6 +527,7 @@ export type Database = {
           primary_contact_name: string
           primary_email: string
           primary_mobile: string
+          referred_by?: string | null
           registered_address?: string | null
           rejected_at?: string | null
           rejection_reason?: string | null
@@ -530,6 +556,7 @@ export type Database = {
           primary_contact_name?: string
           primary_email?: string
           primary_mobile?: string
+          referred_by?: string | null
           registered_address?: string | null
           rejected_at?: string | null
           rejection_reason?: string | null
@@ -778,6 +805,7 @@ export type Database = {
         Args: { _user_id: string; _vendor_id: string }
         Returns: boolean
       }
+      generate_referral_code: { Args: never; Returns: string }
       get_vendor_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {

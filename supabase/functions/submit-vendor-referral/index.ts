@@ -12,10 +12,10 @@ serve(async (req) => {
   }
 
   try {
-    const { token, formData } = await req.json();
+    const { referral_code, formData } = await req.json();
 
-    if (!token || !formData) {
-      return new Response(JSON.stringify({ error: "Missing token or form data" }), {
+    if (!referral_code || !formData) {
+      return new Response(JSON.stringify({ error: "Missing referral code or form data" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -25,35 +25,28 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // 1. Validate invitation token
-    const { data: invitation, error: invErr } = await supabase
-      .from("vendor_invitations")
-      .select("*")
-      .eq("token", token)
-      .is("used_at", null)
+    // 1. Validate referral code and get referring staff user_id
+    const { data: refCode, error: refErr } = await supabase
+      .from("staff_referral_codes")
+      .select("user_id, is_active")
+      .eq("referral_code", referral_code)
+      .eq("is_active", true)
       .single();
 
-    if (invErr || !invitation) {
-      return new Response(JSON.stringify({ error: "Invalid or already used registration link." }), {
+    if (refErr || !refCode) {
+      return new Response(JSON.stringify({ error: "Invalid or inactive referral code." }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    if (new Date(invitation.expires_at) < new Date()) {
-      return new Response(JSON.stringify({ error: "This registration link has expired." }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // 2. Create vendor record
+    // 2. Create vendor record with referred_by
     const { data: vendor, error: vendorErr } = await supabase
       .from("vendors")
       .insert({
         company_name: formData.company_name,
         trade_name: formData.trade_name || null,
-        category_id: formData.category_id || invitation.category_id,
+        category_id: formData.category_id,
         gst_number: formData.gst_number || null,
         pan_number: formData.pan_number || null,
         primary_contact_name: formData.primary_contact_name,
@@ -63,6 +56,7 @@ serve(async (req) => {
         bank_branch: formData.bank_branch || null,
         bank_account_number: formData.bank_account_number || null,
         bank_ifsc: formData.bank_ifsc || null,
+        referred_by: refCode.user_id,
         current_status: "pending_review",
         submitted_at: new Date().toISOString(),
       })
@@ -93,7 +87,6 @@ serve(async (req) => {
       });
       if (authErr) {
         console.error("Auth user creation error:", authErr);
-        // Still proceed — vendor record is created, user can be linked later
         userId = "";
       } else {
         userId = newUser.user.id;
@@ -116,15 +109,6 @@ serve(async (req) => {
         role: "maker",
       });
     }
-
-    // 5. Mark invitation as used
-    await supabase
-      .from("vendor_invitations")
-      .update({
-        used_at: new Date().toISOString(),
-        vendor_id: vendor.id,
-      })
-      .eq("id", invitation.id);
 
     return new Response(
       JSON.stringify({ success: true, vendor_id: vendor.id }),
