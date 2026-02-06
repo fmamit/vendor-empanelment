@@ -1,66 +1,90 @@
 
 
-# Vendor Referral Registration Page
+# Staff Personal Referral Code System
 
-## Overview
+## What Changes
 
-Build a public, unauthenticated, mobile-first vendor registration form at `/register/ref/:token`. Staff share the link; vendors complete onboarding without logging in. The invitation token (from `vendor_invitations`) is their access key.
+Replace the current per-vendor invitation token model with a **permanent personal referral code per staff member**. Each staff gets a code like `REF-ABCD1234` that they can share freely. Any vendor who clicks the link fills out the registration form from scratch (no pre-filled data).
 
-## User Flow (4 Steps)
+## New Database Table
 
-1. **Company Details** -- Company Name (pre-filled), Trade Name, Category (locked), GST, PAN
-2. **Contact Details** -- Contact Name, Mobile + OTP verification, Email (all pre-filled from invitation)
-3. **Banking Details** -- Bank Name, Branch, Account Number, IFSC
-4. **Documents** -- Category-specific uploads from `category_documents` table, then submit
+**`staff_referral_codes`** -- stores one referral code per staff member:
 
-## Files to Create
+| Column | Type | Details |
+|--------|------|---------|
+| id | uuid | Primary key |
+| user_id | uuid | FK to auth.users, unique |
+| referral_code | text | Unique, e.g. `REF-ABCD1234` |
+| is_active | boolean | Default true |
+| created_at | timestamp | Auto |
 
+RLS policies:
+- Staff can SELECT their own code
+- Admins can manage all codes
+- **Public/anon can SELECT** (needed for the public referral form to validate codes)
+
+A database trigger auto-generates a code when a staff profile is created (or we generate on first access).
+
+## Changes to the Referral Registration Page
+
+The existing `/register/ref/:token` route and `VendorReferralRegistration.tsx` will be updated:
+
+- **Token validation**: Query `staff_referral_codes` instead of `vendor_invitations` to validate the code and retrieve the referring staff member's `user_id`
+- **No pre-filling**: Since the code is generic, the vendor fills in all fields (company name, category selection, contact details, etc.)
+- **Add category picker**: Step 1 gets a category dropdown (currently locked from invitation data)
+- **Submission**: The `submit-vendor-referral` edge function will accept a `referral_code` instead of an invitation token, and store the referring staff's `user_id` on the vendor record (new `referred_by` column on `vendors` table)
+
+## New Staff Page: "My Profile & Referral Link"
+
+A new page at `/staff/profile` (added to sidebar), inspired by the screenshot:
+
+**Section 1 -- Personal Information**
+- First Name, Last Name, Email, Phone (from `profiles` table)
+- "Save Changes" button
+
+**Section 2 -- Referral Link**
+- QR code generated client-side (using a lightweight QR library or canvas-based generation)
+- Referral code displayed prominently (e.g. `REF-ABCD1234`)
+- Full shareable URL in a read-only input with copy button
+- URL format: `https://onboardly-path.lovable.app/register/ref/REF-ABCD1234`
+
+## Sidebar Update
+
+Add "My Profile" link to the staff sidebar with a User icon, placed above the sign-out button in the footer area.
+
+## Vendor Record Enhancement
+
+Add a `referred_by` column (nullable uuid) to the `vendors` table to track which staff member referred the vendor. This enables reporting on staff referral performance.
+
+## Technical Details
+
+### Files to Create
 | File | Purpose |
 |------|---------|
-| `src/pages/vendor/VendorReferralRegistration.tsx` | Main page with step state machine and token validation |
-| `src/components/referral/ReferralHeader.tsx` | Sticky header with Capital India logo |
-| `src/components/referral/ReferralStepper.tsx` | 4-step progress bar |
-| `src/components/referral/CompanyDetailsStep.tsx` | Step 1 form |
-| `src/components/referral/ContactDetailsStep.tsx` | Step 2 form with phone OTP |
-| `src/components/referral/BankDetailsStep.tsx` | Step 3 form |
-| `src/components/referral/DocumentUploadStep.tsx` | Step 4 category-specific uploads |
-| `supabase/functions/submit-vendor-referral/index.ts` | Creates vendor, auth user, vendor_users link, marks invitation used |
-| `supabase/functions/upload-referral-document/index.ts` | Handles document uploads for unauthenticated users |
+| `src/pages/staff/StaffProfile.tsx` | Profile page with personal info + referral link section |
+| `src/components/staff/ReferralLinkCard.tsx` | QR code + referral code + copy link component |
 
-## Files to Modify
-
+### Files to Modify
 | File | Changes |
 |------|---------|
-| `src/App.tsx` | Add public route `/register/ref/:token` |
-| `supabase/config.toml` | Add `verify_jwt = false` for new edge functions |
+| `src/App.tsx` | Add route `/staff/profile` |
+| `src/components/layout/StaffSidebar.tsx` | Add "My Profile" nav item |
+| `src/pages/vendor/VendorReferralRegistration.tsx` | Validate against `staff_referral_codes`, add category picker, remove pre-fill logic |
+| `src/components/referral/CompanyDetailsStep.tsx` | Add category dropdown, all fields editable |
+| `supabase/functions/submit-vendor-referral/index.ts` | Accept `referral_code`, look up staff user, store `referred_by` |
 
-## Backend: Edge Functions
+### Database Migrations
+1. Create `staff_referral_codes` table with RLS
+2. Add `referred_by` column to `vendors` table
+3. Create a function to auto-generate referral codes (format: `REF-` + 8 random alphanumeric chars)
+4. Optionally seed codes for existing staff members
 
-**`submit-vendor-referral`** (service role, public):
-- Validates token (exists, not expired, not used)
-- Creates `vendors` record (status: `pending_review`)
-- Creates auth user via phone number
-- Creates `vendor_users` link
-- Marks invitation as used (`used_at = now()`, links `vendor_id`)
+### QR Code Generation
+Use canvas-based QR generation (no external library needed) or a lightweight library like `qrcode` to render the QR code client-side from the referral URL. This avoids any backend dependency for QR generation.
 
-**`upload-referral-document`** (service role, public):
-- Validates token
-- Uploads file to storage
-- Creates `vendor_documents` record
-
-## State Management
-- `useState` in parent page for all form fields
-- `localStorage` key `vendor_referral_form_state` for persistence across reloads
-- Pre-fill from invitation data on mount
-- Clear on successful submission
-
-## Universal Link Accessibility
-- Links use `VITE_PUBLIC_URL` / fallback `https://onboardly-path.lovable.app`
-- Format: `https://onboardly-path.lovable.app/register/ref/{token}`
-- No login required -- fully public route
-- Token validated server-side before any writes
-- Expired and already-used tokens rejected
-
-## No Database Changes Needed
-All required tables already exist: `vendor_invitations`, `vendors`, `vendor_users`, `vendor_documents`, `vendor_categories`, `category_documents`, `document_types`.
+### Security
+- Referral codes are validated server-side in the edge function before any vendor records are created
+- The `submit-vendor-referral` edge function continues to use service role to bypass RLS for vendor/user creation
+- Inactive codes (`is_active = false`) are rejected
+- Phone OTP verification remains mandatory for the vendor
 
