@@ -1,1 +1,7 @@
 project_id = "knsdcrnslpaprfilwvda"
+
+[functions.submit-vendor-referral]
+verify_jwt = false
+
+[functions.upload-referral-document]
+verify_jwt = false
