@@ -1,10 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MobileLayout } from "@/components/layout/MobileLayout";
-import { useAuth } from "@/hooks/useAuth";
+import { StaffLayout } from "@/components/layout/StaffLayout";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useStaffVendorQueue, VendorWithCategory } from "@/hooks/useStaffWorkflow";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -14,7 +12,6 @@ import {
   Building2, 
   Clock, 
   ChevronRight,
-  Filter,
   Loader2
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -39,23 +36,21 @@ const STATUS_COLORS = {
 
 export default function StaffReviewQueue() {
   const navigate = useNavigate();
-  const { user, userType, loading } = useAuth();
   const { isAdmin, isMaker, isChecker, isApprover, isLoading: rolesLoading } = useUserRoles();
   const { data: vendors, isLoading: vendorsLoading } = useStaffVendorQueue();
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("pending_review");
 
-  if (loading || rolesLoading) {
+  if (rolesLoading) {
     return (
-      <MobileLayout title="Review Queue">
+      <StaffLayout title="Vendor Queue">
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      </MobileLayout>
+      </StaffLayout>
     );
   }
 
-  // Filter vendors based on role and tab
   const getFilteredVendors = (status: string) => {
     return vendors?.filter(v => {
       const matchesStatus = v.current_status === status;
@@ -116,11 +111,11 @@ export default function StaffReviewQueue() {
   ].filter(tab => tab.show);
 
   return (
-    <MobileLayout title="Vendor Queue">
+    <StaffLayout title="Vendor Queue">
       <div className="flex-1 flex flex-col">
         {/* Search */}
         <div className="p-4 border-b bg-card">
-          <div className="relative">
+          <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search vendors..."
@@ -159,53 +154,32 @@ export default function StaffReviewQueue() {
               <TabsContent value="pending_review" className="flex-1 p-4 space-y-3 overflow-auto mt-0">
                 {pendingReviewVendors.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">No vendors pending review</p>
-                ) : (
-                  pendingReviewVendors.map(renderVendorCard)
-                )}
+                ) : pendingReviewVendors.map(renderVendorCard)}
               </TabsContent>
-
               <TabsContent value="in_verification" className="flex-1 p-4 space-y-3 overflow-auto mt-0">
                 {inVerificationVendors.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">No vendors in verification</p>
-                ) : (
-                  inVerificationVendors.map(renderVendorCard)
-                )}
+                ) : inVerificationVendors.map(renderVendorCard)}
               </TabsContent>
-
               <TabsContent value="pending_approval" className="flex-1 p-4 space-y-3 overflow-auto mt-0">
                 {pendingApprovalVendors.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">No vendors pending approval</p>
-                ) : (
-                  pendingApprovalVendors.map(renderVendorCard)
-                )}
+                ) : pendingApprovalVendors.map(renderVendorCard)}
               </TabsContent>
-
               <TabsContent value="approved" className="flex-1 p-4 space-y-3 overflow-auto mt-0">
                 {approvedVendors.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">No approved vendors</p>
-                ) : (
-                  approvedVendors.map(renderVendorCard)
-                )}
+                ) : approvedVendors.map(renderVendorCard)}
               </TabsContent>
-
               <TabsContent value="rejected" className="flex-1 p-4 space-y-3 overflow-auto mt-0">
                 {rejectedVendors.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">No rejected vendors</p>
-                ) : (
-                  rejectedVendors.map(renderVendorCard)
-                )}
+                ) : rejectedVendors.map(renderVendorCard)}
               </TabsContent>
             </>
           )}
         </Tabs>
-
-        {/* Back to Dashboard */}
-        <div className="p-4 border-t">
-          <Button variant="outline" className="w-full" onClick={() => navigate("/staff/dashboard")}>
-            Back to Dashboard
-          </Button>
-        </div>
       </div>
-    </MobileLayout>
+    </StaffLayout>
   );
 }

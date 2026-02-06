@@ -304,6 +304,63 @@ export type Database = {
           },
         ]
       }
+      vendor_invitations: {
+        Row: {
+          category_id: string
+          company_name: string
+          contact_email: string
+          contact_phone: string
+          created_at: string
+          created_by: string
+          expires_at: string
+          id: string
+          token: string
+          used_at: string | null
+          vendor_id: string | null
+        }
+        Insert: {
+          category_id: string
+          company_name: string
+          contact_email: string
+          contact_phone: string
+          created_at?: string
+          created_by: string
+          expires_at?: string
+          id?: string
+          token: string
+          used_at?: string | null
+          vendor_id?: string | null
+        }
+        Update: {
+          category_id?: string
+          company_name?: string
+          contact_email?: string
+          contact_phone?: string
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          id?: string
+          token?: string
+          used_at?: string | null
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_invitations_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_invitations_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vendor_users: {
         Row: {
           created_at: string
@@ -338,6 +395,59 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "vendor_users_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_verifications: {
+        Row: {
+          created_at: string
+          id: string
+          remarks: string | null
+          request_data: Json | null
+          response_data: Json | null
+          status: string
+          updated_at: string
+          vendor_id: string
+          verification_source: string
+          verification_type: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          remarks?: string | null
+          request_data?: Json | null
+          response_data?: Json | null
+          status?: string
+          updated_at?: string
+          vendor_id: string
+          verification_source?: string
+          verification_type: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          remarks?: string | null
+          request_data?: Json | null
+          response_data?: Json | null
+          status?: string
+          updated_at?: string
+          vendor_id?: string
+          verification_source?: string
+          verification_type?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_verifications_vendor_id_fkey"
             columns: ["vendor_id"]
             isOneToOne: false
             referencedRelation: "vendors"
@@ -439,6 +549,143 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      whatsapp_messages: {
+        Row: {
+          created_at: string
+          delivered_at: string | null
+          direction: string
+          error_message: string | null
+          exotel_message_id: string | null
+          id: string
+          message_content: string | null
+          phone_number: string
+          read_at: string | null
+          sent_at: string | null
+          sent_by: string | null
+          status: string | null
+          template_name: string | null
+          template_variables: Json | null
+          vendor_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          delivered_at?: string | null
+          direction: string
+          error_message?: string | null
+          exotel_message_id?: string | null
+          id?: string
+          message_content?: string | null
+          phone_number: string
+          read_at?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string | null
+          template_name?: string | null
+          template_variables?: Json | null
+          vendor_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          delivered_at?: string | null
+          direction?: string
+          error_message?: string | null
+          exotel_message_id?: string | null
+          id?: string
+          message_content?: string | null
+          phone_number?: string
+          read_at?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string | null
+          template_name?: string | null
+          template_variables?: Json | null
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_messages_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_settings: {
+        Row: {
+          created_at: string
+          exotel_api_key: string | null
+          exotel_api_token: string | null
+          exotel_sid: string | null
+          exotel_subdomain: string | null
+          id: string
+          is_active: boolean | null
+          updated_at: string
+          waba_id: string | null
+          whatsapp_source_number: string | null
+        }
+        Insert: {
+          created_at?: string
+          exotel_api_key?: string | null
+          exotel_api_token?: string | null
+          exotel_sid?: string | null
+          exotel_subdomain?: string | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+          waba_id?: string | null
+          whatsapp_source_number?: string | null
+        }
+        Update: {
+          created_at?: string
+          exotel_api_key?: string | null
+          exotel_api_token?: string | null
+          exotel_sid?: string | null
+          exotel_subdomain?: string | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string
+          waba_id?: string | null
+          whatsapp_source_number?: string | null
+        }
+        Relationships: []
+      }
+      whatsapp_templates: {
+        Row: {
+          category: string | null
+          content: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          status: string | null
+          template_name: string
+          updated_at: string
+          variables: Json | null
+        }
+        Insert: {
+          category?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          status?: string | null
+          template_name: string
+          updated_at?: string
+          variables?: Json | null
+        }
+        Update: {
+          category?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          status?: string | null
+          template_name?: string
+          updated_at?: string
+          variables?: Json | null
+        }
+        Relationships: []
       }
       workflow_assignments: {
         Row: {

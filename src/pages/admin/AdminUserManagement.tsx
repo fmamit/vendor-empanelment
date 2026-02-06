@@ -1,12 +1,10 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { MobileLayout } from "@/components/layout/MobileLayout";
-import { useAuth } from "@/hooks/useAuth";
+import { StaffLayout } from "@/components/layout/StaffLayout";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -14,14 +12,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { 
-  Users, 
   Plus, 
   Search,
-  Edit,
-  Trash2,
   Shield,
   Loader2,
-  ArrowLeft
 } from "lucide-react";
 
 interface StaffUser {
@@ -43,8 +37,6 @@ const ROLE_OPTIONS = [
 ];
 
 export default function AdminUserManagement() {
-  const navigate = useNavigate();
-  const { user } = useAuth();
   const { isAdmin } = useUserRoles();
   const queryClient = useQueryClient();
 
@@ -60,70 +52,37 @@ export default function AdminUserManagement() {
     roles: [] as string[],
   });
 
-  // Fetch staff users with their roles
   const { data: staffUsers, isLoading } = useQuery({
     queryKey: ["admin-staff-users"],
     queryFn: async () => {
-      const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
-        .select("*")
-        .order("full_name");
-
+      const { data: profiles, error: profilesError } = await supabase.from("profiles").select("*").order("full_name");
       if (profilesError) throw profilesError;
-
-      const { data: allRoles, error: rolesError } = await supabase
-        .from("user_roles")
-        .select("*");
-
+      const { data: allRoles, error: rolesError } = await supabase.from("user_roles").select("*");
       if (rolesError) throw rolesError;
-
       return profiles.map(profile => ({
         ...profile,
-        roles: allRoles
-          .filter(r => r.user_id === profile.user_id)
-          .map(r => r.role),
+        roles: allRoles.filter(r => r.user_id === profile.user_id).map(r => r.role),
       })) as StaffUser[];
     },
     enabled: isAdmin,
   });
 
-  // Create new staff user
   const createUser = useMutation({
     mutationFn: async () => {
-      // Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
-        options: {
-          emailRedirectTo: window.location.origin,
-        },
+        options: { emailRedirectTo: window.location.origin },
       });
-
       if (authError) throw authError;
       if (!authData.user) throw new Error("Failed to create user");
-
-      // Create profile
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .insert({
-          user_id: authData.user.id,
-          full_name: formData.full_name,
-          email: formData.email,
-          phone: formData.phone || null,
-          department: formData.department || null,
-        });
-
+      const { error: profileError } = await supabase.from("profiles").insert({
+        user_id: authData.user.id, full_name: formData.full_name, email: formData.email,
+        phone: formData.phone || null, department: formData.department || null,
+      });
       if (profileError) throw profileError;
-
-      // Assign roles
       for (const role of formData.roles) {
-        const { error: roleError } = await supabase
-          .from("user_roles")
-          .insert({
-            user_id: authData.user.id,
-            role: role as any,
-          });
-
+        const { error: roleError } = await supabase.from("user_roles").insert({ user_id: authData.user.id, role: role as any });
         if (roleError) throw roleError;
       }
     },
@@ -133,31 +92,15 @@ export default function AdminUserManagement() {
       setShowAddDialog(false);
       resetForm();
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to create user");
-    },
+    onError: (error: Error) => toast.error(error.message || "Failed to create user"),
   });
 
-  // Update user roles
   const updateRoles = useMutation({
     mutationFn: async ({ userId, roles }: { userId: string; roles: string[] }) => {
-      // Delete existing roles
-      const { error: deleteError } = await supabase
-        .from("user_roles")
-        .delete()
-        .eq("user_id", userId);
-
+      const { error: deleteError } = await supabase.from("user_roles").delete().eq("user_id", userId);
       if (deleteError) throw deleteError;
-
-      // Insert new roles
       for (const role of roles) {
-        const { error: insertError } = await supabase
-          .from("user_roles")
-          .insert({
-            user_id: userId,
-            role: role as any,
-          });
-
+        const { error: insertError } = await supabase.from("user_roles").insert({ user_id: userId, role: role as any });
         if (insertError) throw insertError;
       }
     },
@@ -166,79 +109,52 @@ export default function AdminUserManagement() {
       toast.success("Roles updated successfully");
       setEditingUser(null);
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to update roles");
-    },
+    onError: (error: Error) => toast.error(error.message || "Failed to update roles"),
   });
 
   const resetForm = () => {
-    setFormData({
-      email: "",
-      password: "",
-      full_name: "",
-      phone: "",
-      department: "",
-      roles: [],
-    });
+    setFormData({ email: "", password: "", full_name: "", phone: "", department: "", roles: [] });
   };
 
   const handleRoleToggle = (role: string, checked: boolean) => {
     if (editingUser) {
-      const newRoles = checked 
-        ? [...editingUser.roles, role]
-        : editingUser.roles.filter(r => r !== role);
+      const newRoles = checked ? [...editingUser.roles, role] : editingUser.roles.filter(r => r !== role);
       setEditingUser({ ...editingUser, roles: newRoles });
     } else {
-      setFormData(prev => ({
-        ...prev,
-        roles: checked 
-          ? [...prev.roles, role]
-          : prev.roles.filter(r => r !== role),
-      }));
+      setFormData(prev => ({ ...prev, roles: checked ? [...prev.roles, role] : prev.roles.filter(r => r !== role) }));
     }
   };
 
   const filteredUsers = staffUsers?.filter(u =>
-    u.full_name.toLowerCase().includes(search.toLowerCase()) ||
-    u.email.toLowerCase().includes(search.toLowerCase())
+    u.full_name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase())
   );
 
   if (!isAdmin) {
     return (
-      <MobileLayout title="Access Denied">
+      <StaffLayout title="Access Denied">
         <div className="flex-1 flex items-center justify-center p-4">
           <p className="text-muted-foreground">Admin access required</p>
         </div>
-      </MobileLayout>
+      </StaffLayout>
     );
   }
 
   return (
-    <MobileLayout title="User Management">
+    <StaffLayout title="User Management">
       <div className="flex-1 flex flex-col">
-        {/* Search & Add */}
         <div className="p-4 border-b bg-card space-y-3">
-          <div className="relative">
+          <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search users..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
-            />
+            <Input placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
           </div>
-          <Button className="w-full" onClick={() => setShowAddDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Staff User
+          <Button onClick={() => setShowAddDialog(true)}>
+            <Plus className="h-4 w-4 mr-2" /> Add Staff User
           </Button>
         </div>
 
-        {/* User List */}
-        <div className="flex-1 overflow-auto p-4 space-y-3">
+        <div className="flex-1 overflow-auto p-4 space-y-3 max-w-2xl">
           {isLoading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
+            <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
           ) : filteredUsers?.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">No staff users found</p>
           ) : (
@@ -249,22 +165,14 @@ export default function AdminUserManagement() {
                     <div className="flex-1">
                       <p className="font-semibold">{staffUser.full_name}</p>
                       <p className="text-sm text-muted-foreground">{staffUser.email}</p>
-                      {staffUser.department && (
-                        <p className="text-xs text-muted-foreground">{staffUser.department}</p>
-                      )}
+                      {staffUser.department && <p className="text-xs text-muted-foreground">{staffUser.department}</p>}
                       <div className="flex gap-1 mt-2 flex-wrap">
                         {staffUser.roles.map((role) => (
-                          <Badge key={role} variant="secondary" className="text-xs">
-                            {role}
-                          </Badge>
+                          <Badge key={role} variant="secondary" className="text-xs">{role}</Badge>
                         ))}
                       </div>
                     </div>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      onClick={() => setEditingUser(staffUser)}
-                    >
+                    <Button variant="ghost" size="icon" onClick={() => setEditingUser(staffUser)}>
                       <Shield className="h-4 w-4" />
                     </Button>
                   </div>
@@ -273,111 +181,34 @@ export default function AdminUserManagement() {
             ))
           )}
         </div>
-
-        {/* Back Button */}
-        <div className="p-4 border-t">
-          <Button variant="outline" className="w-full" onClick={() => navigate("/staff/dashboard")}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Button>
-        </div>
       </div>
 
       {/* Add User Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent className="max-h-[90vh] overflow-auto">
-          <DialogHeader>
-            <DialogTitle>Add Staff User</DialogTitle>
-          </DialogHeader>
-          
+          <DialogHeader><DialogTitle>Add Staff User</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="full_name">Full Name *</Label>
-              <Input
-                id="full_name"
-                value={formData.full_name}
-                onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
-                placeholder="Enter full name"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="email">Email *</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                placeholder="email@capitalindia.com"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="password">Password *</Label>
-              <Input
-                id="password"
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                placeholder="Minimum 6 characters"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="phone">Phone</Label>
-              <Input
-                id="phone"
-                value={formData.phone}
-                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                placeholder="Mobile number"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="department">Department</Label>
-              <Input
-                id="department"
-                value={formData.department}
-                onChange={(e) => setFormData(prev => ({ ...prev, department: e.target.value }))}
-                placeholder="e.g., Operations, Finance"
-              />
-            </div>
-
+            <div><Label htmlFor="full_name">Full Name *</Label><Input id="full_name" value={formData.full_name} onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))} placeholder="Enter full name" /></div>
+            <div><Label htmlFor="email">Email *</Label><Input id="email" type="email" value={formData.email} onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))} placeholder="email@capitalindia.com" /></div>
+            <div><Label htmlFor="password">Password *</Label><Input id="password" type="password" value={formData.password} onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))} placeholder="Minimum 6 characters" /></div>
+            <div><Label htmlFor="phone">Phone</Label><Input id="phone" value={formData.phone} onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))} placeholder="Mobile number" /></div>
+            <div><Label htmlFor="department">Department</Label><Input id="department" value={formData.department} onChange={(e) => setFormData(prev => ({ ...prev, department: e.target.value }))} placeholder="e.g., Operations, Finance" /></div>
             <div>
               <Label>Roles *</Label>
               <div className="space-y-2 mt-2">
                 {ROLE_OPTIONS.map((role) => (
                   <div key={role.value} className="flex items-start gap-3 p-2 rounded-lg border">
-                    <Checkbox
-                      id={`role-${role.value}`}
-                      checked={formData.roles.includes(role.value)}
-                      onCheckedChange={(checked) => handleRoleToggle(role.value, !!checked)}
-                    />
-                    <div className="flex-1">
-                      <label htmlFor={`role-${role.value}`} className="font-medium cursor-pointer">
-                        {role.label}
-                      </label>
-                      <p className="text-xs text-muted-foreground">{role.description}</p>
-                    </div>
+                    <Checkbox id={`role-${role.value}`} checked={formData.roles.includes(role.value)} onCheckedChange={(checked) => handleRoleToggle(role.value, !!checked)} />
+                    <div className="flex-1"><label htmlFor={`role-${role.value}`} className="font-medium cursor-pointer">{role.label}</label><p className="text-xs text-muted-foreground">{role.description}</p></div>
                   </div>
                 ))}
               </div>
             </div>
           </div>
-
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowAddDialog(false); resetForm(); }}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={() => createUser.mutate()}
-              disabled={!formData.email || !formData.password || !formData.full_name || formData.roles.length === 0 || createUser.isPending}
-            >
-              {createUser.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                "Create User"
-              )}
+            <Button variant="outline" onClick={() => { setShowAddDialog(false); resetForm(); }}>Cancel</Button>
+            <Button onClick={() => createUser.mutate()} disabled={!formData.email || !formData.password || !formData.full_name || formData.roles.length === 0 || createUser.isPending}>
+              {createUser.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create User"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -386,48 +217,23 @@ export default function AdminUserManagement() {
       {/* Edit Roles Dialog */}
       <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Roles - {editingUser?.full_name}</DialogTitle>
-          </DialogHeader>
-          
+          <DialogHeader><DialogTitle>Edit Roles - {editingUser?.full_name}</DialogTitle></DialogHeader>
           <div className="space-y-2">
             {ROLE_OPTIONS.map((role) => (
               <div key={role.value} className="flex items-start gap-3 p-2 rounded-lg border">
-                <Checkbox
-                  id={`edit-role-${role.value}`}
-                  checked={editingUser?.roles.includes(role.value)}
-                  onCheckedChange={(checked) => handleRoleToggle(role.value, !!checked)}
-                />
-                <div className="flex-1">
-                  <label htmlFor={`edit-role-${role.value}`} className="font-medium cursor-pointer">
-                    {role.label}
-                  </label>
-                  <p className="text-xs text-muted-foreground">{role.description}</p>
-                </div>
+                <Checkbox id={`edit-role-${role.value}`} checked={editingUser?.roles.includes(role.value)} onCheckedChange={(checked) => handleRoleToggle(role.value, !!checked)} />
+                <div className="flex-1"><label htmlFor={`edit-role-${role.value}`} className="font-medium cursor-pointer">{role.label}</label><p className="text-xs text-muted-foreground">{role.description}</p></div>
               </div>
             ))}
           </div>
-
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingUser(null)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={() => editingUser && updateRoles.mutate({ 
-                userId: editingUser.user_id, 
-                roles: editingUser.roles 
-              })}
-              disabled={updateRoles.isPending}
-            >
-              {updateRoles.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                "Save Roles"
-              )}
+            <Button variant="outline" onClick={() => setEditingUser(null)}>Cancel</Button>
+            <Button onClick={() => editingUser && updateRoles.mutate({ userId: editingUser.user_id, roles: editingUser.roles })} disabled={updateRoles.isPending}>
+              {updateRoles.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Roles"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </MobileLayout>
+    </StaffLayout>
   );
 }
