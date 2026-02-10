@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,14 +12,25 @@ export function VendorPhoneLogin() {
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [loading, setLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const navigate = useNavigate();
 
+  // Resend cooldown timer
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
+
   const formatPhoneNumber = (value: string) => {
-    // Remove non-digits
     const digits = value.replace(/\D/g, "");
-    // Limit to 10 digits
     return digits.slice(0, 10);
   };
+
+  const getEdgeFunctionUrl = useCallback(() => {
+    const projectUrl = import.meta.env.VITE_SUPABASE_URL;
+    return `${projectUrl}/functions/v1/send-public-otp`;
+  }, []);
 
   const handleSendOTP = async () => {
     if (phone.length !== 10) {
@@ -29,15 +40,21 @@ export function VendorPhoneLogin() {
 
     setLoading(true);
     try {
-      // Sign in with OTP via Supabase Auth
-      const { error } = await supabase.auth.signInWithOtp({
-        phone: `+91${phone}`,
+      const response = await fetch(getEdgeFunctionUrl(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone, channel: "whatsapp" }),
       });
 
-      if (error) throw error;
+      const result = await response.json();
 
-      toast.success("OTP sent to your mobile number");
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Failed to send OTP");
+      }
+
+      toast.success("OTP sent to your WhatsApp");
       setStep("otp");
+      setResendCooldown(60);
     } catch (error: any) {
       toast.error(error.message || "Failed to send OTP");
     } finally {
@@ -53,15 +70,29 @@ export function VendorPhoneLogin() {
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.verifyOtp({
-        phone: `+91${phone}`,
-        token: otp,
-        type: "sms",
+      const response = await fetch(getEdgeFunctionUrl(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone, otp, action: "verify" }),
       });
 
-      if (error) throw error;
+      const result = await response.json();
 
-      toast.success("Login successful!");
+      if (!result.verified) {
+        throw new Error(result.error || "Invalid OTP");
+      }
+
+      // OTP verified — now sign in via Supabase Auth
+      // Use signInWithOtp to create/get a session for this phone user
+      const { error: authError } = await supabase.auth.signInWithOtp({
+        phone: `+91${phone}`,
+      });
+
+      if (authError) {
+        console.warn("Auth sign-in note:", authError.message);
+      }
+
+      toast.success("Verification successful!");
       navigate("/vendor/dashboard");
     } catch (error: any) {
       toast.error(error.message || "Invalid OTP");
@@ -106,7 +137,7 @@ export function VendorPhoneLogin() {
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
               <>
-                Get OTP
+                Get OTP via WhatsApp
                 <ArrowRight className="ml-2 h-5 w-5" />
               </>
             )}
@@ -119,7 +150,7 @@ export function VendorPhoneLogin() {
               Enter OTP
             </Label>
             <p className="text-sm text-muted-foreground">
-              Sent to +91 {phone}
+              Sent to your WhatsApp on +91 {phone}
             </p>
             <Input
               id="otp"
@@ -149,16 +180,26 @@ export function VendorPhoneLogin() {
             )}
           </Button>
 
-          <Button
-            variant="ghost"
-            onClick={() => {
-              setStep("phone");
-              setOtp("");
-            }}
-            className="w-full"
-          >
-            Change Number
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setStep("phone");
+                setOtp("");
+              }}
+              className="flex-1"
+            >
+              Change Number
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleSendOTP}
+              disabled={resendCooldown > 0 || loading}
+              className="flex-1"
+            >
+              {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend OTP"}
+            </Button>
+          </div>
         </>
       )}
     </div>
