@@ -157,6 +157,39 @@ export type Database = {
         }
         Relationships: []
       }
+      otp_verifications: {
+        Row: {
+          attempts: number | null
+          created_at: string | null
+          expires_at: string
+          id: string
+          org_id: string | null
+          otp_hash: string
+          phone: string
+          verified: boolean | null
+        }
+        Insert: {
+          attempts?: number | null
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          org_id?: string | null
+          otp_hash: string
+          phone: string
+          verified?: boolean | null
+        }
+        Update: {
+          attempts?: number | null
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          org_id?: string | null
+          otp_hash?: string
+          phone?: string
+          verified?: boolean | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

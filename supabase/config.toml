@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.upload-referral-document]
 verify_jwt = false
+
+[functions.send-public-otp]
+verify_jwt = false
