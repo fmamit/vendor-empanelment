@@ -15,7 +15,9 @@ export function StaffLayout({ children, title }: StaffLayoutProps) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && (!user || userType !== "staff")) {
+    if (!loading && !user) {
+      navigate("/staff/login");
+    } else if (!loading && user && userType !== null && userType !== "staff") {
       navigate("/staff/login");
     }
   }, [user, userType, loading, navigate]);

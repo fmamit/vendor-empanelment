@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -14,67 +14,77 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+async function determineUserType(userId: string): Promise<UserType> {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (profile) return "staff";
+
+  const { data: vendorUser } = await supabase
+    .from("vendor_users")
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (vendorUser) return "vendor";
+
+  return null;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userType, setUserType] = useState<UserType>(null);
   const [loading, setLoading] = useState(true);
+  const isMounted = useRef(true);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    isMounted.current = true;
+
+    const initialize = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!isMounted.current) return;
+
       setSession(session);
       setUser(session?.user ?? null);
-      setLoading(false);
-    });
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  // Determine user type when user changes
-  useEffect(() => {
-    if (!user) {
-      setUserType(null);
-      return;
-    }
-
-    const checkUserType = async () => {
-      // Check staff first
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (profile) {
-        setUserType("staff");
-        return;
+      if (session?.user) {
+        const type = await determineUserType(session.user.id);
+        if (!isMounted.current) return;
+        setUserType(type);
       }
 
-      // Check vendor
-      const { data: vendorUser } = await supabase
-        .from("vendor_users")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (vendorUser) {
-        setUserType("vendor");
-        return;
-      }
-
-      setUserType(null);
+      setLoading(false);
     };
 
-    checkUserType();
-  }, [user]);
+    initialize();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!isMounted.current) return;
+
+      setSession(session);
+      setUser(session?.user ?? null);
+
+      if (session?.user) {
+        setLoading(true);
+        const type = await determineUserType(session.user.id);
+        if (!isMounted.current) return;
+        setUserType(type);
+        setLoading(false);
+      } else {
+        setUserType(null);
+        setLoading(false);
+      }
+    });
+
+    return () => {
+      isMounted.current = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const signOut = async () => {
     await supabase.auth.signOut();
