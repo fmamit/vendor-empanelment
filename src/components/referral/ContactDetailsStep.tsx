@@ -39,8 +39,8 @@ export function ContactDetailsStep({ formData, phoneVerified, onChange, onPhoneV
     }
     setSendingOtp(true);
     try {
-      const { data, error } = await supabase.functions.invoke("send-otp", {
-        body: { phone_number: `+91${phone}` },
+      const { data, error } = await supabase.functions.invoke("send-public-otp", {
+        body: { phone: `+91${phone}`, channel: "whatsapp" },
       });
       if (error) throw error;
       setOtpSent(true);
@@ -58,11 +58,11 @@ export function ContactDetailsStep({ formData, phoneVerified, onChange, onPhoneV
     const phone = formData.primary_mobile.replace(/\D/g, "");
     setVerifyingOtp(true);
     try {
-      const { data, error } = await supabase.functions.invoke("verify-otp", {
-        body: { phone_number: `+91${phone}`, otp_code: otpValue },
+      const { data, error } = await supabase.functions.invoke("send-public-otp", {
+        body: { phone: `+91${phone}`, otp: otpValue, action: "verify" },
       });
       if (error) throw error;
-      if (data?.valid) {
+      if (data?.verified) {
         onPhoneVerified();
         toast.success("Phone verified!");
       } else {
