@@ -1,15 +1,45 @@
 
-## Make Staff Login the Home Page with Prominent Logo
 
-### Changes
+## Fix: Staff Login Spinner Race Condition
 
-**1. `src/App.tsx`** - Change the root route (`/`) to render `StaffLogin` instead of `Index`
+### Root Cause
+When login succeeds, `StaffEmailLogin` navigates to `/staff/dashboard` immediately. Meanwhile, `onAuthStateChange` fires and defers the `userType` resolution into a `setTimeout`. This creates a window where the dashboard is rendered but `userType` is still `null`, causing `useUserRoles` to stay in a loading state indefinitely.
 
-**2. `src/pages/staff/StaffLogin.tsx`** - Replace the small Users icon with the Capital India logo (already available at `src/assets/capital-india-logo.jpg`), making it larger and more prominent. The logo will be displayed at roughly 80px height with a white background and rounded corners, similar to how it appears on the current Index page.
+### Solution
+Two changes to eliminate the race condition:
 
-**3. `src/pages/Index.tsx`** - No changes needed; it will just no longer be the home page route. The `/staff/login` route will also still work as an alias.
+**1. `src/hooks/useAuth.tsx`** - Remove the `setLoading(true)` call from inside the `onAuthStateChange` setTimeout. The initial load already handles setting loading correctly. Re-triggering loading on every auth change causes the dashboard to re-enter a loading state after navigation. The `setTimeout` should only update `userType` quietly without flipping loading back on.
 
-### Result
-- Visiting `/` will show the Staff Login page directly
-- The Capital India logo will replace the generic Users icon in the login card
-- The logo will be large and visually prominent as the first thing users see
+**2. `src/components/auth/StaffEmailLogin.tsx`** - Instead of navigating immediately after `signInWithPassword`, wait briefly or let the `AuthProvider` drive the navigation. However, the simpler fix is just to stop the `onAuthStateChange` from re-setting loading, since `initialize()` already handles the first load correctly.
+
+### Specific Changes
+
+**`src/hooks/useAuth.tsx`** (line 75): Remove `setLoading(true)` from the `setTimeout` block inside `onAuthStateChange`. The block should only update `userType` and `setLoading(false)` when done -- not flip loading back to true mid-session.
+
+Before:
+```typescript
+setTimeout(async () => {
+  if (!isMounted.current) return;
+  setLoading(true);  // THIS CAUSES THE BUG
+  const type = await determineUserType(session.user.id);
+  if (!isMounted.current) return;
+  setUserType(type);
+  setLoading(false);
+}, 0);
+```
+
+After:
+```typescript
+setTimeout(async () => {
+  if (!isMounted.current) return;
+  const type = await determineUserType(session.user.id);
+  if (!isMounted.current) return;
+  setUserType(type);
+}, 0);
+```
+
+This single-line removal fixes the spinner because:
+- The initial `initialize()` function correctly sets loading to false after resolving everything
+- The `onAuthStateChange` callback only needs to quietly update the user type without re-entering a global loading state
+- The dashboard and `useUserRoles` will see `userType` update reactively without being blocked by a loading gate
+
