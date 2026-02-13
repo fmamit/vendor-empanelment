@@ -16,6 +16,7 @@ import VendorDashboard from "./pages/vendor/VendorDashboard";
 import VendorRegistration from "./pages/vendor/VendorRegistration";
 import VendorDocuments from "./pages/vendor/VendorDocuments";
 import VendorReferralRegistration from "./pages/vendor/VendorReferralRegistration";
+import PrivacyPolicy from "./pages/vendor/PrivacyPolicy";
 
 // Staff Pages
 import StaffLogin from "./pages/staff/StaffLogin";
@@ -47,6 +48,7 @@ const App = () => (
             <Route path="/" element={<StaffLogin />} />
             <Route path="/install" element={<InstallApp />} />
             <Route path="/register/ref/:token" element={<VendorReferralRegistration />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             
             {/* Vendor Routes */}
             <Route path="/vendor/login" element={<VendorLogin />} />

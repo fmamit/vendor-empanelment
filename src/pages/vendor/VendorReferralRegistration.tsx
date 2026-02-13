@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ReferralHeader } from "@/components/referral/ReferralHeader";
 import { ReferralStepper } from "@/components/referral/ReferralStepper";
+import { ConsentStep, CONSENT_VERSION } from "@/components/referral/ConsentStep";
 import { CompanyDetailsStep } from "@/components/referral/CompanyDetailsStep";
 import { ContactDetailsStep } from "@/components/referral/ContactDetailsStep";
 import { BankDetailsStep } from "@/components/referral/BankDetailsStep";
@@ -19,7 +20,8 @@ export default function VendorReferralRegistration() {
   const { token } = useParams<{ token: string }>();
   const [pageState, setPageState] = useState<PageState>("loading");
   const [referralCode, setReferralCode] = useState<string | null>(null);
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(0); // Start at consent step
+  const [consented, setConsented] = useState(false);
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
   const [uploadedDocs, setUploadedDocs] = useState<Set<string>>(new Set());
@@ -87,7 +89,8 @@ export default function VendorReferralRegistration() {
           const parsed = JSON.parse(saved);
           if (parsed._token === code) {
             setFormData(parsed.formData);
-            setCurrentStep(parsed.currentStep || 1);
+            setCurrentStep(parsed.currentStep || 0);
+            setConsented(parsed.consented || false);
             setPhoneVerified(parsed.phoneVerified || false);
             setEmailVerified(parsed.emailVerified || false);
             setUploadedDocs(new Set(parsed.uploadedDocs || []));
@@ -132,12 +135,13 @@ export default function VendorReferralRegistration() {
       _token: token,
       formData,
       currentStep,
+      consented,
       phoneVerified,
       emailVerified,
       uploadedDocs: Array.from(uploadedDocs),
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-  }, [formData, currentStep, phoneVerified, emailVerified, uploadedDocs, pageState, token]);
+  }, [formData, currentStep, consented, phoneVerified, emailVerified, uploadedDocs, pageState, token]);
 
   const handleFieldChange = useCallback((field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -145,6 +149,8 @@ export default function VendorReferralRegistration() {
 
   const canProceed = () => {
     switch (currentStep) {
+      case 0:
+        return consented;
       case 1:
         return formData.company_name.trim().length > 0 && formData.category_id.length > 0;
       case 2:
@@ -176,7 +182,7 @@ export default function VendorReferralRegistration() {
   };
 
   const handleBack = () => {
-    if (currentStep > 1) setCurrentStep((s) => s - 1);
+    if (currentStep > 0) setCurrentStep((s) => s - 1);
   };
 
   const handleSubmit = async () => {
@@ -186,6 +192,7 @@ export default function VendorReferralRegistration() {
       const { data, error } = await supabase.functions.invoke("submit-vendor-referral", {
         body: {
           referral_code: referralCode,
+          consent_version: CONSENT_VERSION,
           formData: {
             ...formData,
             primary_mobile: `+91${formData.primary_mobile.replace(/\D/g, "")}`,
@@ -255,7 +262,7 @@ export default function VendorReferralRegistration() {
           </p>
           <div className="flex items-center gap-2 text-sm text-muted-foreground mt-4">
             <ShieldCheck className="h-4 w-4" />
-            <span>256-bit Encrypted</span>
+            <span>256-bit Encrypted | DPDP Act Compliant</span>
           </div>
         </div>
       </div>
@@ -271,6 +278,9 @@ export default function VendorReferralRegistration() {
       <ReferralStepper currentStep={currentStep} />
 
       <div className="flex-1 overflow-y-auto pb-24">
+        {currentStep === 0 && (
+          <ConsentStep consented={consented} onConsentChange={setConsented} />
+        )}
         {currentStep === 1 && (
           <CompanyDetailsStep
             formData={formData}
@@ -304,7 +314,7 @@ export default function VendorReferralRegistration() {
 
       {/* Fixed bottom nav */}
       <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-4 flex gap-3 safe-area-inset">
-        {currentStep > 1 && (
+        {currentStep > 0 && (
           <Button variant="outline" className="h-12 flex-1" onClick={handleBack}>
             <ArrowLeft className="h-4 w-4 mr-1" />
             Back

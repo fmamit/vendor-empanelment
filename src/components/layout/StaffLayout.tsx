@@ -42,6 +42,10 @@ export function StaffLayout({ children, title }: StaffLayoutProps) {
           <main className="flex-1 overflow-auto">
             {children}
           </main>
+          <footer className="border-t border-border px-4 py-2 text-xs text-muted-foreground flex items-center justify-between">
+            <span>DPO Contact: dpo@capitalindia.com</span>
+            <a href="/privacy-policy" target="_blank" className="hover:underline">Privacy Policy</a>
+          </footer>
         </SidebarInset>
       </div>
     </SidebarProvider>

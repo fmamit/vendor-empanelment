@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 import { CheckCircle2 } from "lucide-react";
 
 const STEPS = [
+  { id: 0, label: "Consent" },
   { id: 1, label: "Company" },
   { id: 2, label: "Contact" },
   { id: 3, label: "Bank" },

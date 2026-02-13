@@ -30,6 +30,14 @@ export function MobileLayout({ children, showHeader = true, title }: MobileLayou
       <main className="flex-1 flex flex-col">
         {children}
       </main>
+      
+      <footer className="border-t border-border bg-card px-4 py-3 text-center">
+        <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground">
+          <a href="/privacy-policy" className="hover:underline">Privacy Policy</a>
+          <span>•</span>
+          <span>DPO: dpo@capitalindia.com</span>
+        </div>
+      </footer>
     </div>
   );
 }
