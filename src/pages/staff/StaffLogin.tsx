@@ -5,12 +5,12 @@ import capitalIndiaLogo from "@/assets/capital-india-logo.jpg";
 
 export default function StaffLogin() {
   return (
-    <MobileLayout title="Staff Login">
+    <MobileLayout showHeader={false}>
       <div className="flex-1 flex flex-col items-center justify-center p-6">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4">
-              <img src={capitalIndiaLogo} alt="Capital India" className="h-20 w-auto rounded-lg bg-white p-2 shadow-sm" />
+              <img src={capitalIndiaLogo} alt="Capital India" className="h-80 w-auto rounded-lg bg-white p-2 shadow-sm" />
             </div>
             <CardTitle className="text-2xl">Staff Login</CardTitle>
             <CardDescription>
