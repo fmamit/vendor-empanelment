@@ -30,11 +30,12 @@ import {
   MapPin
 } from "lucide-react";
 
-const STATUS_LABELS = {
+const STATUS_LABELS: Record<string, string> = {
   draft: "Draft",
   pending_review: "Pending Review",
   in_verification: "In Verification",
   pending_approval: "Pending Approval",
+  sent_back: "Sent Back",
   approved: "Approved",
   rejected: "Rejected",
 };
@@ -59,7 +60,9 @@ export default function VendorReviewDetail() {
   const updateDocumentStatus = useUpdateDocumentStatus();
 
   const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [showSendBackDialog, setShowSendBackDialog] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [sendBackReason, setSendBackReason] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // Store vendor ID for DigiLocker callback
@@ -99,6 +102,11 @@ export default function VendorReviewDetail() {
     isAdmin;
 
   const canReject = canForward || canApprove;
+
+  const canSendBack = 
+    (isMaker && vendor.current_status === "pending_review") ||
+    (isChecker && vendor.current_status === "in_verification") ||
+    isAdmin;
 
   const getNextStatus = () => {
     if (vendor.current_status === "pending_review") return "in_verification";
@@ -199,6 +207,18 @@ export default function VendorReviewDetail() {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">CIN Number</span>
                 <span className="font-medium font-mono">{vendor.cin_number}</span>
+              </div>
+            )}
+            {(vendor as any).salutation && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Salutation</span>
+                <span className="font-medium">{(vendor as any).salutation}</span>
+              </div>
+            )}
+            {(vendor as any).constitution_type && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Constitution Type</span>
+                <span className="font-medium">{(vendor as any).constitution_type}</span>
               </div>
             )}
             {vendor.registered_address && (
@@ -324,17 +344,23 @@ export default function VendorReviewDetail() {
       </div>
 
       {/* Action Buttons */}
-      {(canForward || canApprove || canReject) && vendor.current_status !== "approved" && vendor.current_status !== "rejected" && (
-        <div className="p-4 border-t bg-card flex gap-3">
-          <Button variant="outline" className="flex-1 text-destructive border-destructive" onClick={() => setShowRejectDialog(true)}>
+      {(canForward || canApprove || canReject) && vendor.current_status !== "approved" && vendor.current_status !== "rejected" && (vendor.current_status as string) !== "sent_back" && (
+        <div className="p-4 border-t bg-card flex flex-wrap gap-3">
+          <Button variant="outline" className="text-destructive border-destructive" onClick={() => setShowRejectDialog(true)}>
             <XCircle className="h-4 w-4 mr-2" /> Reject
           </Button>
+          {canSendBack && (
+            <Button variant="outline" className="text-orange-600 border-orange-400" onClick={() => setShowSendBackDialog(true)}>
+              <ArrowRight className="h-4 w-4 mr-2 rotate-180" /> Send Back
+            </Button>
+          )}
+          <div className="flex-1" />
           {canApprove && vendor.current_status === "pending_approval" ? (
-            <Button className="flex-1 bg-success hover:bg-success/90" onClick={handleForward} disabled={actionLoading === "forward"}>
+            <Button className="bg-success hover:bg-success/90" onClick={handleForward} disabled={actionLoading === "forward"}>
               {actionLoading === "forward" ? <Loader2 className="h-4 w-4 animate-spin" /> : <><CheckCircle2 className="h-4 w-4 mr-2" /> Approve</>}
             </Button>
           ) : canForward ? (
-            <Button className="flex-1" onClick={handleForward} disabled={actionLoading === "forward"}>
+            <Button onClick={handleForward} disabled={actionLoading === "forward"}>
               {actionLoading === "forward" ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Forward <ArrowRight className="h-4 w-4 ml-2" /></>}
             </Button>
           ) : null}
@@ -357,6 +383,45 @@ export default function VendorReviewDetail() {
             <Button variant="outline" onClick={() => setShowRejectDialog(false)}>Cancel</Button>
             <Button variant="destructive" onClick={handleReject} disabled={!rejectReason.trim() || actionLoading === "reject"}>
               {actionLoading === "reject" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm Rejection"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Send Back Dialog */}
+      <Dialog open={showSendBackDialog} onOpenChange={setShowSendBackDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-orange-600">
+              <AlertTriangle className="h-5 w-5" /> Send Back for Corrections
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">Please describe what needs to be corrected. The vendor will be notified and can resubmit.</p>
+            <Textarea placeholder="Enter reason for sending back..." value={sendBackReason} onChange={(e) => setSendBackReason(e.target.value)} rows={4} />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSendBackDialog(false)}>Cancel</Button>
+            <Button 
+              className="bg-orange-600 hover:bg-orange-700 text-white"
+              onClick={async () => {
+                if (!sendBackReason.trim()) return;
+                setActionLoading("sendback");
+                try {
+                  await updateVendorStatus.mutateAsync({
+                    vendorId: vendor.id,
+                    newStatus: "sent_back" as any,
+                    comments: sendBackReason,
+                  });
+                  setShowSendBackDialog(false);
+                  navigate("/staff/queue");
+                } finally {
+                  setActionLoading(null);
+                }
+              }}
+              disabled={!sendBackReason.trim() || actionLoading === "sendback"}
+            >
+              {actionLoading === "sendback" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm Send Back"}
             </Button>
           </DialogFooter>
         </DialogContent>

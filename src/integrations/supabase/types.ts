@@ -564,6 +564,7 @@ export type Database = {
           category_id: string
           cin_number: string | null
           company_name: string
+          constitution_type: string | null
           created_at: string
           current_status: Database["public"]["Enums"]["vendor_status"]
           gst_number: string | null
@@ -577,8 +578,10 @@ export type Database = {
           registered_address: string | null
           rejected_at: string | null
           rejection_reason: string | null
+          salutation: string | null
           secondary_contact_name: string | null
           secondary_mobile: string | null
+          sent_back_reason: string | null
           submitted_at: string | null
           trade_name: string | null
           updated_at: string
@@ -593,6 +596,7 @@ export type Database = {
           category_id: string
           cin_number?: string | null
           company_name: string
+          constitution_type?: string | null
           created_at?: string
           current_status?: Database["public"]["Enums"]["vendor_status"]
           gst_number?: string | null
@@ -606,8 +610,10 @@ export type Database = {
           registered_address?: string | null
           rejected_at?: string | null
           rejection_reason?: string | null
+          salutation?: string | null
           secondary_contact_name?: string | null
           secondary_mobile?: string | null
+          sent_back_reason?: string | null
           submitted_at?: string | null
           trade_name?: string | null
           updated_at?: string
@@ -622,6 +628,7 @@ export type Database = {
           category_id?: string
           cin_number?: string | null
           company_name?: string
+          constitution_type?: string | null
           created_at?: string
           current_status?: Database["public"]["Enums"]["vendor_status"]
           gst_number?: string | null
@@ -635,8 +642,10 @@ export type Database = {
           registered_address?: string | null
           rejected_at?: string | null
           rejection_reason?: string | null
+          salutation?: string | null
           secondary_contact_name?: string | null
           secondary_mobile?: string | null
+          sent_back_reason?: string | null
           submitted_at?: string | null
           trade_name?: string | null
           updated_at?: string
@@ -905,6 +914,7 @@ export type Database = {
         | "pending_review"
         | "in_verification"
         | "pending_approval"
+        | "sent_back"
         | "approved"
         | "rejected"
       workflow_action:
@@ -1054,6 +1064,7 @@ export const Constants = {
         "pending_review",
         "in_verification",
         "pending_approval",
+        "sent_back",
         "approved",
         "rejected",
       ],

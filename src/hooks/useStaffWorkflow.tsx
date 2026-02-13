@@ -103,12 +103,14 @@ export function useUpdateVendorStatus() {
       if (fetchError) throw fetchError;
 
       // Update vendor status
-      const updateData: Partial<Vendor> = { current_status: newStatus };
+      const updateData: Record<string, any> = { current_status: newStatus };
       if (newStatus === "approved") {
         updateData.approved_at = new Date().toISOString();
       } else if (newStatus === "rejected") {
         updateData.rejected_at = new Date().toISOString();
         updateData.rejection_reason = comments || null;
+      } else if ((newStatus as string) === "sent_back") {
+        updateData.sent_back_reason = comments || null;
       }
 
       const { error: updateError } = await supabase
@@ -125,7 +127,7 @@ export function useUpdateVendorStatus() {
           vendor_id: vendorId,
           from_status: vendor.current_status,
           to_status: newStatus,
-          action: newStatus === "rejected" ? "rejected" : "forwarded",
+          action: newStatus === "rejected" ? "rejected" : (newStatus as string) === "sent_back" ? "returned" : newStatus === "approved" ? "approved" : "forwarded",
           action_by: user!.id,
           comments: comments || null,
         });

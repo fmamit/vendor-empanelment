@@ -10,6 +10,8 @@ interface CompanyDetailsStepProps {
     gst_number: string;
     pan_number: string;
     category_id: string;
+    salutation: string;
+    constitution_type: string;
   };
   categoryName: string;
   categories?: { id: string; name: string }[];
@@ -27,6 +29,21 @@ export function CompanyDetailsStep({ formData, categoryName, categories, onChang
       </div>
 
       <div className="space-y-4">
+        <div>
+          <Label>Salutation</Label>
+          <Select value={formData.salutation} onValueChange={(val) => onChange("salutation", val)}>
+            <SelectTrigger className="h-12 mt-1">
+              <SelectValue placeholder="Select salutation" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Mr">Mr</SelectItem>
+              <SelectItem value="Mrs">Mrs</SelectItem>
+              <SelectItem value="Ms">Ms</SelectItem>
+              <SelectItem value="Dr">Dr</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         <div>
           <Label htmlFor="company_name">Company Name *</Label>
           <Input
@@ -47,6 +64,23 @@ export function CompanyDetailsStep({ formData, categoryName, categories, onChang
             placeholder="If different from company name"
             className="h-12 mt-1"
           />
+        </div>
+
+        <div>
+          <Label>Constitution Type *</Label>
+          <Select value={formData.constitution_type} onValueChange={(val) => onChange("constitution_type", val)}>
+            <SelectTrigger className="h-12 mt-1">
+              <SelectValue placeholder="Select constitution type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Proprietorship">Proprietorship</SelectItem>
+              <SelectItem value="Partnership">Partnership</SelectItem>
+              <SelectItem value="LLP">LLP</SelectItem>
+              <SelectItem value="Private Limited">Private Limited</SelectItem>
+              <SelectItem value="Public Limited">Public Limited</SelectItem>
+              <SelectItem value="Other">Other</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div>

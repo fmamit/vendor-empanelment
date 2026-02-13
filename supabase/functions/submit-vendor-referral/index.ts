@@ -62,6 +62,8 @@ serve(async (req) => {
       bank_branch,
       bank_account_number,
       bank_ifsc,
+      salutation,
+      constitution_type,
     } = formData;
 
     // Validate required fields
@@ -153,6 +155,8 @@ serve(async (req) => {
         bank_branch: bank_branch ? sanitizeString(bank_branch, 255) : null,
         bank_account_number: bank_account_number ? sanitizeString(bank_account_number, 100) : null,
         bank_ifsc: bank_ifsc || null,
+        salutation: salutation || null,
+        constitution_type: constitution_type || null,
         referred_by: refCode.user_id,
         current_status: "pending_review",
         submitted_at: new Date().toISOString(),
