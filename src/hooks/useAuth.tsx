@@ -62,18 +62,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     initialize();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!isMounted.current) return;
 
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        setLoading(true);
-        const type = await determineUserType(session.user.id);
-        if (!isMounted.current) return;
-        setUserType(type);
-        setLoading(false);
+        // Dispatch async work outside the callback to avoid deadlock
+        setTimeout(async () => {
+          if (!isMounted.current) return;
+          setLoading(true);
+          const type = await determineUserType(session.user.id);
+          if (!isMounted.current) return;
+          setUserType(type);
+          setLoading(false);
+        }, 0);
       } else {
         setUserType(null);
         setLoading(false);
