@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -21,6 +23,8 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
+  Link2,
+  ChevronDown,
 } from "lucide-react";
 import { z } from "zod";
 
@@ -53,6 +57,7 @@ export default function StaffInviteVendor() {
   const [invitations, setInvitations] = useState<any[]>([]);
   const [loadingInvitations, setLoadingInvitations] = useState(true);
   const [sending, setSending] = useState(false);
+  const [referralOpen, setReferralOpen] = useState(false);
 
   const [companyName, setCompanyName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
@@ -123,149 +128,218 @@ export default function StaffInviteVendor() {
     }
   };
 
+  const pendingCount = invitations.filter(i => getInvitationStatus(i) === "pending").length;
+  const usedCount = invitations.filter(i => getInvitationStatus(i) === "used").length;
+
   return (
     <StaffLayout title="Invite a Vendor">
-      <div className="p-4 md:p-6 space-y-4 max-w-2xl">
-        {/* Invitation Form */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Send className="h-4 w-4 text-primary" />
-              Send Invitation
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="company_name">Company Name</Label>
-              <div className="relative">
-                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="company_name"
-                  placeholder="Enter company name"
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+      <div className="flex-1 flex flex-col">
+        {/* Compact Referral Link - Collapsible */}
+        <Collapsible open={referralOpen} onOpenChange={setReferralOpen}>
+          <CollapsibleTrigger asChild>
+            <button className="w-full flex items-center justify-between px-4 py-3 border-b bg-secondary/30 hover:bg-secondary/50 transition-colors text-sm">
+              <span className="flex items-center gap-2 font-medium text-foreground">
+                <Link2 className="h-4 w-4 text-primary" />
+                My Referral Link
+                {referralCode && (
+                  <Badge variant="outline" className="font-mono text-xs ml-1">
+                    {referralCode}
+                  </Badge>
+                )}
+              </span>
+              <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${referralOpen ? "rotate-180" : ""}`} />
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="p-4 border-b bg-card">
+              <ReferralLinkCard referralCode={referralCode || ""} isLoading={referralLoading} />
             </div>
+          </CollapsibleContent>
+        </Collapsible>
 
-            <div className="space-y-2">
-              <Label htmlFor="contact_email">Email Address</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="contact_email"
-                  type="email"
-                  placeholder="vendor@company.com"
-                  value={contactEmail}
-                  onChange={(e) => setContactEmail(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="contact_phone">Phone Number</Label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="contact_phone"
-                  placeholder="+91 9876543210"
-                  value={contactPhone}
-                  onChange={(e) => setContactPhone(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="category">Vendor Category</Label>
-              <Select value={categoryId} onValueChange={setCategoryId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <Button
-              className="w-full"
-              onClick={handleSendInvitation}
-              disabled={sending}
+        {/* Tabbed Content */}
+        <Tabs defaultValue="send" className="flex-1 flex flex-col">
+          <TabsList className="w-full justify-start px-4 h-auto py-2 bg-card border-b rounded-none">
+            <TabsTrigger
+              value="send"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
             >
-              {sending ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4 mr-2" />
+              <Send className="h-3.5 w-3.5 mr-1.5" />
+              Send Invite
+            </TabsTrigger>
+            <TabsTrigger
+              value="sent"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <Mail className="h-3.5 w-3.5 mr-1.5" />
+              Sent
+              {invitations.length > 0 && (
+                <span className="ml-1.5 px-1.5 py-0.5 text-xs rounded-full bg-muted">
+                  {invitations.length}
+                </span>
               )}
-              {sending ? "Sending..." : "Send Invitation"}
-            </Button>
-          </CardContent>
-        </Card>
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Referral Link */}
-        <ReferralLinkCard referralCode={referralCode || ""} isLoading={referralLoading} />
+          {/* Send Invitation Tab */}
+          <TabsContent value="send" className="flex-1 p-4 mt-0">
+            <Card>
+              <CardContent className="p-4 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="company_name" className="text-xs">Company Name</Label>
+                    <div className="relative">
+                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="company_name"
+                        placeholder="Enter company name"
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        className="pl-10 h-9"
+                      />
+                    </div>
+                  </div>
 
-        {/* Sent Invitations */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Mail className="h-4 w-4 text-primary" />
-              Sent Invitations
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="contact_email" className="text-xs">Email Address</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="contact_email"
+                        type="email"
+                        placeholder="vendor@company.com"
+                        value={contactEmail}
+                        onChange={(e) => setContactEmail(e.target.value)}
+                        className="pl-10 h-9"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="contact_phone" className="text-xs">Phone Number</Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="contact_phone"
+                        placeholder="+91 9876543210"
+                        value={contactPhone}
+                        onChange={(e) => setContactPhone(e.target.value)}
+                        className="pl-10 h-9"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="category" className="text-xs">Vendor Category</Label>
+                    <Select value={categoryId} onValueChange={setCategoryId}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover z-50">
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <Button
+                  className="w-full"
+                  onClick={handleSendInvitation}
+                  disabled={sending}
+                >
+                  {sending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4 mr-2" />
+                  )}
+                  {sending ? "Sending..." : "Send Invitation"}
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Quick Stats */}
+            {invitations.length > 0 && (
+              <div className="grid grid-cols-3 gap-3 mt-3">
+                <Card>
+                  <CardContent className="p-3 text-center">
+                    <p className="text-lg font-bold">{invitations.length}</p>
+                    <p className="text-xs text-muted-foreground">Total Sent</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-3 text-center">
+                    <p className="text-lg font-bold text-warning">{pendingCount}</p>
+                    <p className="text-xs text-muted-foreground">Pending</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-3 text-center">
+                    <p className="text-lg font-bold text-success">{usedCount}</p>
+                    <p className="text-xs text-muted-foreground">Registered</p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Sent Invitations Tab */}
+          <TabsContent value="sent" className="flex-1 p-4 mt-0">
             {loadingInvitations ? (
-              <div className="flex items-center justify-center py-8">
+              <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
             ) : invitations.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8 text-sm">
-                No invitations sent yet
-              </p>
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Mail className="h-10 w-10 text-muted-foreground/40 mb-3" />
+                <p className="text-sm text-muted-foreground">No invitations sent yet</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Use the "Send Invite" tab to invite vendors
+                </p>
+              </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {invitations.map((inv) => {
                   const status = getInvitationStatus(inv);
                   const config = STATUS_CONFIG[status];
                   const StatusIcon = config.icon;
                   return (
-                    <div
-                      key={inv.id}
-                      className="flex items-start gap-3 p-3 rounded-lg border bg-card"
-                    >
-                      <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        <Building2 className="h-4 w-4 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{inv.company_name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{inv.contact_email}</p>
-                        <div className="flex items-center gap-2 mt-1 flex-wrap">
-                          <Badge variant="outline" className="text-xs">
-                            {inv.vendor_categories?.name || "—"}
-                          </Badge>
-                          <Badge className={`text-xs ${config.className}`}>
-                            <StatusIcon className="h-3 w-3 mr-1" />
-                            {config.label}
-                          </Badge>
+                    <Card key={inv.id} className="overflow-hidden">
+                      <CardContent className="p-3">
+                        <div className="flex items-start gap-3">
+                          <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                            <Building2 className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="font-medium text-sm truncate">{inv.company_name}</p>
+                              <Badge className={`text-xs shrink-0 ${config.className}`}>
+                                <StatusIcon className="h-3 w-3 mr-1" />
+                                {config.label}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground truncate mt-0.5">{inv.contact_email}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant="outline" className="text-xs">
+                                {inv.vendor_categories?.name || "—"}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">
+                                {formatDistanceToNow(new Date(inv.created_at), { addSuffix: true })}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">
-                        {formatDistanceToNow(new Date(inv.created_at), { addSuffix: true })}
-                      </span>
-                    </div>
+                      </CardContent>
+                    </Card>
                   );
                 })}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </StaffLayout>
   );
