@@ -226,6 +226,48 @@ export type Database = {
         }
         Relationships: []
       }
+      public_otp_verifications: {
+        Row: {
+          attempts: number
+          created_at: string
+          expires_at: string
+          id: string
+          identifier: string
+          identifier_type: string
+          ip_address: unknown
+          max_attempts: number
+          otp_code: string
+          session_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          expires_at?: string
+          id?: string
+          identifier: string
+          identifier_type: string
+          ip_address?: unknown
+          max_attempts?: number
+          otp_code: string
+          session_id?: string
+          verified_at?: string | null
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          expires_at?: string
+          id?: string
+          identifier?: string
+          identifier_type?: string
+          ip_address?: unknown
+          max_attempts?: number
+          otp_code?: string
+          session_id?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
       staff_referral_codes: {
         Row: {
           created_at: string

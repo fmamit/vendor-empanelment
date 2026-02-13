@@ -14,10 +14,11 @@ export function VendorPhoneLogin() {
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [sessionId, setSessionId] = useState("");
+  const [testOtp, setTestOtp] = useState("");
   const navigate = useNavigate();
   const { refreshAuth } = useAuth();
 
-  // Resend cooldown timer
   useEffect(() => {
     if (resendCooldown <= 0) return;
     const timer = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
@@ -25,14 +26,8 @@ export function VendorPhoneLogin() {
   }, [resendCooldown]);
 
   const formatPhoneNumber = (value: string) => {
-    const digits = value.replace(/\D/g, "");
-    return digits.slice(0, 10);
+    return value.replace(/\D/g, "").slice(0, 10);
   };
-
-  const getEdgeFunctionUrl = useCallback(() => {
-    const projectUrl = import.meta.env.VITE_SUPABASE_URL;
-    return `${projectUrl}/functions/v1/send-public-otp`;
-  }, []);
 
   const handleSendOTP = async () => {
     if (phone.length !== 10) {
@@ -42,19 +37,20 @@ export function VendorPhoneLogin() {
 
     setLoading(true);
     try {
-      const response = await fetch(getEdgeFunctionUrl(), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, channel: "whatsapp" }),
+      const { data, error } = await supabase.functions.invoke("send-public-otp", {
+        body: { identifier: phone, identifierType: "phone" },
       });
 
-      const result = await response.json();
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || "Failed to send OTP");
+      setSessionId(data.sessionId);
+      if (data.isTestMode && data.testOtp) {
+        setTestOtp(data.testOtp);
+        toast.success(`Test Mode - OTP: ${data.testOtp}`);
+      } else {
+        toast.success("OTP sent to your WhatsApp");
       }
-
-      toast.success("OTP sent to your WhatsApp");
       setStep("otp");
       setResendCooldown(60);
     } catch (error: any) {
@@ -72,20 +68,16 @@ export function VendorPhoneLogin() {
 
     setLoading(true);
     try {
-      const response = await fetch(getEdgeFunctionUrl(), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, otp, action: "verify" }),
+      const { data, error } = await supabase.functions.invoke("verify-public-otp", {
+        body: { sessionId, otp },
       });
 
-      const result = await response.json();
-
-      if (!result.verified) {
-        throw new Error(result.error || "Invalid OTP");
+      if (error) throw error;
+      if (!data?.verified) {
+        throw new Error(data?.error || "Invalid OTP");
       }
 
       // OTP verified — now sign in via Supabase Auth
-      // Use signInWithOtp to create/get a session for this phone user
       const { error: authError } = await supabase.auth.signInWithOtp({
         phone: `+91${phone}`,
       });
@@ -155,6 +147,9 @@ export function VendorPhoneLogin() {
             <p className="text-sm text-muted-foreground">
               Sent to your WhatsApp on +91 {phone}
             </p>
+            {testOtp && (
+              <p className="text-xs text-muted-foreground bg-muted p-2 rounded">Test mode OTP: <span className="font-mono font-bold">{testOtp}</span></p>
+            )}
             <Input
               id="otp"
               type="text"
@@ -189,6 +184,7 @@ export function VendorPhoneLogin() {
               onClick={() => {
                 setStep("phone");
                 setOtp("");
+                setTestOtp("");
               }}
               className="flex-1"
             >
