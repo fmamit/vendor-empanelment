@@ -21,6 +21,7 @@ export default function VendorReferralRegistration() {
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [phoneVerified, setPhoneVerified] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
   const [uploadedDocs, setUploadedDocs] = useState<Set<string>>(new Set());
   const [categoryDocs, setCategoryDocs] = useState<any[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
@@ -89,6 +90,7 @@ export default function VendorReferralRegistration() {
             setFormData(parsed.formData);
             setCurrentStep(parsed.currentStep || 1);
             setPhoneVerified(parsed.phoneVerified || false);
+            setEmailVerified(parsed.emailVerified || false);
             setUploadedDocs(new Set(parsed.uploadedDocs || []));
             if (parsed.formData.category_id) {
               loadCategoryDocs(parsed.formData.category_id);
@@ -132,10 +134,11 @@ export default function VendorReferralRegistration() {
       formData,
       currentStep,
       phoneVerified,
+      emailVerified,
       uploadedDocs: Array.from(uploadedDocs),
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-  }, [formData, currentStep, phoneVerified, uploadedDocs, pageState, token]);
+  }, [formData, currentStep, phoneVerified, emailVerified, uploadedDocs, pageState, token]);
 
   const handleFieldChange = useCallback((field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -150,7 +153,8 @@ export default function VendorReferralRegistration() {
           formData.primary_contact_name.trim().length > 0 &&
           formData.primary_mobile.replace(/\D/g, "").length === 10 &&
           phoneVerified &&
-          formData.primary_email.trim().length > 0
+          formData.primary_email.trim().length > 0 &&
+          emailVerified
         );
       case 3:
         return (
@@ -280,8 +284,10 @@ export default function VendorReferralRegistration() {
           <ContactDetailsStep
             formData={formData}
             phoneVerified={phoneVerified}
+            emailVerified={emailVerified}
             onChange={handleFieldChange}
             onPhoneVerified={() => setPhoneVerified(true)}
+            onEmailVerified={() => setEmailVerified(true)}
           />
         )}
         {currentStep === 3 && (

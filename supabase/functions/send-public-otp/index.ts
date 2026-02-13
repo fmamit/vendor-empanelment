@@ -7,23 +7,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Simple hash using Web Crypto API (SHA-256 + salt)
-async function hashOtp(otp: string, salt: string): Promise<string> {
-  const data = new TextEncoder().encode(otp + salt);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-async function verifyOtpHash(otp: string, salt: string, hash: string): Promise<boolean> {
-  const computed = await hashOtp(otp, salt);
-  return computed === hash;
-}
-
 function generateOtp(): string {
-  const array = new Uint32Array(1);
-  crypto.getRandomValues(array);
-  return String(array[0] % 1000000).padStart(6, "0");
+  return String(Math.floor(100000 + Math.random() * 900000));
 }
 
 Deno.serve(async (req) => {
@@ -32,198 +17,228 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { phone, otp, action, channel } = await req.json();
+    const { identifier, identifierType } = await req.json();
 
-    if (!phone) {
+    if (!identifier || !identifierType) {
       return new Response(
-        JSON.stringify({ error: "Phone number is required" }),
+        JSON.stringify({ error: "identifier and identifierType are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Normalize phone: strip non-digits
-    const cleanPhone = phone.replace(/\D/g, "");
-    const fullPhone = cleanPhone.length === 10 ? `+91${cleanPhone}` : cleanPhone.startsWith("91") ? `+${cleanPhone}` : `+91${cleanPhone}`;
+    if (!["phone", "email"].includes(identifierType)) {
+      return new Response(
+        JSON.stringify({ error: "identifierType must be 'phone' or 'email'" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate identifier format
+    if (identifierType === "phone") {
+      const clean = identifier.replace(/\D/g, "");
+      if (clean.length !== 10 || !/^[6-9]/.test(clean)) {
+        return new Response(
+          JSON.stringify({ error: "Invalid 10-digit Indian mobile number" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    } else {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier)) {
+        return new Response(
+          JSON.stringify({ error: "Invalid email address" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // ===== VERIFY MODE =====
-    if (action === "verify") {
-      if (!otp) {
-        return new Response(
-          JSON.stringify({ verified: false, error: "OTP is required" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
+    // Normalize identifier for storage
+    const normalizedIdentifier = identifierType === "phone"
+      ? `+91${identifier.replace(/\D/g, "")}`
+      : identifier.toLowerCase().trim();
 
-      // Find latest unverified, non-expired OTP for this phone
-      const { data: otpRecord, error: fetchError } = await supabase
-        .from("otp_verifications")
+    // Rate limit: max 5 OTPs per identifier per hour
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { count, error: countError } = await supabase
+      .from("public_otp_verifications")
+      .select("*", { count: "exact", head: true })
+      .eq("identifier", normalizedIdentifier)
+      .gte("created_at", oneHourAgo);
+
+    if (countError) {
+      console.error("Rate limit check error:", countError);
+    } else if ((count || 0) >= 5) {
+      return new Response(
+        JSON.stringify({ error: "Too many OTP requests. Please try again later." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Generate OTP and store
+    const otpCode = generateOtp();
+
+    const { data: otpRecord, error: insertError } = await supabase
+      .from("public_otp_verifications")
+      .insert({
+        identifier: normalizedIdentifier,
+        identifier_type: identifierType,
+        otp_code: otpCode,
+      })
+      .select("session_id")
+      .single();
+
+    if (insertError || !otpRecord) {
+      console.error("Insert error:", insertError);
+      return new Response(
+        JSON.stringify({ error: "Failed to create OTP" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const sessionId = otpRecord.session_id;
+
+    // ===== PHONE PATH: WhatsApp via Exotel =====
+    if (identifierType === "phone") {
+      // Read WhatsApp config from database
+      const { data: wsConfig } = await supabase
+        .from("whatsapp_settings")
         .select("*")
-        .eq("phone", fullPhone)
-        .eq("verified", false)
-        .gte("expires_at", new Date().toISOString())
-        .order("created_at", { ascending: false })
+        .eq("is_active", true)
         .limit(1)
         .single();
 
-      if (fetchError || !otpRecord) {
+      if (!wsConfig?.exotel_sid || !wsConfig?.exotel_api_key || !wsConfig?.exotel_api_token || !wsConfig?.whatsapp_source_number) {
+        // Test mode - WhatsApp not configured
+        console.log("WhatsApp not configured - returning test mode OTP:", otpCode);
         return new Response(
-          JSON.stringify({ verified: false, error: "No valid OTP found. Please request a new one." }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      // Check attempts
-      if (otpRecord.attempts >= 5) {
-        return new Response(
-          JSON.stringify({ verified: false, error: "Too many attempts. Please request a new OTP." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      // Verify hash - salt is stored as the first 16 chars of otp_hash
-      const salt = otpRecord.otp_hash.substring(0, 16);
-      const storedHash = otpRecord.otp_hash.substring(16);
-      const isValid = await verifyOtpHash(otp, salt, storedHash);
-
-      if (isValid) {
-        // Mark as verified
-        await supabase
-          .from("otp_verifications")
-          .update({ verified: true })
-          .eq("id", otpRecord.id);
-
-        return new Response(
-          JSON.stringify({ verified: true }),
+          JSON.stringify({
+            success: true,
+            sessionId,
+            message: "WhatsApp not configured - Test Mode",
+            isTestMode: true,
+            testOtp: otpCode,
+          }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
-      } else {
-        // Increment attempts
-        await supabase
-          .from("otp_verifications")
-          .update({ attempts: otpRecord.attempts + 1 })
-          .eq("id", otpRecord.id);
-
-        return new Response(
-          JSON.stringify({ verified: false, error: "Invalid OTP" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
       }
-    }
 
-    // ===== SEND MODE =====
-    const otpCode = generateOtp();
+      const toPhone = normalizedIdentifier.replace("+", "");
+      const fromNumber = wsConfig.whatsapp_source_number.replace("+", "");
+      const subdomain = wsConfig.exotel_subdomain || "api.exotel.com";
 
-    // Generate salt and hash the OTP
-    const saltArray = new Uint8Array(8);
-    crypto.getRandomValues(saltArray);
-    const salt = Array.from(saltArray).map((b) => b.toString(16).padStart(2, "0")).join("");
-    const otpHash = salt + (await hashOtp(otpCode, salt));
-
-    // Delete existing unverified OTPs for this phone
-    await supabase
-      .from("otp_verifications")
-      .delete()
-      .eq("phone", fullPhone)
-      .eq("verified", false);
-
-    // Insert new OTP record (expires in 10 minutes)
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-    const { error: insertError } = await supabase
-      .from("otp_verifications")
-      .insert({
-        phone: fullPhone,
-        otp_hash: otpHash,
-        expires_at: expiresAt,
-      });
-
-    if (insertError) {
-      console.error("Insert error:", insertError);
-      return new Response(
-        JSON.stringify({ success: false, error: "Failed to create OTP" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Send via Exotel WhatsApp API
-    const exotelSid = Deno.env.get("EXOTEL_SID");
-    const exotelApiKey = Deno.env.get("EXOTEL_API_KEY");
-    const exotelApiToken = Deno.env.get("EXOTEL_API_TOKEN");
-    const whatsappFromNumber = Deno.env.get("WHATSAPP_SOURCE_NUMBER");
-
-    if (!exotelSid || !exotelApiKey || !exotelApiToken || !whatsappFromNumber) {
-      console.error("Missing Exotel configuration");
-      return new Response(
-        JSON.stringify({ success: false, error: "WhatsApp service not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Prepare Exotel payload - phone digits only (no + prefix)
-    const toPhone = fullPhone.replace("+", "");
-    const fromNumber = whatsappFromNumber.replace("+", "");
-
-    const webhookUrl = `${supabaseUrl}/functions/v1/whatsapp-webhook`;
-
-    const payload = {
-      custom_data: toPhone,
-      status_callback: webhookUrl,
-      to: toPhone,
-      from: fromNumber,
-      whatsapp: {
-        messages: [
-          {
-            content: {
-              template: {
-                name: "psotp1",
-                language: "en_US",
-                components: [
-                  {
-                    type: "body",
-                    parameters: [{ type: "text", text: otpCode }],
-                  },
-                  {
-                    type: "button",
-                    sub_type: "url",
-                    index: "0",
-                    parameters: [{ type: "text", text: otpCode }],
-                  },
-                ],
+      const payload = {
+        custom_data: toPhone,
+        to: toPhone,
+        from: fromNumber,
+        whatsapp: {
+          messages: [
+            {
+              content: {
+                template: {
+                  name: "psotp1",
+                  language: "en_US",
+                  components: [
+                    {
+                      type: "body",
+                      parameters: [{ type: "text", text: otpCode }],
+                    },
+                    {
+                      type: "button",
+                      sub_type: "url",
+                      index: "0",
+                      parameters: [{ type: "text", text: otpCode }],
+                    },
+                  ],
+                },
               },
             },
-          },
-        ],
-      },
-    };
+          ],
+        },
+      };
 
-    const exotelUrl = `https://api.exotel.com/v2/accounts/${exotelSid}/messages`;
-    const authString = base64Encode(new TextEncoder().encode(`${exotelApiKey}:${exotelApiToken}`));
+      const exotelUrl = `https://${subdomain}/v2/accounts/${wsConfig.exotel_sid}/messages`;
+      const authString = base64Encode(
+        new TextEncoder().encode(`${wsConfig.exotel_api_key}:${wsConfig.exotel_api_token}`)
+      );
 
-    const exotelResponse = await fetch(exotelUrl, {
+      const exotelResponse = await fetch(exotelUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Basic ${authString}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!exotelResponse.ok) {
+        const errorText = await exotelResponse.text();
+        console.error("Exotel API error:", exotelResponse.status, errorText);
+        return new Response(
+          JSON.stringify({ error: "Failed to send WhatsApp message" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      console.info(`OTP sent successfully via WhatsApp to ${normalizedIdentifier}`);
+      return new Response(
+        JSON.stringify({ success: true, sessionId, message: "OTP sent to your WhatsApp" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ===== EMAIL PATH: Resend API =====
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    if (!resendApiKey) {
+      console.error("RESEND_API_KEY not configured");
+      return new Response(
+        JSON.stringify({ error: "Email service not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const emailHtml = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
+        <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border-radius: 16px; padding: 40px 32px; text-align: center;">
+          <h2 style="color: #ffffff; margin: 0 0 8px 0; font-size: 20px; font-weight: 600;">Paisaa Saarthi</h2>
+          <p style="color: #94a3b8; margin: 0 0 32px 0; font-size: 14px;">Loan Application Verification</p>
+          <p style="color: #cbd5e1; margin: 0 0 16px 0; font-size: 14px;">Your verification code is:</p>
+          <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 20px; margin: 0 0 24px 0;">
+            <span style="color: #ffffff; font-size: 36px; font-weight: 700; letter-spacing: 8px; font-family: monospace;">${otpCode}</span>
+          </div>
+          <p style="color: #94a3b8; margin: 0; font-size: 12px;">This code expires in 5 minutes. Do not share it with anyone.</p>
+        </div>
+      </div>
+    `;
+
+    const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Basic ${authString}`,
+        Authorization: `Bearer ${resendApiKey}`,
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        from: "Paisaa Saarthi <no-reply@yourdomain.com>",
+        to: [normalizedIdentifier],
+        subject: "Your OTP for Loan Application",
+        html: emailHtml,
+      }),
     });
 
-    if (!exotelResponse.ok) {
-      const errorText = await exotelResponse.text();
-      console.error("Exotel API error:", exotelResponse.status, errorText);
+    if (!resendResponse.ok) {
+      const errorText = await resendResponse.text();
+      console.error("Resend API error:", resendResponse.status, errorText);
       return new Response(
-        JSON.stringify({ success: false, error: "Failed to send WhatsApp message" }),
+        JSON.stringify({ error: "Failed to send email" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("OTP sent successfully via WhatsApp to", fullPhone);
-
+    console.info(`OTP sent successfully via Email to ${normalizedIdentifier}`);
     return new Response(
-      JSON.stringify({ success: true, message: "OTP sent via WhatsApp" }),
+      JSON.stringify({ success: true, sessionId, message: "OTP sent to your email" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

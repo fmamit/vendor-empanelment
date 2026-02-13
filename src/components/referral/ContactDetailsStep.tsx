@@ -14,66 +14,141 @@ interface ContactDetailsStepProps {
     primary_email: string;
   };
   phoneVerified: boolean;
+  emailVerified: boolean;
   onChange: (field: string, value: string) => void;
   onPhoneVerified: () => void;
+  onEmailVerified: () => void;
 }
 
-export function ContactDetailsStep({ formData, phoneVerified, onChange, onPhoneVerified }: ContactDetailsStepProps) {
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpValue, setOtpValue] = useState("");
-  const [sendingOtp, setSendingOtp] = useState(false);
-  const [verifyingOtp, setVerifyingOtp] = useState(false);
-  const [cooldown, setCooldown] = useState(0);
+export function ContactDetailsStep({ formData, phoneVerified, emailVerified, onChange, onPhoneVerified, onEmailVerified }: ContactDetailsStepProps) {
+  // Phone OTP state
+  const [phoneOtpSent, setPhoneOtpSent] = useState(false);
+  const [phoneOtpValue, setPhoneOtpValue] = useState("");
+  const [phoneSending, setPhoneSending] = useState(false);
+  const [phoneVerifying, setPhoneVerifying] = useState(false);
+  const [phoneCooldown, setPhoneCooldown] = useState(0);
+  const [phoneSessionId, setPhoneSessionId] = useState("");
+  const [phoneTestOtp, setPhoneTestOtp] = useState("");
+
+  // Email OTP state
+  const [emailOtpSent, setEmailOtpSent] = useState(false);
+  const [emailOtpValue, setEmailOtpValue] = useState("");
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailVerifying, setEmailVerifying] = useState(false);
+  const [emailCooldown, setEmailCooldown] = useState(0);
+  const [emailSessionId, setEmailSessionId] = useState("");
+
+  // Cooldown timers
+  useEffect(() => {
+    if (phoneCooldown <= 0) return;
+    const t = setTimeout(() => setPhoneCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [phoneCooldown]);
 
   useEffect(() => {
-    if (cooldown <= 0) return;
-    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    if (emailCooldown <= 0) return;
+    const t = setTimeout(() => setEmailCooldown((c) => c - 1), 1000);
     return () => clearTimeout(t);
-  }, [cooldown]);
+  }, [emailCooldown]);
 
-  const sendOtp = useCallback(async () => {
+  // Send Phone OTP
+  const sendPhoneOtp = useCallback(async () => {
     const phone = formData.primary_mobile.replace(/\D/g, "");
     if (phone.length !== 10) {
       toast.error("Enter a valid 10-digit mobile number");
       return;
     }
-    setSendingOtp(true);
+    setPhoneSending(true);
     try {
       const { data, error } = await supabase.functions.invoke("send-public-otp", {
-        body: { phone: `+91${phone}`, channel: "whatsapp" },
+        body: { identifier: phone, identifierType: "phone" },
       });
       if (error) throw error;
-      setOtpSent(true);
-      setCooldown(60);
-      toast.success("OTP sent via WhatsApp");
+      if (data?.error) throw new Error(data.error);
+      setPhoneSessionId(data.sessionId);
+      setPhoneOtpSent(true);
+      setPhoneCooldown(60);
+      if (data.isTestMode && data.testOtp) {
+        setPhoneTestOtp(data.testOtp);
+        toast.success(`Test Mode - OTP: ${data.testOtp}`);
+      } else {
+        toast.success("OTP sent via WhatsApp");
+      }
     } catch (err: any) {
       toast.error(err.message || "Failed to send OTP");
     } finally {
-      setSendingOtp(false);
+      setPhoneSending(false);
     }
   }, [formData.primary_mobile]);
 
-  const verifyOtp = useCallback(async () => {
-    if (otpValue.length !== 6) return;
-    const phone = formData.primary_mobile.replace(/\D/g, "");
-    setVerifyingOtp(true);
+  // Verify Phone OTP
+  const verifyPhoneOtp = useCallback(async () => {
+    if (phoneOtpValue.length !== 6) return;
+    setPhoneVerifying(true);
     try {
-      const { data, error } = await supabase.functions.invoke("send-public-otp", {
-        body: { phone: `+91${phone}`, otp: otpValue, action: "verify" },
+      const { data, error } = await supabase.functions.invoke("verify-public-otp", {
+        body: { sessionId: phoneSessionId, otp: phoneOtpValue },
       });
       if (error) throw error;
       if (data?.verified) {
         onPhoneVerified();
         toast.success("Phone verified!");
       } else {
-        toast.error("Invalid OTP. Please try again.");
+        toast.error(data?.error || "Invalid OTP");
       }
     } catch (err: any) {
       toast.error(err.message || "Verification failed");
     } finally {
-      setVerifyingOtp(false);
+      setPhoneVerifying(false);
     }
-  }, [otpValue, formData.primary_mobile, onPhoneVerified]);
+  }, [phoneOtpValue, phoneSessionId, onPhoneVerified]);
+
+  // Send Email OTP
+  const sendEmailOtp = useCallback(async () => {
+    const email = formData.primary_email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error("Enter a valid email address");
+      return;
+    }
+    setEmailSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-public-otp", {
+        body: { identifier: email, identifierType: "email" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setEmailSessionId(data.sessionId);
+      setEmailOtpSent(true);
+      setEmailCooldown(60);
+      toast.success("OTP sent to your email");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send OTP");
+    } finally {
+      setEmailSending(false);
+    }
+  }, [formData.primary_email]);
+
+  // Verify Email OTP
+  const verifyEmailOtp = useCallback(async () => {
+    if (emailOtpValue.length !== 6) return;
+    setEmailVerifying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("verify-public-otp", {
+        body: { sessionId: emailSessionId, otp: emailOtpValue },
+      });
+      if (error) throw error;
+      if (data?.verified) {
+        onEmailVerified();
+        toast.success("Email verified!");
+      } else {
+        toast.error(data?.error || "Invalid OTP");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Verification failed");
+    } finally {
+      setEmailVerifying(false);
+    }
+  }, [emailOtpValue, emailSessionId, onEmailVerified]);
 
   return (
     <div className="space-y-5 p-4">
@@ -83,6 +158,7 @@ export function ContactDetailsStep({ formData, phoneVerified, onChange, onPhoneV
       </div>
 
       <div className="space-y-4">
+        {/* Contact Name */}
         <div>
           <Label htmlFor="primary_contact_name">Contact Person Name *</Label>
           <Input
@@ -94,6 +170,7 @@ export function ContactDetailsStep({ formData, phoneVerified, onChange, onPhoneV
           />
         </div>
 
+        {/* Mobile Number + Phone OTP */}
         <div>
           <Label htmlFor="primary_mobile">Mobile Number *</Label>
           <div className="flex gap-2 mt-1">
@@ -117,22 +194,25 @@ export function ContactDetailsStep({ formData, phoneVerified, onChange, onPhoneV
               <CheckCircle2 className="h-4 w-4" />
               Phone verified
             </div>
-          ) : !otpSent ? (
+          ) : !phoneOtpSent ? (
             <Button
               type="button"
               variant="outline"
               size="sm"
               className="mt-2"
-              onClick={sendOtp}
-              disabled={sendingOtp || formData.primary_mobile.replace(/\D/g, "").length !== 10}
+              onClick={sendPhoneOtp}
+              disabled={phoneSending || formData.primary_mobile.replace(/\D/g, "").length !== 10}
             >
-              {sendingOtp ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Phone className="h-4 w-4 mr-1" />}
-              Send OTP
+              {phoneSending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Phone className="h-4 w-4 mr-1" />}
+              Send OTP via WhatsApp
             </Button>
           ) : (
             <div className="mt-3 space-y-3">
               <Label>Enter 6-digit OTP</Label>
-              <InputOTP maxLength={6} value={otpValue} onChange={setOtpValue}>
+              {phoneTestOtp && (
+                <p className="text-xs text-muted-foreground bg-muted p-2 rounded">Test mode OTP: <span className="font-mono font-bold">{phoneTestOtp}</span></p>
+              )}
+              <InputOTP maxLength={6} value={phoneOtpValue} onChange={setPhoneOtpValue}>
                 <InputOTPGroup>
                   {[0, 1, 2, 3, 4, 5].map((i) => (
                     <InputOTPSlot key={i} index={i} />
@@ -140,29 +220,19 @@ export function ContactDetailsStep({ formData, phoneVerified, onChange, onPhoneV
                 </InputOTPGroup>
               </InputOTP>
               <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={verifyOtp}
-                  disabled={verifyingOtp || otpValue.length !== 6}
-                >
-                  {verifyingOtp ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                <Button type="button" size="sm" onClick={verifyPhoneOtp} disabled={phoneVerifying || phoneOtpValue.length !== 6}>
+                  {phoneVerifying ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
                   Verify
                 </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={sendOtp}
-                  disabled={cooldown > 0 || sendingOtp}
-                >
-                  {cooldown > 0 ? `Resend (${cooldown}s)` : "Resend OTP"}
+                <Button type="button" variant="ghost" size="sm" onClick={sendPhoneOtp} disabled={phoneCooldown > 0 || phoneSending}>
+                  {phoneCooldown > 0 ? `Resend (${phoneCooldown}s)` : "Resend OTP"}
                 </Button>
               </div>
             </div>
           )}
         </div>
 
+        {/* Email + Email OTP */}
         <div>
           <Label htmlFor="primary_email">Email Address *</Label>
           <div className="flex items-center gap-2 mt-1">
@@ -174,8 +244,48 @@ export function ContactDetailsStep({ formData, phoneVerified, onChange, onPhoneV
               onChange={(e) => onChange("primary_email", e.target.value)}
               placeholder="email@company.com"
               className="h-12 flex-1"
+              disabled={emailVerified}
             />
           </div>
+
+          {emailVerified ? (
+            <div className="flex items-center gap-1.5 mt-2 text-sm text-accent">
+              <CheckCircle2 className="h-4 w-4" />
+              Email verified
+            </div>
+          ) : !emailOtpSent ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-2"
+              onClick={sendEmailOtp}
+              disabled={emailSending || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.primary_email.trim())}
+            >
+              {emailSending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Mail className="h-4 w-4 mr-1" />}
+              Send OTP via Email
+            </Button>
+          ) : (
+            <div className="mt-3 space-y-3">
+              <Label>Enter 6-digit Email OTP</Label>
+              <InputOTP maxLength={6} value={emailOtpValue} onChange={setEmailOtpValue}>
+                <InputOTPGroup>
+                  {[0, 1, 2, 3, 4, 5].map((i) => (
+                    <InputOTPSlot key={i} index={i} />
+                  ))}
+                </InputOTPGroup>
+              </InputOTP>
+              <div className="flex items-center gap-2">
+                <Button type="button" size="sm" onClick={verifyEmailOtp} disabled={emailVerifying || emailOtpValue.length !== 6}>
+                  {emailVerifying ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                  Verify
+                </Button>
+                <Button type="button" variant="ghost" size="sm" onClick={sendEmailOtp} disabled={emailCooldown > 0 || emailSending}>
+                  {emailCooldown > 0 ? `Resend (${emailCooldown}s)` : "Resend OTP"}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
