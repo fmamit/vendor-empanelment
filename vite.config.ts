@@ -22,7 +22,9 @@ export default defineConfig(({ mode }) => ({
       manifest: false, // We use public/manifest.json
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-      navigateFallback: '/index.html',
+        navigateFallback: '/index.html',
+        skipWaiting: true,
+        clientsClaim: true,
       },
       devOptions: {
         enabled: false,

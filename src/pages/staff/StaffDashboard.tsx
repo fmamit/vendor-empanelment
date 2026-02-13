@@ -3,6 +3,7 @@ import { StaffLayout } from "@/components/layout/StaffLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useStaffVendorQueue } from "@/hooks/useStaffWorkflow";
+import { useDataRequests } from "@/hooks/useDataRequests";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,13 +20,17 @@ import {
   ShieldAlert,
   UserCircle,
   UserPlus,
-  BarChart3
+  BarChart3,
+  Shield,
+  FileText,
+  Bell
 } from "lucide-react";
 
 export default function StaffDashboard() {
   const { user } = useAuth();
   const { roles, isAdmin, isMaker, isChecker, isApprover, isLoading: rolesLoading } = useUserRoles();
   const { data: vendors, isLoading: vendorsLoading } = useStaffVendorQueue();
+  const { data: dataRequestStats } = useDataRequests();
   const navigate = useNavigate();
 
   if (rolesLoading) {
@@ -173,6 +178,41 @@ export default function StaffDashboard() {
           </CardContent>
         </Card>
 
+        {/* DPDP Compliance */}
+        {isAdmin && (
+          <Card className="border-primary/30">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Shield className="h-4 w-4 text-primary" />
+                DPDP Compliance
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button variant="outline" className="w-full justify-start h-14" onClick={() => navigate("/admin/settings")}>
+                <FileText className="h-5 w-5 mr-3 text-primary" />
+                <div className="flex-1 text-left">
+                  <p className="font-medium">Data Requests</p>
+                  <p className="text-xs text-muted-foreground">Manage access/erasure requests</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {(dataRequestStats?.overdue ?? 0) > 0 && (
+                    <Badge variant="destructive">Overdue</Badge>
+                  )}
+                  <Badge variant="secondary">{dataRequestStats?.pending ?? 0}</Badge>
+                </div>
+                <ChevronRight className="h-4 w-4 ml-2" />
+              </Button>
+              <Button variant="outline" className="w-full justify-start h-14" onClick={() => navigate("/admin/settings")}>
+                <Bell className="h-5 w-5 mr-3 text-warning" />
+                <div className="flex-1 text-left">
+                  <p className="font-medium">Breach Notifications</p>
+                  <p className="text-xs text-muted-foreground">View or report security incidents</p>
+                </div>
+                <ChevronRight className="h-4 w-4 ml-2" />
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Fraud Alerts */}
         <Card className="border-warning/30">
