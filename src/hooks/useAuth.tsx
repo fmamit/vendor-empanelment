@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -39,34 +39,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [userType, setUserType] = useState<UserType>(null);
   const [loading, setLoading] = useState(true);
-  const isMounted = useRef(true);
 
   useEffect(() => {
-    isMounted.current = true;
+    let cancelled = false;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (!isMounted.current) return;
+    const initialize = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (cancelled) return;
 
-        setSession(session);
-        setUser(session?.user ?? null);
+      setSession(session);
+      setUser(session?.user ?? null);
 
-        if (session?.user) {
-          const type = await determineUserType(session.user.id);
-          if (!isMounted.current) return;
-          setUserType(type);
-        } else {
-          setUserType(null);
-        }
-
-        setLoading(false);
+      if (session?.user) {
+        const type = await determineUserType(session.user.id);
+        if (cancelled) return;
+        setUserType(type);
       }
-    );
 
-    return () => {
-      isMounted.current = false;
-      subscription.unsubscribe();
+      setLoading(false);
     };
+
+    initialize();
+
+    return () => { cancelled = true; };
   }, []);
 
   const signOut = async () => {
