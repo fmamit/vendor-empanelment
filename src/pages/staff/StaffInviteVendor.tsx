@@ -412,23 +412,25 @@ export default function StaffInviteVendor() {
                                 {formatDistanceToNow(new Date(inv.created_at), { addSuffix: true })}
                               </span>
                             </div>
-                            <div className="flex items-center gap-1.5 mt-1.5 p-1.5 rounded bg-muted/50">
-                              <Link2 className="h-3 w-3 text-muted-foreground shrink-0" />
-                              <p className="text-[11px] text-muted-foreground truncate font-mono">
-                                {`https://onboardly-path.lovable.app/register?token=${inv.token}`}
-                              </p>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-5 px-1.5 text-[10px] shrink-0"
-                                onClick={() => {
-                                  navigator.clipboard.writeText(`https://onboardly-path.lovable.app/register?token=${inv.token}`);
-                                  toast.success("Link copied!");
-                                }}
-                              >
-                                Copy
-                              </Button>
-                            </div>
+                            {referralCode && (
+                              <div className="flex items-center gap-1.5 mt-1.5 p-1.5 rounded bg-muted/50">
+                                <Link2 className="h-3 w-3 text-muted-foreground shrink-0" />
+                                <p className="text-[11px] text-muted-foreground truncate font-mono">
+                                  {`https://onboardly-path.lovable.app/register/ref/${referralCode}`}
+                                </p>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-5 px-1.5 text-[10px] shrink-0"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(`https://onboardly-path.lovable.app/register/ref/${referralCode}`);
+                                    toast.success("Link copied!");
+                                  }}
+                                >
+                                  Copy
+                                </Button>
+                              </div>
+                            )}
                             <div className="flex items-center gap-2 mt-2">
                               {status !== "used" && (
                                 <Button
