@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      breach_notifications: {
+        Row: {
+          affected_vendor_ids: string[] | null
+          contact_info: string
+          description: string
+          id: string
+          impact: string
+          remedial_steps: string
+          title: string
+          triggered_at: string
+          triggered_by: string
+        }
+        Insert: {
+          affected_vendor_ids?: string[] | null
+          contact_info: string
+          description: string
+          id?: string
+          impact: string
+          remedial_steps: string
+          title: string
+          triggered_at?: string
+          triggered_by: string
+        }
+        Update: {
+          affected_vendor_ids?: string[] | null
+          contact_info?: string
+          description?: string
+          id?: string
+          impact?: string
+          remedial_steps?: string
+          title?: string
+          triggered_at?: string
+          triggered_by?: string
+        }
+        Relationships: []
+      }
       category_documents: {
         Row: {
           category_id: string
@@ -49,6 +85,97 @@ export type Database = {
             columns: ["document_type_id"]
             isOneToOne: false
             referencedRelation: "document_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      consent_records: {
+        Row: {
+          consent_version: string
+          consented_at: string
+          created_at: string
+          id: string
+          ip_address: string | null
+          purpose: string
+          user_agent: string | null
+          user_identifier: string
+          vendor_id: string | null
+          withdrawn_at: string | null
+        }
+        Insert: {
+          consent_version?: string
+          consented_at?: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          purpose?: string
+          user_agent?: string | null
+          user_identifier: string
+          vendor_id?: string | null
+          withdrawn_at?: string | null
+        }
+        Update: {
+          consent_version?: string
+          consented_at?: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          purpose?: string
+          user_agent?: string | null
+          user_identifier?: string
+          vendor_id?: string | null
+          withdrawn_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consent_records_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_requests: {
+        Row: {
+          admin_notes: string | null
+          completed_at: string | null
+          created_at: string
+          due_date: string
+          id: string
+          request_type: string
+          requested_by: string
+          status: string
+          vendor_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          completed_at?: string | null
+          created_at?: string
+          due_date?: string
+          id?: string
+          request_type: string
+          requested_by: string
+          status?: string
+          vendor_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          completed_at?: string | null
+          created_at?: string
+          due_date?: string
+          id?: string
+          request_type?: string
+          requested_by?: string
+          status?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_requests_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
         ]
@@ -569,6 +696,8 @@ export type Database = {
           current_status: Database["public"]["Enums"]["vendor_status"]
           gst_number: string | null
           id: string
+          nominee_contact: string | null
+          nominee_name: string | null
           operational_address: string | null
           pan_number: string | null
           primary_contact_name: string
@@ -601,6 +730,8 @@ export type Database = {
           current_status?: Database["public"]["Enums"]["vendor_status"]
           gst_number?: string | null
           id?: string
+          nominee_contact?: string | null
+          nominee_name?: string | null
           operational_address?: string | null
           pan_number?: string | null
           primary_contact_name: string
@@ -633,6 +764,8 @@ export type Database = {
           current_status?: Database["public"]["Enums"]["vendor_status"]
           gst_number?: string | null
           id?: string
+          nominee_contact?: string | null
+          nominee_name?: string | null
           operational_address?: string | null
           pan_number?: string | null
           primary_contact_name?: string
@@ -917,6 +1050,7 @@ export type Database = {
         | "sent_back"
         | "approved"
         | "rejected"
+        | "consent_withdrawn"
       workflow_action:
         | "submitted"
         | "forwarded"
@@ -1067,6 +1201,7 @@ export const Constants = {
         "sent_back",
         "approved",
         "rejected",
+        "consent_withdrawn",
       ],
       workflow_action: [
         "submitted",

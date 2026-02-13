@@ -19,7 +19,11 @@ import {
   Trash2,
   Loader2,
   BarChart3,
+  ShieldAlert,
+  Database,
 } from "lucide-react";
+import { DataRequestsPanel } from "@/components/admin/DataRequestsPanel";
+import { BreachNotificationPanel } from "@/components/admin/BreachNotificationPanel";
 
 export default function AdminSettings() {
   const { isAdmin } = useUserRoles();
@@ -87,7 +91,9 @@ export default function AdminSettings() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
           <TabsList className="w-full justify-start px-4 h-auto py-2 bg-card border-b rounded-none">
             <TabsTrigger value="categories" className="flex items-center gap-2"><Building2 className="h-4 w-4" />Categories</TabsTrigger>
-            <TabsTrigger value="documents" className="flex items-center gap-2"><FileText className="h-4 w-4" />Document Types</TabsTrigger>
+            <TabsTrigger value="documents" className="flex items-center gap-2"><FileText className="h-4 w-4" />Doc Types</TabsTrigger>
+            <TabsTrigger value="data-requests" className="flex items-center gap-2"><Database className="h-4 w-4" />Data Requests</TabsTrigger>
+            <TabsTrigger value="breach" className="flex items-center gap-2"><ShieldAlert className="h-4 w-4" />Breach</TabsTrigger>
             <TabsTrigger value="reports" className="flex items-center gap-2"><BarChart3 className="h-4 w-4" />Reports</TabsTrigger>
           </TabsList>
 
@@ -140,6 +146,14 @@ export default function AdminSettings() {
               ))}
             </div>
            </TabsContent>
+
+          <TabsContent value="data-requests" className="flex-1 flex flex-col mt-0">
+            <DataRequestsPanel />
+          </TabsContent>
+
+          <TabsContent value="breach" className="flex-1 flex flex-col mt-0">
+            <BreachNotificationPanel />
+          </TabsContent>
 
           <TabsContent value="reports" className="flex-1 flex flex-col mt-0">
             <div className="p-6 text-center">

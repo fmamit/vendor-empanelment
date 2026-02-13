@@ -4,9 +4,14 @@ import { MobileLayout } from "@/components/layout/MobileLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useVendorProfile, useVendorDocuments, useSubmitVendorApplication } from "@/hooks/useVendor";
 import { useCategoryDocuments } from "@/hooks/useVendorData";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { toast } from "sonner";
 import { 
   FileText, 
   Clock, 
@@ -17,7 +22,12 @@ import {
   Building2,
   Send,
   XCircle,
-  Loader2
+  Loader2,
+  Download,
+  Trash2,
+  ShieldOff,
+  UserPlus,
+  ShieldCheck
 } from "lucide-react";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
@@ -28,7 +38,157 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }>
   sent_back: { label: "Sent Back", color: "bg-orange-100 text-orange-700", icon: AlertCircle },
   approved: { label: "Approved", color: "bg-success/20 text-success", icon: CheckCircle2 },
   rejected: { label: "Rejected", color: "bg-destructive/20 text-destructive", icon: XCircle },
+  consent_withdrawn: { label: "Consent Withdrawn", color: "bg-muted", icon: ShieldOff },
 };
+
+function DataRightsSection({ vendor, user }: { vendor: any; user: any }) {
+  const [showNominee, setShowNominee] = useState(false);
+  const [nomineeName, setNomineeName] = useState(vendor.nominee_name || "");
+  const [nomineeContact, setNomineeContact] = useState(vendor.nominee_contact || "");
+  const [loading, setLoading] = useState("");
+
+  const handleDownloadData = async () => {
+    setLoading("download");
+    try {
+      const [vendorRes, docsRes, historyRes] = await Promise.all([
+        supabase.from("vendors").select("*").eq("id", vendor.id).single(),
+        supabase.from("vendor_documents").select("id, file_name, document_type_id, status, created_at, expiry_date").eq("vendor_id", vendor.id),
+        supabase.from("workflow_history").select("*").eq("vendor_id", vendor.id),
+      ]);
+      
+      // Log the data request
+      await supabase.from("data_requests").insert({
+        vendor_id: vendor.id,
+        requested_by: user.id,
+        request_type: "access",
+      });
+
+      const blob = new Blob([JSON.stringify({
+        vendor_profile: vendorRes.data,
+        documents: docsRes.data,
+        workflow_history: historyRes.data,
+        exported_at: new Date().toISOString(),
+      }, null, 2)], { type: "application/json" });
+      
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `my-data-${vendor.vendor_code || vendor.id}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Data downloaded successfully");
+    } catch {
+      toast.error("Failed to download data");
+    }
+    setLoading("");
+  };
+
+  const handleErasureRequest = async () => {
+    setLoading("erasure");
+    try {
+      await supabase.from("data_requests").insert({
+        vendor_id: vendor.id,
+        requested_by: user.id,
+        request_type: "erasure",
+      });
+      toast.success("Erasure request submitted. We will respond within 90 days.");
+    } catch {
+      toast.error("Failed to submit request");
+    }
+    setLoading("");
+  };
+
+  const handleWithdrawConsent = async () => {
+    setLoading("withdraw");
+    try {
+      // Update consent record
+      await supabase.from("consent_records")
+        .update({ withdrawn_at: new Date().toISOString() })
+        .eq("vendor_id", vendor.id)
+        .is("withdrawn_at", null);
+      
+      // Update vendor status
+      await supabase.from("vendors")
+        .update({ current_status: "consent_withdrawn" as any })
+        .eq("id", vendor.id);
+
+      toast.success("Consent withdrawn. Data processing will stop.");
+      window.location.reload();
+    } catch {
+      toast.error("Failed to withdraw consent");
+    }
+    setLoading("");
+  };
+
+  const handleSaveNominee = async () => {
+    setLoading("nominee");
+    try {
+      await supabase.from("vendors")
+        .update({ nominee_name: nomineeName, nominee_contact: nomineeContact } as any)
+        .eq("id", vendor.id);
+      
+      await supabase.from("data_requests").insert({
+        vendor_id: vendor.id,
+        requested_by: user.id,
+        request_type: "nomination",
+      });
+      
+      toast.success("Nominee saved");
+      setShowNominee(false);
+    } catch {
+      toast.error("Failed to save nominee");
+    }
+    setLoading("");
+  };
+
+  return (
+    <>
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-primary" />
+            My Data Rights (DPDP Act)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Button variant="outline" className="w-full justify-start h-10" onClick={handleDownloadData} disabled={loading === "download"}>
+            {loading === "download" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
+            Download My Data
+          </Button>
+          <Button variant="outline" className="w-full justify-start h-10" onClick={handleErasureRequest} disabled={loading === "erasure"}>
+            {loading === "erasure" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+            Request Data Erasure
+          </Button>
+          <Button variant="outline" className="w-full justify-start h-10" onClick={() => setShowNominee(true)}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Manage Nominee
+          </Button>
+          <Button variant="outline" className="w-full justify-start h-10 text-destructive hover:text-destructive" onClick={handleWithdrawConsent} disabled={loading === "withdraw"}>
+            {loading === "withdraw" ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ShieldOff className="h-4 w-4 mr-2" />}
+            Withdraw Consent
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Dialog open={showNominee} onOpenChange={setShowNominee}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Manage Nominee</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">Under the DPDP Act, you can nominate someone to exercise your data rights on your behalf.</p>
+          <div className="space-y-3">
+            <div><Label>Nominee Name</Label><Input value={nomineeName} onChange={(e) => setNomineeName(e.target.value)} placeholder="Full name" /></div>
+            <div><Label>Nominee Contact (Phone/Email)</Label><Input value={nomineeContact} onChange={(e) => setNomineeContact(e.target.value)} placeholder="Phone or email" /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNominee(false)}>Cancel</Button>
+            <Button onClick={handleSaveNominee} disabled={!nomineeName || !nomineeContact || loading === "nominee"}>
+              {loading === "nominee" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Nominee"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
 
 export default function VendorDashboard() {
   const { user, userType, loading, signOut } = useAuth();
@@ -267,6 +427,9 @@ export default function VendorDashboard() {
             Upload all mandatory documents to submit your application
           </p>
         )}
+
+        {/* Data Rights Section */}
+        <DataRightsSection vendor={vendor} user={user} />
 
         {/* Sign Out */}
         <Button 

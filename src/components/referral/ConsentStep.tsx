@@ -1,0 +1,103 @@
+import { useState } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { ShieldCheck, ExternalLink } from "lucide-react";
+
+interface ConsentStepProps {
+  consented: boolean;
+  onConsentChange: (consented: boolean) => void;
+}
+
+const CONSENT_VERSION = "1.0";
+
+export function ConsentStep({ consented, onConsentChange }: ConsentStepProps) {
+  return (
+    <div className="p-4 space-y-4">
+      <div className="flex items-center gap-2 text-primary">
+        <ShieldCheck className="h-5 w-5" />
+        <h2 className="font-semibold text-base">Data Protection Notice</h2>
+      </div>
+
+      <p className="text-sm text-muted-foreground">
+        Under the Digital Personal Data Protection Act, 2023, we are required to inform you about how your data will be used before collection.
+      </p>
+
+      <ScrollArea className="h-[320px] rounded-lg border border-border bg-muted/30 p-4">
+        <div className="space-y-4 text-sm text-foreground pr-4">
+          <section>
+            <h3 className="font-semibold mb-1">What data we collect</h3>
+            <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+              <li>Company information (name, trade name, GST, PAN, CIN, addresses)</li>
+              <li>Contact details (name, mobile number, email address)</li>
+              <li>Bank account details (account number, IFSC, bank name, branch)</li>
+              <li>Identity & business documents (PAN card, GST certificate, cancelled cheque, etc.)</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3 className="font-semibold mb-1">Why we collect it</h3>
+            <p className="text-muted-foreground">
+              Your data is collected solely for the purpose of vendor onboarding, identity verification, and maintaining an ongoing business relationship with Capital India.
+            </p>
+          </section>
+
+          <section>
+            <h3 className="font-semibold mb-1">How long we retain it</h3>
+            <p className="text-muted-foreground">
+              Your data is retained for the duration of the business relationship and for a period of 7 years thereafter, as required by applicable laws and regulations.
+            </p>
+          </section>
+
+          <section>
+            <h3 className="font-semibold mb-1">Your rights</h3>
+            <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+              <li><strong>Right to Access:</strong> Request a copy of all personal data held about you.</li>
+              <li><strong>Right to Correction:</strong> Request correction of inaccurate or incomplete data.</li>
+              <li><strong>Right to Erasure:</strong> Request deletion of your personal data.</li>
+              <li><strong>Right to Withdraw Consent:</strong> Withdraw this consent at any time from your dashboard.</li>
+              <li><strong>Right to Nominate:</strong> Appoint someone to exercise your data rights on your behalf.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3 className="font-semibold mb-1">Data Protection Officer</h3>
+            <p className="text-muted-foreground">
+              For any data-related queries, contact our Data Protection Officer at{" "}
+              <span className="font-medium text-primary">dpo@capitalindia.com</span>
+            </p>
+          </section>
+
+          <section>
+            <h3 className="font-semibold mb-1">Grievance Redressal</h3>
+            <p className="text-muted-foreground">
+              If your concern is not resolved within 90 days, you may file a complaint with the Data Protection Board of India.
+            </p>
+          </section>
+        </div>
+      </ScrollArea>
+
+      <div className="flex items-start gap-3 p-3 rounded-lg border border-border bg-card">
+        <Checkbox
+          id="consent"
+          checked={consented}
+          onCheckedChange={(checked) => onConsentChange(checked === true)}
+          className="mt-0.5"
+        />
+        <label htmlFor="consent" className="text-sm leading-relaxed cursor-pointer">
+          I have read and understood the above notice. I freely consent to the collection and processing of my personal data for the stated purpose of vendor onboarding.{" "}
+          <span className="text-xs text-muted-foreground">(Consent v{CONSENT_VERSION})</span>
+        </label>
+      </div>
+
+      <a
+        href="/privacy-policy"
+        target="_blank"
+        className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+      >
+        View full Privacy Policy <ExternalLink className="h-3 w-3" />
+      </a>
+    </div>
+  );
+}
+
+export { CONSENT_VERSION };
