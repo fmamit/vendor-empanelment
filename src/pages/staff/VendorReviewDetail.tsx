@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { StaffLayout } from "@/components/layout/StaffLayout";
 import { useUserRoles } from "@/hooks/useUserRoles";
@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { VerificationPanel } from "@/components/staff/VerificationPanel";
 import { 
   Building2, 
   FileText, 
@@ -60,6 +61,13 @@ export default function VendorReviewDetail() {
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // Store vendor ID for DigiLocker callback
+  useEffect(() => {
+    if (vendor?.id) {
+      sessionStorage.setItem("current_vendor_id", vendor.id);
+    }
+  }, [vendor?.id]);
 
   if (vendorLoading || docsLoading) {
     return (
@@ -265,6 +273,14 @@ export default function VendorReviewDetail() {
             </CardContent>
           </Card>
         )}
+
+        {/* Verification Panel */}
+        <VerificationPanel 
+          vendorId={vendor.id}
+          panNumber={vendor.pan_number}
+          bankAccountNumber={vendor.bank_account_number}
+          bankIfsc={vendor.bank_ifsc}
+        />
 
         {/* Documents */}
         <Card>
