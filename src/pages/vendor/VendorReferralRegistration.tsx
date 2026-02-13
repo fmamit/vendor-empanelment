@@ -59,20 +59,17 @@ export default function VendorReferralRegistration() {
 
   const validateReferralCode = async (code: string) => {
     try {
-      const { data, error } = await supabase
-        .from("staff_referral_codes")
-        .select("referral_code, is_active")
-        .eq("referral_code", code)
-        .eq("is_active", true)
-        .maybeSingle();
+      const { data, error } = await supabase.functions.invoke("validate-referral-code", {
+        body: { referral_code: code },
+      });
 
-      if (error || !data) {
+      if (error || !data?.valid) {
         setErrorMessage("This referral link is invalid or inactive.");
         setPageState("invalid");
         return;
       }
 
-      setReferralCode(data.referral_code);
+      setReferralCode(code);
 
       // Load categories for the dropdown
       const { data: cats } = await supabase

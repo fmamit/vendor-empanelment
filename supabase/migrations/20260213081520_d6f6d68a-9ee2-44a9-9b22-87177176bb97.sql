@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Public can validate referral codes" ON public.staff_referral_codes;
