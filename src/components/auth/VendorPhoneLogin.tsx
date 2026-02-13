@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Phone, ArrowRight, Loader2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 export function VendorPhoneLogin() {
   const [phone, setPhone] = useState("");
@@ -14,6 +15,7 @@ export function VendorPhoneLogin() {
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const navigate = useNavigate();
+  const { refreshAuth } = useAuth();
 
   // Resend cooldown timer
   useEffect(() => {
@@ -92,6 +94,7 @@ export function VendorPhoneLogin() {
         console.warn("Auth sign-in note:", authError.message);
       }
 
+      await refreshAuth();
       toast.success("Verification successful!");
       navigate("/vendor/dashboard");
     } catch (error: any) {
