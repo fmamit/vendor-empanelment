@@ -92,9 +92,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Determine base URL from origin or fallback
-    const origin = req.headers.get("origin") || "https://onboardly-path.lovable.app";
-    const registrationUrl = `${origin}${registrationPath}`;
+    const registrationUrl = `https://onboardly-path.lovable.app${registrationPath}`;
 
     // Send email via Resend
     const emailRes = await fetch("https://api.resend.com/emails", {
