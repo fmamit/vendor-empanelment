@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.send-public-otp]
 verify_jwt = false
+
+[functions.send-vendor-invitation]
+verify_jwt = false

@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { StaffLayout } from "@/components/layout/StaffLayout";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { useStaffVendorQueue, VendorWithCategory } from "@/hooks/useStaffWorkflow";
-import { useReferralCode } from "@/hooks/useReferralCode";
-import { ReferralLinkCard } from "@/components/staff/ReferralLinkCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -40,7 +38,6 @@ export default function StaffReviewQueue() {
   const navigate = useNavigate();
   const { isAdmin, isMaker, isChecker, isApprover, isLoading: rolesLoading } = useUserRoles();
   const { data: vendors, isLoading: vendorsLoading } = useStaffVendorQueue();
-  const { referralCode, isLoading: referralLoading } = useReferralCode();
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("pending_review");
 
@@ -116,11 +113,6 @@ export default function StaffReviewQueue() {
   return (
     <StaffLayout title="Vendor Queue">
       <div className="flex-1 flex flex-col">
-        {/* Referral / Invite Link */}
-        <div className="p-4 border-b">
-          <ReferralLinkCard referralCode={referralCode || ""} isLoading={referralLoading} />
-        </div>
-
         {/* Search */}
         <div className="p-4 border-b bg-card">
           <div className="relative max-w-md">

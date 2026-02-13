@@ -75,7 +75,7 @@ export default function StaffDashboard() {
           <Button
             variant="outline"
             className="h-14 flex flex-col items-center justify-center"
-            onClick={() => navigate("/staff/queue")}
+            onClick={() => navigate("/staff/invite-vendor")}
           >
             <UserPlus className="h-5 w-5 mb-1 text-primary" />
             <span className="text-xs font-medium">Invite a Vendor</span>

@@ -24,6 +24,7 @@ import StaffReviewQueue from "./pages/staff/StaffReviewQueue";
 import VendorReviewDetail from "./pages/staff/VendorReviewDetail";
 import FraudAlertsDashboard from "./pages/staff/FraudAlertsDashboard";
 import StaffProfile from "./pages/staff/StaffProfile";
+import StaffInviteVendor from "./pages/staff/StaffInviteVendor";
 
 // Admin Pages
 import AdminUserManagement from "./pages/admin/AdminUserManagement";
@@ -57,6 +58,7 @@ const App = () => (
             <Route path="/staff/vendor/:vendorId" element={<VendorReviewDetail />} />
             <Route path="/staff/fraud-alerts" element={<FraudAlertsDashboard />} />
             <Route path="/staff/profile" element={<StaffProfile />} />
+            <Route path="/staff/invite-vendor" element={<StaffInviteVendor />} />
             
             {/* Admin Routes */}
             <Route path="/admin/users" element={<AdminUserManagement />} />
