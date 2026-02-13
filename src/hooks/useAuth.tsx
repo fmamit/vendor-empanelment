@@ -72,11 +72,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Dispatch async work outside the callback to avoid deadlock
         setTimeout(async () => {
           if (!isMounted.current) return;
-          setLoading(true);
           const type = await determineUserType(session.user.id);
           if (!isMounted.current) return;
           setUserType(type);
-          setLoading(false);
         }, 0);
       } else {
         setUserType(null);
