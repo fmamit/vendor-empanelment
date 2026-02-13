@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -21,6 +22,7 @@ export function StaffEmailLogin() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const { refreshAuth } = useAuth();
 
   const {
     register,
@@ -40,6 +42,7 @@ export function StaffEmailLogin() {
 
       if (error) throw error;
 
+      await refreshAuth();
       toast.success("Login successful!");
       navigate("/staff/dashboard");
     } catch (error: any) {
