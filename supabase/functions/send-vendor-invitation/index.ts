@@ -6,6 +6,20 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+function isValidIndianPhone(phone: string): boolean {
+  const phoneRegex = /^[6-9]\d{9}$/;
+  return phoneRegex.test(phone.replace(/\D/g, ''));
+}
+
+function sanitizeString(value: string, maxLength: number): string {
+  return value.trim().substring(0, maxLength);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -41,7 +55,7 @@ Deno.serve(async (req) => {
     // Verify staff
     const { data: isStaff } = await supabaseAdmin.rpc("is_internal_staff", { _user_id: user.id });
     if (!isStaff) {
-      return new Response(JSON.stringify({ error: "Not authorized as staff" }), {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -50,8 +64,33 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { company_name, contact_email, contact_phone, category_id } = body;
 
+    // Validate required fields
     if (!company_name || !contact_email || !contact_phone || !category_id) {
-      return new Response(JSON.stringify({ error: "All fields are required" }), {
+      return new Response(JSON.stringify({ error: "Missing required fields" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate email format
+    if (!isValidEmail(contact_email)) {
+      return new Response(JSON.stringify({ error: "Invalid email" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate phone format
+    if (!isValidIndianPhone(contact_phone)) {
+      return new Response(JSON.stringify({ error: "Invalid phone number" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate string lengths
+    if (company_name.length > 255) {
+      return new Response(JSON.stringify({ error: "Company name too long" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -74,7 +113,7 @@ Deno.serve(async (req) => {
     const { data: invitation, error: insertError } = await supabaseAdmin
       .from("vendor_invitations")
       .insert({
-        company_name,
+        company_name: sanitizeString(company_name, 255),
         contact_email,
         contact_phone,
         category_id,
@@ -85,7 +124,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (insertError) {
-      console.error("Insert error:", insertError);
+      console.error("Invitation creation failed");
       return new Response(JSON.stringify({ error: "Failed to create invitation" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -112,7 +151,7 @@ Deno.serve(async (req) => {
               <p style="color: #666; margin: 5px 0 0;">Vendor Onboarding Portal</p>
             </div>
             <div style="padding: 30px 0;">
-              <p>Dear <strong>${company_name}</strong>,</p>
+              <p>Dear <strong>${sanitizeString(company_name, 100)}</strong>,</p>
               <p>You have been invited to register as a vendor with Capital India. Please click the button below to complete your registration.</p>
               <div style="text-align: center; margin: 30px 0;">
                 <a href="${registrationUrl}" style="background-color: #0066B3; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
@@ -130,9 +169,8 @@ Deno.serve(async (req) => {
     });
 
     if (!emailRes.ok) {
-      const errBody = await emailRes.text();
-      console.error("Resend error:", errBody);
-      // Invitation was created, just email failed
+      console.error("Email send failed");
+      // Invitation was created, email failure is not critical
     }
 
     return new Response(
@@ -140,8 +178,8 @@ Deno.serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error("Error:", err);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
+    console.error("Request processing failed");
+    return new Response(JSON.stringify({ error: "Request failed" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

@@ -6,6 +6,33 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Validation helper functions
+function isValidIndianPhone(phone: string): boolean {
+  const phoneRegex = /^[6-9]\d{9}$/;
+  return phoneRegex.test(phone.replace(/\D/g, ''));
+}
+
+function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+function isValidGST(gst: string): boolean {
+  return gst.length === 15 && /^[0-9A-Z]{15}$/.test(gst);
+}
+
+function isValidPAN(pan: string): boolean {
+  return pan.length === 10 && /^[A-Z]{5}[0-9]{4}[A-Z]$/.test(pan);
+}
+
+function isValidIFSC(ifsc: string): boolean {
+  return ifsc.length === 11 && /^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc);
+}
+
+function sanitizeString(value: string, maxLength: number): string {
+  return value.trim().substring(0, maxLength);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -15,7 +42,77 @@ serve(async (req) => {
     const { referral_code, formData } = await req.json();
 
     if (!referral_code || !formData) {
-      return new Response(JSON.stringify({ error: "Missing referral code or form data" }), {
+      return new Response(JSON.stringify({ error: "Invalid request" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate required fields
+    const {
+      company_name,
+      primary_contact_name,
+      primary_mobile,
+      primary_email,
+      category_id,
+      trade_name,
+      gst_number,
+      pan_number,
+      bank_name,
+      bank_branch,
+      bank_account_number,
+      bank_ifsc,
+    } = formData;
+
+    // Validate required fields
+    if (!company_name || !primary_contact_name || !primary_mobile || !primary_email || !category_id) {
+      return new Response(JSON.stringify({ error: "Missing required fields" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate phone number
+    if (!isValidIndianPhone(primary_mobile)) {
+      return new Response(JSON.stringify({ error: "Invalid phone number" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate email
+    if (!isValidEmail(primary_email)) {
+      return new Response(JSON.stringify({ error: "Invalid email address" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate optional but formatted fields
+    if (gst_number && !isValidGST(gst_number)) {
+      return new Response(JSON.stringify({ error: "Invalid GST number" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (pan_number && !isValidPAN(pan_number)) {
+      return new Response(JSON.stringify({ error: "Invalid PAN number" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (bank_ifsc && !isValidIFSC(bank_ifsc)) {
+      return new Response(JSON.stringify({ error: "Invalid IFSC code" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate string lengths
+    if (company_name.length > 255 || primary_contact_name.length > 255) {
+      return new Response(JSON.stringify({ error: "Field length exceeded" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -34,28 +131,28 @@ serve(async (req) => {
       .single();
 
     if (refErr || !refCode) {
-      return new Response(JSON.stringify({ error: "Invalid or inactive referral code." }), {
+      return new Response(JSON.stringify({ error: "Invalid referral code" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // 2. Create vendor record with referred_by
+    // 2. Create vendor record with referred_by (DO NOT create auth user here)
     const { data: vendor, error: vendorErr } = await supabase
       .from("vendors")
       .insert({
-        company_name: formData.company_name,
-        trade_name: formData.trade_name || null,
-        category_id: formData.category_id,
-        gst_number: formData.gst_number || null,
-        pan_number: formData.pan_number || null,
-        primary_contact_name: formData.primary_contact_name,
-        primary_mobile: formData.primary_mobile,
-        primary_email: formData.primary_email,
-        bank_name: formData.bank_name || null,
-        bank_branch: formData.bank_branch || null,
-        bank_account_number: formData.bank_account_number || null,
-        bank_ifsc: formData.bank_ifsc || null,
+        company_name: sanitizeString(company_name, 255),
+        trade_name: trade_name ? sanitizeString(trade_name, 255) : null,
+        category_id,
+        gst_number: gst_number || null,
+        pan_number: pan_number || null,
+        primary_contact_name: sanitizeString(primary_contact_name, 255),
+        primary_mobile,
+        primary_email,
+        bank_name: bank_name ? sanitizeString(bank_name, 255) : null,
+        bank_branch: bank_branch ? sanitizeString(bank_branch, 255) : null,
+        bank_account_number: bank_account_number ? sanitizeString(bank_account_number, 100) : null,
+        bank_ifsc: bank_ifsc || null,
         referred_by: refCode.user_id,
         current_status: "pending_review",
         submitted_at: new Date().toISOString(),
@@ -64,49 +161,10 @@ serve(async (req) => {
       .single();
 
     if (vendorErr) {
-      console.error("Vendor creation error:", vendorErr);
-      return new Response(JSON.stringify({ error: "Failed to create vendor record." }), {
+      console.error("Vendor creation failed");
+      return new Response(JSON.stringify({ error: "Registration failed" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // 3. Create auth user (phone-based) — find existing or create new
-    const phone = formData.primary_mobile;
-    let userId: string;
-
-    const { data: existingUsers } = await supabase.auth.admin.listUsers();
-    const existingUser = existingUsers?.users?.find((u: any) => u.phone === phone);
-
-    if (existingUser) {
-      userId = existingUser.id;
-    } else {
-      const { data: newUser, error: authErr } = await supabase.auth.admin.createUser({
-        phone,
-        phone_confirm: true,
-      });
-      if (authErr) {
-        console.error("Auth user creation error:", authErr);
-        userId = "";
-      } else {
-        userId = newUser.user.id;
-      }
-    }
-
-    // 4. Create vendor_users link
-    if (userId) {
-      await supabase.from("vendor_users").insert({
-        vendor_id: vendor.id,
-        user_id: userId,
-        phone_number: phone,
-        is_primary_contact: true,
-        is_active: true,
-      });
-
-      // Add vendor role
-      await supabase.from("user_roles").insert({
-        user_id: userId,
-        role: "maker",
       });
     }
 
@@ -115,8 +173,8 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error("Unexpected error:", err);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
+    console.error("Error processing request");
+    return new Response(JSON.stringify({ error: "Registration failed" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

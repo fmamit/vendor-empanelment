@@ -6,6 +6,35 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Allowed MIME types for validation
+const ALLOWED_MIME_TYPES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+];
+
+// File extension mapping
+const EXTENSION_MIME_MAP: { [key: string]: string[] } = {
+  pdf: ["application/pdf"],
+  jpg: ["image/jpeg", "image/jpg"],
+  jpeg: ["image/jpeg", "image/jpg"],
+  png: ["image/png"],
+};
+
+function validateMimeType(ext: string, mimeType: string): boolean {
+  const ext_lower = ext.toLowerCase();
+  if (!EXTENSION_MIME_MAP[ext_lower]) {
+    return false;
+  }
+  return EXTENSION_MIME_MAP[ext_lower].includes(mimeType);
+}
+
+function sanitizeFileName(fileName: string): string {
+  // Remove path traversal characters
+  return fileName.replace(/[^a-zA-Z0-9._-]/g, '_').substring(0, 255);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -14,11 +43,8 @@ serve(async (req) => {
   try {
     const contentType = req.headers.get("content-type") || "";
 
-    // Handle FormData uploads
     if (!contentType.includes("multipart/form-data") && !contentType.includes("application/x-www-form-urlencoded")) {
-      // Try JSON fallback
-      const body = await req.json();
-      return new Response(JSON.stringify({ error: "Expected multipart form data" }), {
+      return new Response(JSON.stringify({ error: "Invalid request format" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -30,7 +56,27 @@ serve(async (req) => {
     const documentTypeId = form.get("document_type_id") as string | null;
 
     if (!file || !token || !documentTypeId) {
-      return new Response(JSON.stringify({ error: "Missing file, token, or document_type_id" }), {
+      return new Response(JSON.stringify({ error: "Missing required fields" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate file size (max 10MB)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    if (file.size > MAX_FILE_SIZE) {
+      return new Response(JSON.stringify({ error: "File too large" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate file extension and MIME type
+    const fileName = file.name || "";
+    const ext = fileName.split(".").pop()?.toLowerCase() || "";
+
+    if (!ext || !validateMimeType(ext, file.type)) {
+      return new Response(JSON.stringify({ error: "Invalid file type" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -54,21 +100,21 @@ serve(async (req) => {
       });
     }
 
-    // Generate unique file path
-    const ext = file.name.split(".").pop() || "bin";
-    const filePath = `referral/${invitation.id}/${documentTypeId}/${Date.now()}.${ext}`;
+    // Generate unique file path with sanitized name
+    const sanitizedName = sanitizeFileName(fileName);
+    const filePath = `referral/${invitation.id}/${documentTypeId}/${Date.now()}_${sanitizedName}`;
 
     // Upload to storage
     const { error: uploadErr } = await supabase.storage
       .from("vendor-documents")
       .upload(filePath, file, {
         contentType: file.type,
-        upsert: true,
+        upsert: false,
       });
 
     if (uploadErr) {
-      console.error("Storage upload error:", uploadErr);
-      return new Response(JSON.stringify({ error: "File upload failed" }), {
+      console.error("Upload failed");
+      return new Response(JSON.stringify({ error: "Upload failed" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -79,7 +125,7 @@ serve(async (req) => {
       await supabase.from("vendor_documents").insert({
         vendor_id: invitation.vendor_id,
         document_type_id: documentTypeId,
-        file_name: file.name,
+        file_name: sanitizedName,
         file_url: filePath,
         file_size_bytes: file.size,
         status: "uploaded",
@@ -91,8 +137,8 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error("Unexpected error:", err);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
+    console.error("Request processing failed");
+    return new Response(JSON.stringify({ error: "Upload failed" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
