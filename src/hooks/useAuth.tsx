@@ -44,43 +44,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     isMounted.current = true;
 
-    const initialize = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!isMounted.current) return;
-
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      if (session?.user) {
-        const type = await determineUserType(session.user.id);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
         if (!isMounted.current) return;
-        setUserType(type);
-      }
 
-      setLoading(false);
-    };
+        setSession(session);
+        setUser(session?.user ?? null);
 
-    initialize();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!isMounted.current) return;
-
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      if (session?.user) {
-        // Dispatch async work outside the callback to avoid deadlock
-        setTimeout(async () => {
-          if (!isMounted.current) return;
+        if (session?.user) {
           const type = await determineUserType(session.user.id);
           if (!isMounted.current) return;
           setUserType(type);
-        }, 0);
-      } else {
-        setUserType(null);
+        } else {
+          setUserType(null);
+        }
+
         setLoading(false);
       }
-    });
+    );
 
     return () => {
       isMounted.current = false;
