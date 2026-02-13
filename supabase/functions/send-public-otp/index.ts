@@ -220,7 +220,7 @@ Deno.serve(async (req) => {
         Authorization: `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
-        from: "Paisaa Saarthi <no-reply@yourdomain.com>",
+        from: "Paisaa Saarthi <noreply@in-sync.co.in>",
         to: [normalizedIdentifier],
         subject: "Your OTP for Loan Application",
         html: emailHtml,
