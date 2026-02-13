@@ -1,45 +1,53 @@
 
 
-## Fix: Staff Login Spinner Race Condition
+## Simplify Auth: Single Process Instead of Two
 
-### Root Cause
-When login succeeds, `StaffEmailLogin` navigates to `/staff/dashboard` immediately. Meanwhile, `onAuthStateChange` fires and defers the `userType` resolution into a `setTimeout`. This creates a window where the dashboard is rendered but `userType` is still `null`, causing `useUserRoles` to stay in a loading state indefinitely.
+### Problem
+`useAuth.tsx` has two competing processes that both resolve the session and user type:
+1. `initialize()` -- manually calls `getSession()` then `determineUserType`
+2. `onAuthStateChange` listener -- fires on mount AND on every auth event, also calls `determineUserType`
+
+Both run on mount, creating race conditions and redundant database queries.
 
 ### Solution
-Two changes to eliminate the race condition:
+Remove `initialize()` entirely. Move all logic into `onAuthStateChange`, which is the recommended single source of truth. It fires immediately with the current session when first subscribed, so a separate `getSession()` call is unnecessary.
 
-**1. `src/hooks/useAuth.tsx`** - Remove the `setLoading(true)` call from inside the `onAuthStateChange` setTimeout. The initial load already handles setting loading correctly. Re-triggering loading on every auth change causes the dashboard to re-enter a loading state after navigation. The `setTimeout` should only update `userType` quietly without flipping loading back on.
+### Changes to `src/hooks/useAuth.tsx`
 
-**2. `src/components/auth/StaffEmailLogin.tsx`** - Instead of navigating immediately after `signInWithPassword`, wait briefly or let the `AuthProvider` drive the navigation. However, the simpler fix is just to stop the `onAuthStateChange` from re-setting loading, since `initialize()` already handles the first load correctly.
+- **Remove** the `initialize()` function and its call (lines 47-63)
+- **Update** `onAuthStateChange` to handle loading state: set `loading` to `false` after resolving `userType` (or immediately if no session)
+- Remove the `setTimeout` wrapper -- the deadlock it was avoiding was caused by the two-process conflict itself
 
-### Specific Changes
+Result:
 
-**`src/hooks/useAuth.tsx`** (line 75): Remove `setLoading(true)` from the `setTimeout` block inside `onAuthStateChange`. The block should only update `userType` and `setLoading(false)` when done -- not flip loading back to true mid-session.
-
-Before:
 ```typescript
-setTimeout(async () => {
-  if (!isMounted.current) return;
-  setLoading(true);  // THIS CAUSES THE BUG
-  const type = await determineUserType(session.user.id);
-  if (!isMounted.current) return;
-  setUserType(type);
-  setLoading(false);
-}, 0);
+useEffect(() => {
+  isMounted.current = true;
+
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    async (_event, session) => {
+      if (!isMounted.current) return;
+
+      setSession(session);
+      setUser(session?.user ?? null);
+
+      if (session?.user) {
+        const type = await determineUserType(session.user.id);
+        if (!isMounted.current) return;
+        setUserType(type);
+      } else {
+        setUserType(null);
+      }
+
+      setLoading(false);
+    }
+  );
+
+  return () => {
+    isMounted.current = false;
+    subscription.unsubscribe();
+  };
+}, []);
 ```
 
-After:
-```typescript
-setTimeout(async () => {
-  if (!isMounted.current) return;
-  const type = await determineUserType(session.user.id);
-  if (!isMounted.current) return;
-  setUserType(type);
-}, 0);
-```
-
-This single-line removal fixes the spinner because:
-- The initial `initialize()` function correctly sets loading to false after resolving everything
-- The `onAuthStateChange` callback only needs to quietly update the user type without re-entering a global loading state
-- The dashboard and `useUserRoles` will see `userType` update reactively without being blocked by a loading gate
-
+This is cleaner, has one code path, and eliminates all race conditions.
