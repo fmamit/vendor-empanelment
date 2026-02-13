@@ -18,7 +18,8 @@ import {
   Loader2,
   ShieldAlert,
   UserCircle,
-  UserPlus
+  UserPlus,
+  BarChart3
 } from "lucide-react";
 
 export default function StaffDashboard() {
@@ -149,6 +150,26 @@ export default function StaffDashboard() {
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Reports */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-primary" />
+              Reports
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Button variant="outline" className="w-full justify-start h-14" onClick={() => navigate("/staff/reports")}>
+              <TrendingUp className="h-5 w-5 mr-3 text-primary" />
+              <div className="flex-1 text-left">
+                <p className="font-medium">View Reports</p>
+                <p className="text-xs text-muted-foreground">Status, TAT, pending cases</p>
+              </div>
+              <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
           </CardContent>
         </Card>
 
