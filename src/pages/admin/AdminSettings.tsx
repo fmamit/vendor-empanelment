@@ -18,6 +18,7 @@ import {
   Edit,
   Trash2,
   Loader2,
+  BarChart3,
 } from "lucide-react";
 
 export default function AdminSettings() {
@@ -87,6 +88,7 @@ export default function AdminSettings() {
           <TabsList className="w-full justify-start px-4 h-auto py-2 bg-card border-b rounded-none">
             <TabsTrigger value="categories" className="flex items-center gap-2"><Building2 className="h-4 w-4" />Categories</TabsTrigger>
             <TabsTrigger value="documents" className="flex items-center gap-2"><FileText className="h-4 w-4" />Document Types</TabsTrigger>
+            <TabsTrigger value="reports" className="flex items-center gap-2"><BarChart3 className="h-4 w-4" />Reports</TabsTrigger>
           </TabsList>
 
           <TabsContent value="categories" className="flex-1 flex flex-col mt-0">
@@ -136,6 +138,15 @@ export default function AdminSettings() {
                   </CardContent>
                 </Card>
               ))}
+            </div>
+           </TabsContent>
+
+          <TabsContent value="reports" className="flex-1 flex flex-col mt-0">
+            <div className="p-6 text-center">
+              <BarChart3 className="h-16 w-16 mx-auto mb-4 text-primary/50" />
+              <p className="text-lg font-semibold mb-2">Reports & Analytics</p>
+              <p className="text-muted-foreground mb-4">View vendor status reports, approval timelines, and pending case analysis.</p>
+              <Button onClick={() => window.location.href = "/staff/reports"}>Go to Reports</Button>
             </div>
           </TabsContent>
         </Tabs>

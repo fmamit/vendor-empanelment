@@ -133,6 +133,40 @@ export function useUpdateVendorStatus() {
         });
 
       if (historyError) throw historyError;
+
+      // Phase 5: Create notification for the vendor
+      let notificationTitle = "";
+      let notificationMessage = "";
+
+      if (newStatus === "approved") {
+        notificationTitle = "Vendor Approved";
+        notificationMessage = `Your vendor registration has been approved. Welcome to Capital India!`;
+      } else if (newStatus === "rejected") {
+        notificationTitle = "Vendor Registration Rejected";
+        notificationMessage = `Your vendor registration was rejected. Reason: ${comments || "Not specified"}`;
+      } else if ((newStatus as string) === "sent_back") {
+        notificationTitle = "Corrections Required";
+        notificationMessage = `Your application was sent back for corrections. Reason: ${comments || "Please review and resubmit"}`;
+      }
+
+      if (notificationTitle) {
+        const { data: vendorUser } = await supabase
+          .from("vendor_users")
+          .select("user_id")
+          .eq("vendor_id", vendorId)
+          .eq("is_primary_contact", true)
+          .maybeSingle();
+
+        if (vendorUser?.user_id) {
+          await supabase.from("notifications").insert({
+            recipient_id: vendorUser.user_id,
+            title: notificationTitle,
+            message: notificationMessage,
+            notification_type: newStatus === "approved" ? "approval" : newStatus === "rejected" ? "rejection" : "sent_back",
+            related_vendor_id: vendorId,
+          });
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["staff-vendor-queue"] });
