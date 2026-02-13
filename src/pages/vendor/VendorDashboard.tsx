@@ -20,11 +20,12 @@ import {
   Loader2
 } from "lucide-react";
 
-const STATUS_CONFIG = {
+const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
   draft: { label: "Draft", color: "bg-muted", icon: FileText },
   pending_review: { label: "Pending Review", color: "bg-warning/20 text-warning", icon: Clock },
   in_verification: { label: "In Verification", color: "bg-primary/20 text-primary", icon: FileText },
   pending_approval: { label: "Pending Approval", color: "bg-accent/20 text-accent", icon: Clock },
+  sent_back: { label: "Sent Back", color: "bg-orange-100 text-orange-700", icon: AlertCircle },
   approved: { label: "Approved", color: "bg-success/20 text-success", icon: CheckCircle2 },
   rejected: { label: "Rejected", color: "bg-destructive/20 text-destructive", icon: XCircle },
 };
@@ -112,6 +113,12 @@ export default function VendorDashboard() {
                 <p className="text-sm">{vendor.rejection_reason}</p>
               </div>
             )}
+            {(vendor.current_status as string) === "sent_back" && (vendor as any).sent_back_reason && (
+              <div className="mt-3 p-3 bg-background rounded-lg">
+                <p className="text-sm font-medium text-orange-700">Corrections Required:</p>
+                <p className="text-sm">{(vendor as any).sent_back_reason}</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -139,6 +146,37 @@ export default function VendorDashboard() {
             )}
           </CardContent>
         </Card>
+
+        {/* Sent Back: Resubmit Actions */}
+        {(vendor.current_status as string) === "sent_back" && (
+          <Card className="border-orange-300 bg-orange-50">
+            <CardContent className="p-4 space-y-3">
+              <p className="text-sm text-orange-800 font-medium">Your application has been sent back for corrections. Please review the feedback above and resubmit.</p>
+              <div className="grid grid-cols-2 gap-3">
+                <Button variant="outline" onClick={() => navigate("/vendor/register")}>
+                  <FileText className="h-4 w-4 mr-2" /> Edit Details
+                </Button>
+                <Button variant="outline" onClick={() => navigate("/vendor/documents")}>
+                  <AlertCircle className="h-4 w-4 mr-2" /> Documents
+                </Button>
+              </div>
+              <Button 
+                className="w-full h-12"
+                onClick={() => submitApplication.mutate(vendor.id)}
+                disabled={submitApplication.isPending}
+              >
+                {submitApplication.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 mr-2" />
+                    Resubmit for Review
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Quick Actions */}
         {vendor.current_status === "draft" && (

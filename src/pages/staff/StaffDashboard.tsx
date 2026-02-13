@@ -41,7 +41,8 @@ export default function StaffDashboard() {
   const pendingReview = vendors?.filter(v => v.current_status === "pending_review").length || 0;
   const inVerification = vendors?.filter(v => v.current_status === "in_verification").length || 0;
   const pendingApproval = vendors?.filter(v => v.current_status === "pending_approval").length || 0;
-  const totalActive = pendingReview + inVerification + pendingApproval;
+  const sentBack = vendors?.filter(v => (v.current_status as string) === "sent_back").length || 0;
+  const totalActive = pendingReview + inVerification + pendingApproval + sentBack;
   const approved = vendors?.filter(v => v.current_status === "approved").length || 0;
 
   return (

@@ -33,6 +33,8 @@ export default function VendorReferralRegistration() {
     gst_number: "",
     pan_number: "",
     category_id: "",
+    salutation: "",
+    constitution_type: "",
     primary_contact_name: "",
     primary_mobile: "",
     primary_email: "",

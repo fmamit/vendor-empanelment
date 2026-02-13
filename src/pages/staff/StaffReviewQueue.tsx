@@ -16,20 +16,22 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
-const STATUS_LABELS = {
+const STATUS_LABELS: Record<string, string> = {
   draft: "Draft",
   pending_review: "Pending Review",
   in_verification: "In Verification",
   pending_approval: "Pending Approval",
+  sent_back: "Sent Back",
   approved: "Approved",
   rejected: "Rejected",
 };
 
-const STATUS_COLORS = {
+const STATUS_COLORS: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
   pending_review: "bg-warning/20 text-warning",
   in_verification: "bg-primary/20 text-primary",
   pending_approval: "bg-accent/20 text-accent",
+  sent_back: "bg-orange-100 text-orange-700",
   approved: "bg-success/20 text-success",
   rejected: "bg-destructive/20 text-destructive",
 };
@@ -64,6 +66,7 @@ export default function StaffReviewQueue() {
   const pendingReviewVendors = getFilteredVendors("pending_review");
   const inVerificationVendors = getFilteredVendors("in_verification");
   const pendingApprovalVendors = getFilteredVendors("pending_approval");
+  const sentBackVendors = getFilteredVendors("sent_back");
   const approvedVendors = getFilteredVendors("approved");
   const rejectedVendors = getFilteredVendors("rejected");
 
@@ -106,6 +109,7 @@ export default function StaffReviewQueue() {
     { value: "pending_review", label: "Review", count: pendingReviewVendors.length, show: isMaker || isAdmin },
     { value: "in_verification", label: "Verify", count: inVerificationVendors.length, show: isChecker || isAdmin },
     { value: "pending_approval", label: "Approve", count: pendingApprovalVendors.length, show: isApprover || isAdmin },
+    { value: "sent_back", label: "Sent Back", count: sentBackVendors.length, show: isMaker || isChecker || isAdmin },
     { value: "approved", label: "Approved", count: approvedVendors.length, show: isAdmin },
     { value: "rejected", label: "Rejected", count: rejectedVendors.length, show: isAdmin },
   ].filter(tab => tab.show);
@@ -165,6 +169,11 @@ export default function StaffReviewQueue() {
                 {pendingApprovalVendors.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">No vendors pending approval</p>
                 ) : pendingApprovalVendors.map(renderVendorCard)}
+              </TabsContent>
+              <TabsContent value="sent_back" className="flex-1 p-4 space-y-3 overflow-auto mt-0">
+                {sentBackVendors.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">No sent back vendors</p>
+                ) : sentBackVendors.map(renderVendorCard)}
               </TabsContent>
               <TabsContent value="approved" className="flex-1 p-4 space-y-3 overflow-auto mt-0">
                 {approvedVendors.length === 0 ? (
