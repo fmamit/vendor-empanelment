@@ -1,28 +1,41 @@
 
-## Simplify Auth: Single Linear Process, Remove Stale Listener
+
+## Fix: Expose refreshAuth() Instead of Adding Back Listener
 
 ### Problem
-The current `useAuth` hook uses `onAuthStateChange` listener that awaits a database call inside it, causing deadlocks and the spinning loader. Having two competing processes (the listener + initial load) creates race conditions and complexity.
+Without `onAuthStateChange`, the auth state doesn't update after login because the `useEffect` only runs once on mount. But adding the listener back risks reintroducing competing processes.
 
 ### Solution
-**Completely remove** the `onAuthStateChange` listener approach and replace it with a single, linear initialization process in `src/hooks/useAuth.tsx`:
+Keep the single-process approach. Expose a `refreshAuth()` function from `useAuth` that re-runs the same initialization logic. The login page calls it after successful sign-in.
 
-**New Flow:**
-1. Call `supabase.auth.getSession()` to get the current session
-2. If a user session exists, call `await determineUserType()`
-3. Set all state (user, session, userType) together
-4. Set `loading = false`
-5. Clean up on unmount
+### Changes
 
-**Removal:**
-- Delete the entire `onAuthStateChange` subscription and listener
-- Delete the `isMounted` ref (no longer needed)
-- Delete the subscription cleanup logic in the return statement
+**1. `src/hooks/useAuth.tsx`**
+- Add a `refreshAuth` async function that calls `getSession()`, then `determineUserType()`, and updates state
+- Expose `refreshAuth` in the context value
+- No listener, no competing process -- auth state only updates when explicitly asked
 
-**Result:**
-- One single, sequential flow with no competing processes
-- No database calls inside restricted auth callbacks
-- No deadlocks
-- Fast login completion
+**2. `src/components/auth/StaffEmailLogin.tsx`**
+- Import `useAuth` and call `refreshAuth()` after successful `signInWithPassword`
+- This ensures the auth context has the correct user/session/userType before navigating to the dashboard
 
-This is a clean rewrite of the useEffect hook to be straightforward and reliable.
+**3. `src/components/auth/VendorPhoneLogin.tsx`** (if it exists with similar pattern)
+- Same change: call `refreshAuth()` after successful OTP verification
+
+### Flow
+
+```text
+Login page:
+  1. signInWithPassword() -> success
+  2. await refreshAuth()   -> updates user, session, userType
+  3. navigate("/staff/dashboard")
+
+Dashboard:
+  - useAuth() already has correct state
+  - No spinner, no waiting
+```
+
+### Why This Is Better
+- Still a single process: auth state only changes when you explicitly call `refreshAuth()`
+- No `onAuthStateChange` listener, no competing processes, no deadlocks
+- Login completes fast because the refresh happens inline before navigation
