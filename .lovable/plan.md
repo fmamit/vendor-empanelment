@@ -1,41 +1,15 @@
 
-
-## Fix: Staff Login Race Condition
-
-### Problem
-After a successful login, the app navigates to `/staff/dashboard`, but the `StaffLayout` guard immediately redirects back to `/staff/login` because `userType` hasn't been determined yet. The `loading` flag turns off before the async user type check completes.
-
-### Solution
-Modify the `useAuth` hook so that `loading` only becomes `false` **after** both the session AND the user type have been fully resolved. This eliminates the window where the guard sees an authenticated user with no `userType`.
+## Make Staff Login the Home Page with Prominent Logo
 
 ### Changes
 
-**1. `src/hooks/useAuth.tsx`**
-- Keep `loading = true` until the user type check finishes
-- In `getSession()`, if a user exists, run `checkUserType` before setting `loading = false`
-- In `onAuthStateChange`, trigger a user type check without prematurely ending the loading state
-- Add an `isMounted` flag to prevent state updates after unmount
+**1. `src/App.tsx`** - Change the root route (`/`) to render `StaffLogin` instead of `Index`
 
-**2. `src/components/layout/StaffLayout.tsx`**
-- Add a check: only redirect if `userType` is explicitly determined (not just `null` during loading)
-- This is a safety net -- the primary fix is in `useAuth`
+**2. `src/pages/staff/StaffLogin.tsx`** - Replace the small Users icon with the Capital India logo (already available at `src/assets/capital-india-logo.jpg`), making it larger and more prominent. The logo will be displayed at roughly 80px height with a white background and rounded corners, similar to how it appears on the current Index page.
 
-### Technical Detail
+**3. `src/pages/Index.tsx`** - No changes needed; it will just no longer be the home page route. The `/staff/login` route will also still work as an alias.
 
-The current flow:
-
-```text
-getSession() -> setUser() -> setLoading(false)
-                  |
-                  v  (separate useEffect, runs later)
-              checkUserType() -> setUserType("staff")
-```
-
-The fixed flow:
-
-```text
-getSession() -> setUser() -> checkUserType() -> setUserType("staff") -> setLoading(false)
-```
-
-This ensures `loading` is only `false` once we know the full auth state including user type.
-
+### Result
+- Visiting `/` will show the Staff Login page directly
+- The Capital India logo will replace the generic Users icon in the login card
+- The logo will be large and visually prominent as the first thing users see
