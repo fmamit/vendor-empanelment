@@ -58,6 +58,8 @@ export default function StaffInviteVendor() {
   const [loadingInvitations, setLoadingInvitations] = useState(true);
   const [sending, setSending] = useState(false);
   const [referralOpen, setReferralOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("send");
+  const [statusFilter, setStatusFilter] = useState<InvitationStatus | "all">("all");
 
   const [companyName, setCompanyName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
@@ -131,6 +133,15 @@ export default function StaffInviteVendor() {
   const pendingCount = invitations.filter(i => getInvitationStatus(i) === "pending").length;
   const usedCount = invitations.filter(i => getInvitationStatus(i) === "used").length;
 
+  const handleStatClick = (filter: InvitationStatus | "all") => {
+    setStatusFilter(filter);
+    setActiveTab("sent");
+  };
+
+  const filteredInvitations = statusFilter === "all"
+    ? invitations
+    : invitations.filter(i => getInvitationStatus(i) === statusFilter);
+
   return (
     <StaffLayout title="Invite a Vendor">
       <div className="flex-1 flex flex-col">
@@ -158,7 +169,7 @@ export default function StaffInviteVendor() {
         </Collapsible>
 
         {/* Tabbed Content */}
-        <Tabs defaultValue="send" className="flex-1 flex flex-col">
+        <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); if (v === "send") setStatusFilter("all"); }} className="flex-1 flex flex-col">
           <TabsList className="w-full justify-start px-4 h-auto py-2 bg-card border-b rounded-none">
             <TabsTrigger
               value="send"
@@ -264,19 +275,28 @@ export default function StaffInviteVendor() {
             {/* Quick Stats */}
             {invitations.length > 0 && (
               <div className="grid grid-cols-3 gap-3 mt-3">
-                <Card>
+                <Card
+                  className="cursor-pointer hover:shadow-md transition-shadow border-2 hover:border-primary/30"
+                  onClick={() => handleStatClick("all")}
+                >
                   <CardContent className="p-3 text-center">
                     <p className="text-lg font-bold">{invitations.length}</p>
                     <p className="text-xs text-muted-foreground">Total Sent</p>
                   </CardContent>
                 </Card>
-                <Card>
+                <Card
+                  className="cursor-pointer hover:shadow-md transition-shadow border-2 hover:border-warning/30"
+                  onClick={() => handleStatClick("pending")}
+                >
                   <CardContent className="p-3 text-center">
                     <p className="text-lg font-bold text-warning">{pendingCount}</p>
                     <p className="text-xs text-muted-foreground">Pending</p>
                   </CardContent>
                 </Card>
-                <Card>
+                <Card
+                  className="cursor-pointer hover:shadow-md transition-shadow border-2 hover:border-success/30"
+                  onClick={() => handleStatClick("used")}
+                >
                   <CardContent className="p-3 text-center">
                     <p className="text-lg font-bold text-success">{usedCount}</p>
                     <p className="text-xs text-muted-foreground">Registered</p>
@@ -286,23 +306,42 @@ export default function StaffInviteVendor() {
             )}
           </TabsContent>
 
-          {/* Sent Invitations Tab */}
           <TabsContent value="sent" className="flex-1 p-4 mt-0">
+            {/* Filter indicator */}
+            {statusFilter !== "all" && (
+              <div className="flex items-center gap-2 mb-3">
+                <Badge variant="outline" className="text-xs">
+                  Showing: {statusFilter === "pending" ? "Pending" : "Registered"}
+                </Badge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-xs px-2"
+                  onClick={() => setStatusFilter("all")}
+                >
+                  Clear filter
+                </Button>
+              </div>
+            )}
             {loadingInvitations ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
-            ) : invitations.length === 0 ? (
+            ) : filteredInvitations.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <Mail className="h-10 w-10 text-muted-foreground/40 mb-3" />
-                <p className="text-sm text-muted-foreground">No invitations sent yet</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Use the "Send Invite" tab to invite vendors
+                <p className="text-sm text-muted-foreground">
+                  {statusFilter !== "all" ? `No ${statusFilter} invitations` : "No invitations sent yet"}
                 </p>
+                {statusFilter === "all" && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Use the "Send Invite" tab to invite vendors
+                  </p>
+                )}
               </div>
             ) : (
               <div className="space-y-2">
-                {invitations.map((inv) => {
+                {filteredInvitations.map((inv) => {
                   const status = getInvitationStatus(inv);
                   const config = STATUS_CONFIG[status];
                   const StatusIcon = config.icon;
