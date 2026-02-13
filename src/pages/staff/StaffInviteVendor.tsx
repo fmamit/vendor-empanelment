@@ -25,6 +25,8 @@ import {
   XCircle,
   Link2,
   ChevronDown,
+  Trash2,
+  RotateCcw,
 } from "lucide-react";
 import { z } from "zod";
 
@@ -130,8 +132,49 @@ export default function StaffInviteVendor() {
     }
   };
 
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [resendingId, setResendingId] = useState<string | null>(null);
+
   const pendingCount = invitations.filter(i => getInvitationStatus(i) === "pending").length;
   const usedCount = invitations.filter(i => getInvitationStatus(i) === "used").length;
+
+  const handleDeleteInvitation = async (id: string) => {
+    setDeletingId(id);
+    try {
+      const { error } = await supabase.from("vendor_invitations").delete().eq("id", id);
+      if (error) throw error;
+      setInvitations(prev => prev.filter(i => i.id !== id));
+      toast.success("Invitation deleted");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete invitation");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleResendInvitation = async (inv: any) => {
+    setResendingId(inv.id);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      const response = await supabase.functions.invoke("send-vendor-invitation", {
+        body: {
+          company_name: inv.company_name,
+          contact_email: inv.contact_email,
+          contact_phone: inv.contact_phone,
+          category_id: inv.category_id,
+        },
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (response.error) throw new Error(response.error.message);
+      toast.success("Invitation resent successfully!");
+      loadInvitations();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to resend invitation");
+    } finally {
+      setResendingId(null);
+    }
+  };
 
   const handleStatClick = (filter: InvitationStatus | "all") => {
     setStatusFilter(filter);
@@ -368,6 +411,38 @@ export default function StaffInviteVendor() {
                               <span className="text-xs text-muted-foreground">
                                 {formatDistanceToNow(new Date(inv.created_at), { addSuffix: true })}
                               </span>
+                            </div>
+                            <div className="flex items-center gap-2 mt-2">
+                              {status !== "used" && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 text-xs"
+                                  disabled={resendingId === inv.id}
+                                  onClick={() => handleResendInvitation(inv)}
+                                >
+                                  {resendingId === inv.id ? (
+                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                  ) : (
+                                    <RotateCcw className="h-3 w-3 mr-1" />
+                                  )}
+                                  Resend
+                                </Button>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                                disabled={deletingId === inv.id}
+                                onClick={() => handleDeleteInvitation(inv.id)}
+                              >
+                                {deletingId === inv.id ? (
+                                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-3 w-3 mr-1" />
+                                )}
+                                Delete
+                              </Button>
                             </div>
                           </div>
                         </div>
