@@ -1,34 +1,28 @@
 
+## Simplify Auth: Single Linear Process, Remove Stale Listener
 
-## Fix: Staff Profile 404 (Stale PWA Cache)
+### Problem
+The current `useAuth` hook uses `onAuthStateChange` listener that awaits a database call inside it, causing deadlocks and the spinning loader. Having two competing processes (the listener + initial load) creates race conditions and complexity.
 
-### Root Cause
-The PWA service worker (enabled even in dev via `devOptions: { enabled: true }`) is serving a cached older JS bundle that doesn't include the `/staff/profile` route. When the router runs against that stale bundle, it falls through to the `*` catch-all and shows the NotFound component.
+### Solution
+**Completely remove** the `onAuthStateChange` listener approach and replace it with a single, linear initialization process in `src/hooks/useAuth.tsx`:
 
-The workbox configuration is also missing `navigateFallback: '/index.html'`, which means the service worker may not properly handle SPA client-side navigation for routes it hasn't seen before.
+**New Flow:**
+1. Call `supabase.auth.getSession()` to get the current session
+2. If a user session exists, call `await determineUserType()`
+3. Set all state (user, session, userType) together
+4. Set `loading = false`
+5. Clean up on unmount
 
-### Changes
+**Removal:**
+- Delete the entire `onAuthStateChange` subscription and listener
+- Delete the `isMounted` ref (no longer needed)
+- Delete the subscription cleanup logic in the return statement
 
-**1. `vite.config.ts`** - Add `navigateFallback` to workbox config so the service worker correctly serves `index.html` for all client-side routes:
+**Result:**
+- One single, sequential flow with no competing processes
+- No database calls inside restricted auth callbacks
+- No deadlocks
+- Fast login completion
 
-```typescript
-workbox: {
-  globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-  navigateFallback: '/index.html',
-  runtimeCaching: [
-    // ... existing config
-  ],
-},
-```
-
-**2. Disable PWA in dev mode** - Remove `devOptions: { enabled: true }` to prevent the service worker from interfering during development. The service worker caching makes dev unreliable and is the likely cause of the stale bundle issue:
-
-```typescript
-devOptions: {
-  enabled: false,
-},
-```
-
-### After Deployment
-The user should hard-refresh or clear the site's service worker cache in their browser to pick up the latest bundle. Going forward, `navigateFallback` ensures new routes are handled correctly by the SPA.
-
+This is a clean rewrite of the useEffect hook to be straightforward and reliable.
