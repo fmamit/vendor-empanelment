@@ -62,6 +62,20 @@ export default function StaffDashboard() {
           </CardContent>
         </Card>
 
+        {/* My Profile - Prominent */}
+        <Button
+          variant="outline"
+          className="w-full h-14 justify-start bg-primary/5 border-primary/20 hover:bg-primary/10"
+          onClick={() => navigate("/staff/profile")}
+        >
+          <UserCircle className="h-5 w-5 mr-3 text-primary" />
+          <div className="flex-1 text-left">
+            <p className="font-medium">My Profile</p>
+            <p className="text-xs text-muted-foreground">View and manage your profile</p>
+          </div>
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+
         {/* Stats Overview */}
         <div className="grid grid-cols-3 gap-3">
           <Card>
@@ -131,17 +145,19 @@ export default function StaffDashboard() {
           </CardContent>
         </Card>
 
-        {/* Quick Links */}
-        <div className="grid grid-cols-2 gap-3">
-          <Button variant="outline" className="h-14 flex flex-col items-center justify-center" onClick={() => navigate("/staff/profile")}>
-            <UserCircle className="h-5 w-5 mb-1 text-primary" />
-            <span className="text-xs font-medium">My Profile</span>
-          </Button>
-          <Button variant="outline" className="h-14 flex flex-col items-center justify-center" onClick={() => navigate("/staff/queue")}>
-            <UserPlus className="h-5 w-5 mb-1 text-primary" />
-            <span className="text-xs font-medium">Invite a Vendor</span>
-          </Button>
-        </div>
+        {/* Invite a Vendor */}
+        <Button
+          variant="outline"
+          className="w-full h-14 justify-start"
+          onClick={() => navigate("/staff/queue")}
+        >
+          <UserPlus className="h-5 w-5 mr-3 text-primary" />
+          <div className="flex-1 text-left">
+            <p className="font-medium">Invite a Vendor</p>
+            <p className="text-xs text-muted-foreground">Send vendor registration invites</p>
+          </div>
+          <ChevronRight className="h-4 w-4" />
+        </Button>
 
         {/* Fraud Alerts */}
         <Card className="border-warning/30">
