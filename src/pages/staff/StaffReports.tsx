@@ -7,15 +7,50 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Download, 
-  FileText, 
-  TrendingUp, 
-  AlertTriangle, 
+import {
+  Download,
+  FileText,
   Clock,
-  Loader2 
+  AlertTriangle,
+  Users,
+  CheckCircle2,
+  Hourglass,
+  Timer,
+  Loader2,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
+
+const STATUS_CHART_COLORS: Record<string, string> = {
+  draft: "#94a3b8",
+  pending_review: "#f59e0b",
+  in_verification: "#0066B3",
+  pending_approval: "#8b5cf6",
+  sent_back: "#f97316",
+  approved: "#7AB648",
+  rejected: "#ef4444",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  draft: "Draft",
+  pending_review: "Pending Review",
+  in_verification: "In Verification",
+  pending_approval: "Pending Approval",
+  sent_back: "Sent Back",
+  approved: "Approved",
+  rejected: "Rejected",
+};
 
 interface VendorReportData {
   id: string;
@@ -73,26 +108,31 @@ export default function StaffReports() {
     },
   });
 
-  // Calculate TAT (Turnaround Time)
   const calculateTAT = (vendor: VendorReportData) => {
     if (!vendor.submitted_at || !vendor.approved_at) return null;
     const submitted = new Date(vendor.submitted_at);
     const approved = new Date(vendor.approved_at);
-    const days = Math.round((approved.getTime() - submitted.getTime()) / (1000 * 60 * 60 * 24));
-    return days;
+    return Math.round(
+      (approved.getTime() - submitted.getTime()) / (1000 * 60 * 60 * 24)
+    );
   };
 
-  // Export to CSV
   const exportToCSV = (data: any[], filename: string) => {
     if (!data.length) return;
     const headers = Object.keys(data[0]);
-    const csv = [headers.join(","), ...data.map(row => 
-      headers.map(h => {
-        const val = row[h];
-        return typeof val === "string" && val.includes(",") ? `"${val}"` : val;
-      }).join(",")
-    )].join("\n");
-    
+    const csv = [
+      headers.join(","),
+      ...data.map((row) =>
+        headers
+          .map((h) => {
+            const val = row[h];
+            return typeof val === "string" && val.includes(",")
+              ? `"${val}"`
+              : val;
+          })
+          .join(",")
+      ),
+    ].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -112,109 +152,319 @@ export default function StaffReports() {
     );
   }
 
-  const statusData = vendors?.map(v => ({
-    "Vendor Code": v.vendor_code,
-    "Company Name": v.company_name,
-    "Category": v.vendor_categories?.name,
-    "Status": v.current_status,
-    "Created": format(new Date(v.created_at), "dd MMM yyyy"),
-    "Submitted": v.submitted_at ? format(new Date(v.submitted_at), "dd MMM yyyy") : "-",
-  })) || [];
+  // --- Computed data ---
+  const statusCounts =
+    vendors?.reduce((acc, v) => {
+      acc[v.current_status] = (acc[v.current_status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>) || {};
+
+  const totalVendors = vendors?.length || 0;
+  const approvedCount = statusCounts["approved"] || 0;
+  const pendingCount =
+    (statusCounts["pending_review"] || 0) +
+    (statusCounts["in_verification"] || 0) +
+    (statusCounts["pending_approval"] || 0) +
+    (statusCounts["sent_back"] || 0);
 
   const tatData = vendors
-    ?.filter(v => v.approved_at)
-    .map(v => ({
+    ?.filter((v) => v.approved_at)
+    .map((v) => ({
       "Vendor Code": v.vendor_code,
       "Company Name": v.company_name,
-      "Submitted": v.submitted_at ? format(new Date(v.submitted_at), "dd MMM yyyy") : "-",
-      "Approved": v.approved_at ? format(new Date(v.approved_at), "dd MMM yyyy") : "-",
+      Submitted: v.submitted_at
+        ? format(new Date(v.submitted_at), "dd MMM yyyy")
+        : "-",
+      Approved: v.approved_at
+        ? format(new Date(v.approved_at), "dd MMM yyyy")
+        : "-",
       "TAT (Days)": calculateTAT(v) || 0,
     })) || [];
 
-  const pendingData = vendors
-    ?.filter(v => ["pending_review", "in_verification", "pending_approval", "sent_back"].includes(v.current_status))
-    .map(v => ({
+  const avgTAT =
+    tatData.length > 0
+      ? Math.round(
+          tatData.reduce((sum, r) => sum + (r["TAT (Days)"] || 0), 0) /
+            tatData.length
+        )
+      : 0;
+
+  const statusData =
+    vendors?.map((v) => ({
       "Vendor Code": v.vendor_code,
       "Company Name": v.company_name,
-      "Status": v.current_status,
-      "Pending Since": v.submitted_at ? formatDistanceToNow(new Date(v.submitted_at), { addSuffix: true }) : "-",
+      Category: v.vendor_categories?.name,
+      Status: v.current_status,
+      Created: format(new Date(v.created_at), "dd MMM yyyy"),
+      Submitted: v.submitted_at
+        ? format(new Date(v.submitted_at), "dd MMM yyyy")
+        : "-",
     })) || [];
 
-  const statusCounts = vendors?.reduce((acc, v) => {
-    acc[v.current_status] = (acc[v.current_status] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>) || {};
+  const pendingData =
+    vendors
+      ?.filter((v) =>
+        ["pending_review", "in_verification", "pending_approval", "sent_back"].includes(
+          v.current_status
+        )
+      )
+      .map((v) => ({
+        "Vendor Code": v.vendor_code,
+        "Company Name": v.company_name,
+        Status: v.current_status,
+        "Pending Since": v.submitted_at
+          ? formatDistanceToNow(new Date(v.submitted_at), { addSuffix: true })
+          : "-",
+      })) || [];
+
+  // Chart data
+  const pieData = Object.entries(statusCounts).map(([status, count]) => ({
+    name: STATUS_LABELS[status] || status,
+    value: count,
+    color: STATUS_CHART_COLORS[status] || "#94a3b8",
+  }));
+
+  const barData = tatData.slice(0, 12).map((r) => ({
+    name: r["Vendor Code"] || r["Company Name"]?.slice(0, 10),
+    days: r["TAT (Days)"],
+  }));
+
+  // --- Stat Cards ---
+  const statCards = [
+    {
+      label: "Total Vendors",
+      value: totalVendors,
+      icon: Users,
+      gradient: "from-[hsl(204,100%,35%)] to-[hsl(204,100%,50%)]",
+    },
+    {
+      label: "Approved",
+      value: approvedCount,
+      icon: CheckCircle2,
+      gradient: "from-[hsl(92,47%,45%)] to-[hsl(92,47%,60%)]",
+    },
+    {
+      label: "Pending",
+      value: pendingCount,
+      icon: Hourglass,
+      gradient: "from-[hsl(38,92%,50%)] to-[hsl(38,92%,62%)]",
+    },
+    {
+      label: "Avg TAT",
+      value: `${avgTAT}d`,
+      icon: Timer,
+      gradient: "from-[hsl(260,55%,50%)] to-[hsl(260,55%,65%)]",
+    },
+  ];
+
+  const statusBadgeClasses: Record<string, string> = {
+    draft: "bg-muted text-muted-foreground",
+    pending_review: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
+    in_verification: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+    pending_approval: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+    sent_back: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
+    approved: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+    rejected: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+  };
 
   return (
     <StaffLayout title="Reports & Analytics">
-      <div className="p-4 md:p-6 space-y-4 max-w-6xl">
-        
+      <div className="p-4 md:p-6 space-y-6 max-w-7xl">
+        {/* ── Stat Cards ── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {statCards.map((card, i) => (
+            <div
+              key={card.label}
+              className={`bg-gradient-to-br ${card.gradient} rounded-2xl p-5 text-white shadow-lg hover:shadow-xl transition-shadow animate-fade-in`}
+              style={{ animationDelay: `${i * 80}ms`, animationFillMode: "both" }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <card.icon className="h-6 w-6 opacity-80" />
+              </div>
+              <p className="text-3xl font-extrabold tracking-tight">{card.value}</p>
+              <p className="text-sm opacity-80 mt-1">{card.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Charts Row ── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Donut */}
+          <Card className="border-0 shadow-md">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-semibold">Status Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {vendorsLoading ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : pieData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={260}>
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={55}
+                      outerRadius={95}
+                      paddingAngle={3}
+                      strokeWidth={0}
+                    >
+                      {pieData.map((entry, idx) => (
+                        <Cell key={idx} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        borderRadius: 12,
+                        border: "none",
+                        boxShadow: "0 4px 20px rgba(0,0,0,.12)",
+                      }}
+                    />
+                    <Legend
+                      verticalAlign="bottom"
+                      iconType="circle"
+                      iconSize={8}
+                      wrapperStyle={{ fontSize: 12 }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-muted-foreground text-center py-12 text-sm">No data yet</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Bar */}
+          <Card className="border-0 shadow-md">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-semibold">Approval TAT (days)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {vendorsLoading ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : barData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={barData} barSize={28}>
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                      allowDecimals={false}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        borderRadius: 12,
+                        border: "none",
+                        boxShadow: "0 4px 20px rgba(0,0,0,.12)",
+                      }}
+                    />
+                    <Bar dataKey="days" fill="#0066B3" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-muted-foreground text-center py-12 text-sm">
+                  No approved vendors yet
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* ── Tabbed Tables ── */}
         <Tabs value={activeReport} onValueChange={setActiveReport} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="status" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-3 rounded-xl h-11">
+            <TabsTrigger value="status" className="flex items-center gap-2 rounded-lg">
               <FileText className="h-4 w-4" />
               <span className="hidden sm:inline">Status</span>
             </TabsTrigger>
-            <TabsTrigger value="tat" className="flex items-center gap-2">
+            <TabsTrigger value="tat" className="flex items-center gap-2 rounded-lg">
               <Clock className="h-4 w-4" />
               <span className="hidden sm:inline">TAT</span>
             </TabsTrigger>
-            <TabsTrigger value="pending" className="flex items-center gap-2">
+            <TabsTrigger value="pending" className="flex items-center gap-2 rounded-lg">
               <AlertTriangle className="h-4 w-4" />
               <span className="hidden sm:inline">Pending</span>
-            </TabsTrigger>
-            <TabsTrigger value="summary" className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
-              <span className="hidden sm:inline">Summary</span>
             </TabsTrigger>
           </TabsList>
 
           {/* Status Report */}
-          <TabsContent value="status" className="space-y-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Vendor Status Report</CardTitle>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
+          <TabsContent value="status" className="mt-4">
+            <Card className="border-0 shadow-md overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between bg-muted/30">
+                <CardTitle className="text-base">Vendor Status Report</CardTitle>
+                <Button
+                  size="sm"
+                  className="bg-primary hover:bg-primary/90"
                   onClick={() => exportToCSV(statusData, "vendor-status-report.csv")}
                   disabled={vendorsLoading || !statusData.length}
                 >
                   <Download className="h-4 w-4 mr-2" />
-                  Export CSV
+                  Export
                 </Button>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0">
                 {vendorsLoading ? (
-                  <div className="flex justify-center py-8">
+                  <div className="flex justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-2 px-2">Vendor Code</th>
-                          <th className="text-left py-2 px-2">Company Name</th>
-                          <th className="text-left py-2 px-2">Category</th>
-                          <th className="text-left py-2 px-2">Status</th>
-                          <th className="text-left py-2 px-2">Created</th>
-                          <th className="text-left py-2 px-2">Submitted</th>
+                        <tr className="bg-muted/50 text-muted-foreground">
+                          <th className="text-left py-3 px-4 font-medium">Code</th>
+                          <th className="text-left py-3 px-4 font-medium">Company</th>
+                          <th className="text-left py-3 px-4 font-medium hidden md:table-cell">Category</th>
+                          <th className="text-left py-3 px-4 font-medium">Status</th>
+                          <th className="text-left py-3 px-4 font-medium hidden sm:table-cell">Created</th>
+                          <th className="text-left py-3 px-4 font-medium hidden lg:table-cell">Submitted</th>
                         </tr>
                       </thead>
                       <tbody>
                         {statusData.map((row, idx) => (
-                          <tr key={idx} className="border-b hover:bg-muted/50">
-                            <td className="py-2 px-2 font-mono text-xs">{row["Vendor Code"]}</td>
-                            <td className="py-2 px-2">{row["Company Name"]}</td>
-                            <td className="py-2 px-2">{row["Category"]}</td>
-                            <td className="py-2 px-2">
-                              <Badge variant="outline">{row["Status"]}</Badge>
+                          <tr
+                            key={idx}
+                            className="border-b border-border/50 hover:bg-muted/30 transition-colors even:bg-muted/10"
+                          >
+                            <td className="py-3 px-4 font-mono text-xs">{row["Vendor Code"]}</td>
+                            <td className="py-3 px-4 font-medium">{row["Company Name"]}</td>
+                            <td className="py-3 px-4 hidden md:table-cell text-muted-foreground">{row["Category"]}</td>
+                            <td className="py-3 px-4">
+                              <span
+                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                                  statusBadgeClasses[row["Status"]] || "bg-muted text-muted-foreground"
+                                }`}
+                              >
+                                {STATUS_LABELS[row["Status"]] || row["Status"]}
+                              </span>
                             </td>
-                            <td className="py-2 px-2 text-xs">{row["Created"]}</td>
-                            <td className="py-2 px-2 text-xs">{row["Submitted"]}</td>
+                            <td className="py-3 px-4 text-xs text-muted-foreground hidden sm:table-cell">
+                              {row["Created"]}
+                            </td>
+                            <td className="py-3 px-4 text-xs text-muted-foreground hidden lg:table-cell">
+                              {row["Submitted"]}
+                            </td>
                           </tr>
                         ))}
+                        {statusData.length === 0 && (
+                          <tr>
+                            <td colSpan={6} className="text-center py-12 text-muted-foreground">
+                              No vendors found
+                            </td>
+                          </tr>
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -224,157 +474,130 @@ export default function StaffReports() {
           </TabsContent>
 
           {/* TAT Report */}
-          <TabsContent value="tat" className="space-y-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Approval Turnaround Time (TAT)</CardTitle>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
+          <TabsContent value="tat" className="mt-4">
+            <Card className="border-0 shadow-md overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between bg-muted/30">
+                <CardTitle className="text-base">Approval Turnaround Time</CardTitle>
+                <Button
+                  size="sm"
+                  className="bg-primary hover:bg-primary/90"
                   onClick={() => exportToCSV(tatData, "vendor-tat-report.csv")}
                   disabled={vendorsLoading || !tatData.length}
                 >
                   <Download className="h-4 w-4 mr-2" />
-                  Export CSV
+                  Export
                 </Button>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0">
                 {vendorsLoading ? (
-                  <div className="flex justify-center py-8">
+                  <div className="flex justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
                 ) : tatData.length > 0 ? (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-2 px-2">Vendor Code</th>
-                          <th className="text-left py-2 px-2">Company Name</th>
-                          <th className="text-left py-2 px-2">Submitted</th>
-                          <th className="text-left py-2 px-2">Approved</th>
-                          <th className="text-left py-2 px-2 font-semibold">TAT (Days)</th>
+                        <tr className="bg-muted/50 text-muted-foreground">
+                          <th className="text-left py-3 px-4 font-medium">Code</th>
+                          <th className="text-left py-3 px-4 font-medium">Company</th>
+                          <th className="text-left py-3 px-4 font-medium hidden sm:table-cell">Submitted</th>
+                          <th className="text-left py-3 px-4 font-medium hidden sm:table-cell">Approved</th>
+                          <th className="text-left py-3 px-4 font-semibold">TAT</th>
                         </tr>
                       </thead>
                       <tbody>
                         {tatData.map((row, idx) => (
-                          <tr key={idx} className="border-b hover:bg-muted/50">
-                            <td className="py-2 px-2 font-mono text-xs">{row["Vendor Code"]}</td>
-                            <td className="py-2 px-2">{row["Company Name"]}</td>
-                            <td className="py-2 px-2 text-xs">{row["Submitted"]}</td>
-                            <td className="py-2 px-2 text-xs">{row["Approved"]}</td>
-                            <td className="py-2 px-2 font-semibold text-primary">{row["TAT (Days)"]}</td>
+                          <tr
+                            key={idx}
+                            className="border-b border-border/50 hover:bg-muted/30 transition-colors even:bg-muted/10"
+                          >
+                            <td className="py-3 px-4 font-mono text-xs">{row["Vendor Code"]}</td>
+                            <td className="py-3 px-4 font-medium">{row["Company Name"]}</td>
+                            <td className="py-3 px-4 text-xs text-muted-foreground hidden sm:table-cell">
+                              {row["Submitted"]}
+                            </td>
+                            <td className="py-3 px-4 text-xs text-muted-foreground hidden sm:table-cell">
+                              {row["Approved"]}
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/30 px-2.5 py-0.5 text-xs font-bold text-primary">
+                                {row["TAT (Days)"]}d
+                              </span>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
                 ) : (
-                  <p className="text-muted-foreground text-center py-8">No approved vendors yet</p>
+                  <p className="text-muted-foreground text-center py-12 text-sm">
+                    No approved vendors yet
+                  </p>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Pending Cases Report */}
-          <TabsContent value="pending" className="space-y-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Pending Cases</CardTitle>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
+          {/* Pending Cases */}
+          <TabsContent value="pending" className="mt-4">
+            <Card className="border-0 shadow-md overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between bg-muted/30">
+                <CardTitle className="text-base">Pending Cases</CardTitle>
+                <Button
+                  size="sm"
+                  className="bg-primary hover:bg-primary/90"
                   onClick={() => exportToCSV(pendingData, "pending-cases-report.csv")}
                   disabled={vendorsLoading || !pendingData.length}
                 >
                   <Download className="h-4 w-4 mr-2" />
-                  Export CSV
+                  Export
                 </Button>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0">
                 {vendorsLoading ? (
-                  <div className="flex justify-center py-8">
+                  <div className="flex justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
                 ) : pendingData.length > 0 ? (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-2 px-2">Vendor Code</th>
-                          <th className="text-left py-2 px-2">Company Name</th>
-                          <th className="text-left py-2 px-2">Status</th>
-                          <th className="text-left py-2 px-2">Pending Since</th>
+                        <tr className="bg-muted/50 text-muted-foreground">
+                          <th className="text-left py-3 px-4 font-medium">Code</th>
+                          <th className="text-left py-3 px-4 font-medium">Company</th>
+                          <th className="text-left py-3 px-4 font-medium">Status</th>
+                          <th className="text-left py-3 px-4 font-medium">Pending Since</th>
                         </tr>
                       </thead>
                       <tbody>
                         {pendingData.map((row, idx) => (
-                          <tr key={idx} className="border-b hover:bg-muted/50">
-                            <td className="py-2 px-2 font-mono text-xs">{row["Vendor Code"]}</td>
-                            <td className="py-2 px-2">{row["Company Name"]}</td>
-                            <td className="py-2 px-2">
-                              <Badge variant="outline" className="bg-warning/10">{row["Status"]}</Badge>
+                          <tr
+                            key={idx}
+                            className="border-b border-border/50 hover:bg-muted/30 transition-colors even:bg-muted/10"
+                          >
+                            <td className="py-3 px-4 font-mono text-xs">{row["Vendor Code"]}</td>
+                            <td className="py-3 px-4 font-medium">{row["Company Name"]}</td>
+                            <td className="py-3 px-4">
+                              <span
+                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                                  statusBadgeClasses[row["Status"]] || "bg-muted text-muted-foreground"
+                                }`}
+                              >
+                                {STATUS_LABELS[row["Status"]] || row["Status"]}
+                              </span>
                             </td>
-                            <td className="py-2 px-2 text-xs">{row["Pending Since"]}</td>
+                            <td className="py-3 px-4 text-xs text-muted-foreground">
+                              {row["Pending Since"]}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
                 ) : (
-                  <p className="text-muted-foreground text-center py-8">No pending cases</p>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Summary Report */}
-          <TabsContent value="summary" className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {Object.entries(statusCounts).map(([status, count]) => (
-                <Card key={status}>
-                  <CardContent className="p-4 text-center">
-                    <p className="text-2xl font-bold text-primary">{count}</p>
-                    <p className="text-xs text-muted-foreground capitalize">{status.replace(/_/g, " ")}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Key Metrics</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Vendors</p>
-                    <p className="text-2xl font-bold">{vendors?.length || 0}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Approved</p>
-                    <p className="text-2xl font-bold text-success">{statusCounts["approved"] || 0}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Pending Review</p>
-                    <p className="text-2xl font-bold text-warning">{statusCounts["pending_review"] || 0}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Rejection Rate</p>
-                    <p className="text-2xl font-bold text-destructive">
-                      {vendors && vendors.length > 0 
-                        ? Math.round((statusCounts["rejected"] || 0) / vendors.length * 100) 
-                        : 0}%
-                    </p>
-                  </div>
-                </div>
-
-                {tatData.length > 0 && (
-                  <div className="border-t pt-4">
-                    <p className="text-sm text-muted-foreground mb-2">Average TAT</p>
-                    <p className="text-2xl font-bold">
-                      {Math.round(tatData.reduce((sum, row) => sum + (row["TAT (Days)"] || 0), 0) / tatData.length)} days
-                    </p>
-                  </div>
+                  <p className="text-muted-foreground text-center py-12 text-sm">
+                    No pending cases
+                  </p>
                 )}
               </CardContent>
             </Card>
