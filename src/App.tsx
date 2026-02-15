@@ -33,6 +33,7 @@ import DigiLockerFailure from "./pages/vendor/DigiLockerFailure";
 // Admin Pages
 import AdminUserManagement from "./pages/admin/AdminUserManagement";
 import AdminSettings from "./pages/admin/AdminSettings";
+import DpdpAuditDashboard from "./pages/admin/DpdpAuditDashboard";
 
 const queryClient = new QueryClient();
 
@@ -71,6 +72,7 @@ const App = () => (
             {/* Admin Routes */}
             <Route path="/admin/users" element={<AdminUserManagement />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
+            <Route path="/admin/dpdp-audit" element={<DpdpAuditDashboard />} />
             
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
