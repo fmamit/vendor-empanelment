@@ -69,15 +69,12 @@ export function useVendorProfile() {
       if (vuError) throw vuError;
       if (!vendorUser) return null;
 
-      // Then get vendor details
+      // Use RPC to get decrypted vendor details
       const { data: vendor, error } = await supabase
-        .from("vendors")
-        .select("*")
-        .eq("id", vendorUser.vendor_id)
-        .single();
+        .rpc("get_vendor_decrypted", { p_vendor_id: vendorUser.vendor_id });
 
       if (error) throw error;
-      return vendor as Vendor;
+      return vendor as unknown as Vendor;
     },
     enabled: !!user && userType === "vendor",
   });

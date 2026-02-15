@@ -134,6 +134,13 @@ export type Database = {
             referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "consent_records_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors_decrypted"
+            referencedColumns: ["id"]
+          },
         ]
       }
       data_requests: {
@@ -176,6 +183,13 @@ export type Database = {
             columns: ["vendor_id"]
             isOneToOne: false
             referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_requests_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors_decrypted"
             referencedColumns: ["id"]
           },
         ]
@@ -255,6 +269,13 @@ export type Database = {
             referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "notifications_related_vendor_id_fkey"
+            columns: ["related_vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors_decrypted"
+            referencedColumns: ["id"]
+          },
         ]
       }
       otp_codes: {
@@ -317,15 +338,47 @@ export type Database = {
         }
         Relationships: []
       }
+      pii_access_log: {
+        Row: {
+          accessed_at: string
+          column_name: string
+          id: string
+          purpose: string
+          table_name: string
+          user_id: string
+          vendor_id: string | null
+        }
+        Insert: {
+          accessed_at?: string
+          column_name: string
+          id?: string
+          purpose?: string
+          table_name: string
+          user_id: string
+          vendor_id?: string | null
+        }
+        Update: {
+          accessed_at?: string
+          column_name?: string
+          id?: string
+          purpose?: string
+          table_name?: string
+          user_id?: string
+          vendor_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
           department: string | null
           email: string
+          email_encrypted: string | null
           full_name: string
           id: string
           is_active: boolean
           phone: string | null
+          phone_encrypted: string | null
           updated_at: string
           user_id: string
         }
@@ -333,10 +386,12 @@ export type Database = {
           created_at?: string
           department?: string | null
           email: string
+          email_encrypted?: string | null
           full_name: string
           id?: string
           is_active?: boolean
           phone?: string | null
+          phone_encrypted?: string | null
           updated_at?: string
           user_id: string
         }
@@ -344,10 +399,12 @@ export type Database = {
           created_at?: string
           department?: string | null
           email?: string
+          email_encrypted?: string | null
           full_name?: string
           id?: string
           is_active?: boolean
           phone?: string | null
+          phone_encrypted?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -528,6 +585,13 @@ export type Database = {
             referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "vendor_documents_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors_decrypted"
+            referencedColumns: ["id"]
+          },
         ]
       }
       vendor_invitations: {
@@ -585,6 +649,13 @@ export type Database = {
             referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "vendor_invitations_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors_decrypted"
+            referencedColumns: ["id"]
+          },
         ]
       }
       vendor_users: {
@@ -624,6 +695,13 @@ export type Database = {
             columns: ["vendor_id"]
             isOneToOne: false
             referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_users_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors_decrypted"
             referencedColumns: ["id"]
           },
         ]
@@ -679,30 +757,45 @@ export type Database = {
             referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "vendor_verifications_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors_decrypted"
+            referencedColumns: ["id"]
+          },
         ]
       }
       vendors: {
         Row: {
           approved_at: string | null
           bank_account_number: string | null
+          bank_account_number_encrypted: string | null
           bank_branch: string | null
           bank_ifsc: string | null
+          bank_ifsc_encrypted: string | null
           bank_name: string | null
           category_id: string
           cin_number: string | null
+          cin_number_encrypted: string | null
           company_name: string
           constitution_type: string | null
           created_at: string
           current_status: Database["public"]["Enums"]["vendor_status"]
           gst_number: string | null
+          gst_number_encrypted: string | null
           id: string
           nominee_contact: string | null
+          nominee_contact_encrypted: string | null
           nominee_name: string | null
           operational_address: string | null
           pan_number: string | null
+          pan_number_encrypted: string | null
           primary_contact_name: string
           primary_email: string
+          primary_email_encrypted: string | null
           primary_mobile: string
+          primary_mobile_encrypted: string | null
           referred_by: string | null
           registered_address: string | null
           rejected_at: string | null
@@ -710,6 +803,7 @@ export type Database = {
           salutation: string | null
           secondary_contact_name: string | null
           secondary_mobile: string | null
+          secondary_mobile_encrypted: string | null
           sent_back_reason: string | null
           submitted_at: string | null
           trade_name: string | null
@@ -719,24 +813,32 @@ export type Database = {
         Insert: {
           approved_at?: string | null
           bank_account_number?: string | null
+          bank_account_number_encrypted?: string | null
           bank_branch?: string | null
           bank_ifsc?: string | null
+          bank_ifsc_encrypted?: string | null
           bank_name?: string | null
           category_id: string
           cin_number?: string | null
+          cin_number_encrypted?: string | null
           company_name: string
           constitution_type?: string | null
           created_at?: string
           current_status?: Database["public"]["Enums"]["vendor_status"]
           gst_number?: string | null
+          gst_number_encrypted?: string | null
           id?: string
           nominee_contact?: string | null
+          nominee_contact_encrypted?: string | null
           nominee_name?: string | null
           operational_address?: string | null
           pan_number?: string | null
+          pan_number_encrypted?: string | null
           primary_contact_name: string
           primary_email: string
+          primary_email_encrypted?: string | null
           primary_mobile: string
+          primary_mobile_encrypted?: string | null
           referred_by?: string | null
           registered_address?: string | null
           rejected_at?: string | null
@@ -744,6 +846,7 @@ export type Database = {
           salutation?: string | null
           secondary_contact_name?: string | null
           secondary_mobile?: string | null
+          secondary_mobile_encrypted?: string | null
           sent_back_reason?: string | null
           submitted_at?: string | null
           trade_name?: string | null
@@ -753,24 +856,32 @@ export type Database = {
         Update: {
           approved_at?: string | null
           bank_account_number?: string | null
+          bank_account_number_encrypted?: string | null
           bank_branch?: string | null
           bank_ifsc?: string | null
+          bank_ifsc_encrypted?: string | null
           bank_name?: string | null
           category_id?: string
           cin_number?: string | null
+          cin_number_encrypted?: string | null
           company_name?: string
           constitution_type?: string | null
           created_at?: string
           current_status?: Database["public"]["Enums"]["vendor_status"]
           gst_number?: string | null
+          gst_number_encrypted?: string | null
           id?: string
           nominee_contact?: string | null
+          nominee_contact_encrypted?: string | null
           nominee_name?: string | null
           operational_address?: string | null
           pan_number?: string | null
+          pan_number_encrypted?: string | null
           primary_contact_name?: string
           primary_email?: string
+          primary_email_encrypted?: string | null
           primary_mobile?: string
+          primary_mobile_encrypted?: string | null
           referred_by?: string | null
           registered_address?: string | null
           rejected_at?: string | null
@@ -778,6 +889,7 @@ export type Database = {
           salutation?: string | null
           secondary_contact_name?: string | null
           secondary_mobile?: string | null
+          secondary_mobile_encrypted?: string | null
           sent_back_reason?: string | null
           submitted_at?: string | null
           trade_name?: string | null
@@ -852,6 +964,13 @@ export type Database = {
             columns: ["vendor_id"]
             isOneToOne: false
             referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_messages_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors_decrypted"
             referencedColumns: ["id"]
           },
         ]
@@ -967,6 +1086,13 @@ export type Database = {
             referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "workflow_assignments_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors_decrypted"
+            referencedColumns: ["id"]
+          },
         ]
       }
       workflow_history: {
@@ -1011,18 +1137,176 @@ export type Database = {
             referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "workflow_history_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors_decrypted"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
     Views: {
-      [_ in never]: never
+      profiles_decrypted: {
+        Row: {
+          created_at: string | null
+          department: string | null
+          email: string | null
+          full_name: string | null
+          id: string | null
+          is_active: boolean | null
+          phone: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          department?: string | null
+          email?: never
+          full_name?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          phone?: never
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          department?: string | null
+          email?: never
+          full_name?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          phone?: never
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      vendors_decrypted: {
+        Row: {
+          approved_at: string | null
+          bank_account_number: string | null
+          bank_branch: string | null
+          bank_ifsc: string | null
+          bank_name: string | null
+          category_id: string | null
+          cin_number: string | null
+          company_name: string | null
+          constitution_type: string | null
+          created_at: string | null
+          current_status: Database["public"]["Enums"]["vendor_status"] | null
+          gst_number: string | null
+          id: string | null
+          nominee_contact: string | null
+          nominee_name: string | null
+          operational_address: string | null
+          pan_number: string | null
+          primary_contact_name: string | null
+          primary_email: string | null
+          primary_mobile: string | null
+          referred_by: string | null
+          registered_address: string | null
+          rejected_at: string | null
+          rejection_reason: string | null
+          salutation: string | null
+          secondary_contact_name: string | null
+          secondary_mobile: string | null
+          sent_back_reason: string | null
+          submitted_at: string | null
+          trade_name: string | null
+          updated_at: string | null
+          vendor_code: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          bank_account_number?: never
+          bank_branch?: string | null
+          bank_ifsc?: never
+          bank_name?: string | null
+          category_id?: string | null
+          cin_number?: never
+          company_name?: string | null
+          constitution_type?: string | null
+          created_at?: string | null
+          current_status?: Database["public"]["Enums"]["vendor_status"] | null
+          gst_number?: never
+          id?: string | null
+          nominee_contact?: never
+          nominee_name?: string | null
+          operational_address?: string | null
+          pan_number?: never
+          primary_contact_name?: string | null
+          primary_email?: never
+          primary_mobile?: never
+          referred_by?: string | null
+          registered_address?: string | null
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          salutation?: string | null
+          secondary_contact_name?: string | null
+          secondary_mobile?: never
+          sent_back_reason?: string | null
+          submitted_at?: string | null
+          trade_name?: string | null
+          updated_at?: string | null
+          vendor_code?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          bank_account_number?: never
+          bank_branch?: string | null
+          bank_ifsc?: never
+          bank_name?: string | null
+          category_id?: string | null
+          cin_number?: never
+          company_name?: string | null
+          constitution_type?: string | null
+          created_at?: string | null
+          current_status?: Database["public"]["Enums"]["vendor_status"] | null
+          gst_number?: never
+          id?: string | null
+          nominee_contact?: never
+          nominee_name?: string | null
+          operational_address?: string | null
+          pan_number?: never
+          primary_contact_name?: string | null
+          primary_email?: never
+          primary_mobile?: never
+          referred_by?: string | null
+          registered_address?: string | null
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          salutation?: string | null
+          secondary_contact_name?: string | null
+          secondary_mobile?: never
+          sent_back_reason?: string | null
+          submitted_at?: string | null
+          trade_name?: string | null
+          updated_at?: string | null
+          vendor_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendors_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       can_staff_access_vendor: {
         Args: { _user_id: string; _vendor_id: string }
         Returns: boolean
       }
+      decrypt_pii: { Args: { ciphertext: string }; Returns: string }
+      encrypt_pii: { Args: { plaintext: string }; Returns: string }
       generate_referral_code: { Args: never; Returns: string }
+      get_vendor_decrypted: { Args: { p_vendor_id: string }; Returns: Json }
       get_vendor_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
