@@ -136,7 +136,7 @@ export default function StaffDashboard() {
 
   return (
     <StaffLayout title="Dashboard">
-      <div className="p-4 md:p-6 space-y-5 w-full">
+      <div className="p-4 md:p-5 w-full h-[calc(100vh-3.5rem-2.25rem)] flex flex-col gap-4 overflow-hidden">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
@@ -182,11 +182,11 @@ export default function StaffDashboard() {
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
           {/* Pending Review */}
           <button
             onClick={() => navigate("/staff/queue")}
-            className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[hsl(var(--warning))]/10 to-[hsl(var(--warning))]/5 border border-[hsl(var(--warning))]/20 p-5 text-left transition-all hover:shadow-lg hover:shadow-[hsl(var(--warning))]/10 hover:-translate-y-1"
+            className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[hsl(var(--warning))]/10 to-[hsl(var(--warning))]/5 border border-[hsl(var(--warning))]/20 p-4 text-left transition-all hover:shadow-lg hover:shadow-[hsl(var(--warning))]/10 hover:-translate-y-1"
           >
             <div className="flex items-center justify-between mb-3">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Pending Review</span>
@@ -207,7 +207,7 @@ export default function StaffDashboard() {
           {/* Approved */}
           <button
             onClick={() => navigate("/staff/queue")}
-            className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[hsl(var(--success))]/10 to-[hsl(var(--success))]/5 border border-[hsl(var(--success))]/20 p-5 text-left transition-all hover:shadow-lg hover:shadow-[hsl(var(--success))]/10 hover:-translate-y-1"
+            className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[hsl(var(--success))]/10 to-[hsl(var(--success))]/5 border border-[hsl(var(--success))]/20 p-4 text-left transition-all hover:shadow-lg hover:shadow-[hsl(var(--success))]/10 hover:-translate-y-1"
           >
             <div className="flex items-center justify-between mb-3">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Approved</span>
@@ -228,7 +228,7 @@ export default function StaffDashboard() {
           {/* Total Vendors */}
           <button
             onClick={() => navigate("/staff/queue")}
-            className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 p-5 text-left transition-all hover:shadow-lg hover:shadow-primary/10 hover:-translate-y-1"
+            className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 p-4 text-left transition-all hover:shadow-lg hover:shadow-primary/10 hover:-translate-y-1"
           >
             <div className="flex items-center justify-between mb-3">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Total Vendors</span>
@@ -249,7 +249,7 @@ export default function StaffDashboard() {
           {/* Fraud Alerts */}
           <button
             onClick={() => navigate("/staff/fraud-alerts")}
-            className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-destructive/10 to-destructive/5 border border-destructive/20 p-5 text-left transition-all hover:shadow-lg hover:shadow-destructive/10 hover:-translate-y-1"
+            className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-destructive/10 to-destructive/5 border border-destructive/20 p-4 text-left transition-all hover:shadow-lg hover:shadow-destructive/10 hover:-translate-y-1"
           >
             <div className="flex items-center justify-between mb-3">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Fraud Alerts</span>
@@ -271,9 +271,9 @@ export default function StaffDashboard() {
         </div>
 
         {/* Pipeline + Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 flex-1 min-h-0">
           {/* Onboarding Pipeline */}
-          <div className="lg:col-span-3 rounded-2xl border border-border bg-card p-5">
+          <div className="lg:col-span-3 rounded-2xl border border-border bg-card p-4 flex flex-col min-h-0">
             <div className="flex items-center justify-between mb-5">
               <div>
                 <h2 className="text-base font-bold text-foreground">Onboarding Pipeline</h2>
@@ -286,7 +286,7 @@ export default function StaffDashboard() {
                 View Queue <ChevronRight className="h-3 w-3" />
               </button>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 flex-1 min-h-0">
               {[
                 { label: "Submitted", count: draft + pendingReview, color: "primary", sub: `${pendingReview} pending` },
                 { label: "Processing", count: inVerification, color: "warning", sub: "In verification" },
@@ -313,14 +313,14 @@ export default function StaffDashboard() {
           </div>
 
           {/* Recent Activity */}
-          <div className="lg:col-span-2 rounded-2xl border border-border bg-card p-5 flex flex-col">
+          <div className="lg:col-span-2 rounded-2xl border border-border bg-card p-4 flex flex-col min-h-0">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-base font-bold text-foreground">Recent Activity</h2>
                 <p className="text-[11px] text-muted-foreground mt-0.5">Live updates</p>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto space-y-0 max-h-[260px]">
+            <div className="flex-1 overflow-y-auto space-y-0 min-h-0">
               {recentActivity.map((vendor) => (
                 <button
                   key={vendor.id}
@@ -351,15 +351,15 @@ export default function StaffDashboard() {
         </div>
 
         {/* Bottom Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 shrink-0">
           {/* Key Metrics */}
-          <div className="rounded-2xl border border-border bg-card p-5">
-            <h2 className="text-base font-bold text-foreground mb-4">Key Metrics</h2>
-            <div className="space-y-4">
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <h2 className="text-sm font-bold text-foreground mb-3">Key Metrics</h2>
+            <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[11px] text-muted-foreground">Avg Processing Time</p>
-                  <p className="text-2xl font-bold text-foreground">18h</p>
+                  <p className="text-xl font-bold text-foreground">18h</p>
                 </div>
                 <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center">
                   <Zap className="h-5 w-5 text-primary" />
@@ -369,7 +369,7 @@ export default function StaffDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[11px] text-muted-foreground">Compliance Rate</p>
-                  <p className="text-2xl font-bold text-foreground">{docStats?.complianceRate ?? 0}%</p>
+                  <p className="text-xl font-bold text-foreground">{docStats?.complianceRate ?? 0}%</p>
                 </div>
                 <div className="h-11 w-11 rounded-xl bg-[hsl(var(--success))]/10 flex items-center justify-center">
                   <Target className="h-5 w-5 text-[hsl(var(--success))]" />
@@ -379,7 +379,7 @@ export default function StaffDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[11px] text-muted-foreground">Expiring Documents</p>
-                  <p className="text-2xl font-bold text-foreground">{docStats?.expiring ?? 0}</p>
+                  <p className="text-xl font-bold text-foreground">{docStats?.expiring ?? 0}</p>
                 </div>
                 <div className="h-11 w-11 rounded-xl bg-[hsl(var(--warning))]/10 flex items-center justify-center">
                   <Rocket className="h-5 w-5 text-[hsl(var(--warning))]" />
@@ -389,17 +389,17 @@ export default function StaffDashboard() {
           </div>
 
           {/* Compliance / DPDP */}
-          <div className="rounded-2xl border border-border bg-card p-5">
+          <div className="rounded-2xl border border-border bg-card p-4">
             <div className="flex items-center gap-2 mb-4">
               <Shield className="h-4 w-4 text-primary" />
-              <h2 className="text-base font-bold text-foreground">Compliance</h2>
+              <h2 className="text-sm font-bold text-foreground">Compliance</h2>
             </div>
             {isAdmin ? (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-[11px] text-muted-foreground">Pending Requests</p>
-                    <p className="text-2xl font-bold text-foreground">{dataRequestStats?.pending ?? 0}</p>
+                    <p className="text-xl font-bold text-foreground">{dataRequestStats?.pending ?? 0}</p>
                   </div>
                   <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center">
                     <FileText className="h-5 w-5 text-primary" />
@@ -436,9 +436,9 @@ export default function StaffDashboard() {
           </div>
 
           {/* Critical Alerts */}
-          <div className="rounded-2xl border border-border bg-card p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-bold text-foreground">Critical Alerts</h2>
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-bold text-foreground">Critical Alerts</h2>
               <button
                 onClick={() => navigate("/staff/fraud-alerts")}
                 className="text-xs text-primary font-semibold hover:underline flex items-center gap-1"
