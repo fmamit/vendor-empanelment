@@ -1,51 +1,104 @@
 
-# Sidebar Redesign: Enhanced Logo Header and Expanded Navigation
+# World-Class Executive Dashboard Redesign
 
 ## Overview
 
-Redesign the left sidebar to match the reference style -- a prominent logo card with user name underneath, and additional direct navigation items to reduce clicks for common tasks.
+Transform the current list-based dashboard into a modern, data-rich "Command Center" style layout that impresses C-Level executives. Drawing inspiration from the reference's dark glassmorphic aesthetic but adapting it to Capital India's brand identity with a clean light theme that feels premium and professional.
 
-## Changes
+## Design Philosophy
 
-### 1. Logo and User Identity Header (StaffSidebar.tsx)
+- **Data density over navigation** -- Show key metrics at a glance, not just links to other pages
+- **Visual hierarchy** -- Large gradient KPI numbers draw the eye first, then pipeline, then activity
+- **Glass/card layered design** -- Subtle shadows, gradients, and rounded cards for a premium feel
+- **Real-time feel** -- Live dot indicator, timestamps, activity feed
+- **Actionable** -- Every card is clickable, leading to the relevant detail page
 
-Replace the current small logo + text row with a styled header block:
+## Layout Structure
 
-- **Logo**: Display in a white rounded card/container (like the reference image-60.png), larger size (~48x48px), centered
-- **User Name**: Fetch the logged-in user's `full_name` from the `profiles` table and display it below the logo in a prominent style
-- **Department**: Show user's department as a subtle subtitle underneath
-- When collapsed, show only the logo icon (no name/department)
+```text
++---------------------------------------------------------------+
+| Header: "Vendor Operations Command Center"  [Live] [Invite]   |
++---------------------------------------------------------------+
+| KPI Card 1    | KPI Card 2    | KPI Card 3    | KPI Card 4    |
+| Pending Review| Approved      | Total Vendors  | Fraud Alerts  |
+| (gradient)    | (gradient)    | (gradient)     | (gradient)    |
++---------------+---------------+--------+----------------------+
+| Onboarding Pipeline                    | Recent Activity       |
+| Draft > Pending > Verify > Approve     | Live feed of actions  |
+| (large stage numbers, colored)         | (scrollable)          |
++----------------------------------------+-----------------------+
+| Key Metrics         | Compliance    | Critical Alerts         |
+| Avg TAT, Rate, Docs | DPDP stats    | Fraud/expiry warnings   |
++---------------------+---------------+-------------------------+
+```
 
-### 2. Expanded Navigation Items
+## Components and Data Sources
 
-Add more direct links under the Main section so common tasks are one click away instead of buried inside dashboard cards:
+### 1. Header Bar
+- Gradient title "Vendor Operations Command Center"
+- Live indicator dot (green pulse)
+- "Capital India Finance" label
+- Greeting with user name from `profiles` table
+- Notification bell with fraud alert count badge
+- "Invite Vendor" CTA button
 
-**Main section (expanded):**
-- Dashboard
-- Vendor Queue
-- Invite Vendor (new -- currently only accessible from Dashboard)
-- Fraud Alerts
-- Reports (new -- currently only accessible from Dashboard)
+### 2. KPI Cards Row (4 cards)
+Each card has: label, large gradient number, trend indicator, subtitle
 
-**Administration section (admin only, unchanged):**
-- User Management
-- System Settings
-- DPDP Audit
+| Card | Value Source | Accent Color |
+|---|---|---|
+| Pending Review | `vendors` where `current_status = 'pending_review'` | Amber/Warning |
+| Approved | `vendors` where `current_status = 'approved'` | Green |
+| Total Vendors | `vendors` count | Blue (primary) |
+| Fraud Alerts | Mock fraud stats `.pending` count | Red |
 
-### 3. Data Fetching
+### 3. Onboarding Pipeline (left panel, wide)
+Horizontal 4-stage pipeline showing vendor flow:
+- **Draft** -- count of `draft` vendors
+- **In Review** -- count of `pending_review` + `in_verification`
+- **Verified** -- count of `pending_approval`
+- **Approved** -- count of `approved`
 
-Use a simple `useQuery` hook inside `StaffSidebar` to fetch the current user's profile (`full_name`, `department`) from the `profiles` table. This is a lightweight query that runs once on mount.
+Each stage is a clickable card with large number, label, and a subtle change indicator.
 
-## Files to Change
+### 4. Recent Activity Feed (right panel)
+Scrollable list of recent vendor actions, pulled from the `vendors` table ordered by `updated_at`. Shows:
+- Icon (color-coded by status)
+- Vendor company name
+- Status change description
+- Relative timestamp
+
+### 5. Bottom Row (3 cards)
+
+**Key Metrics Card:**
+- Average processing time (placeholder/computed)
+- Document compliance rate (approved docs / total docs)
+- Expiring documents count
+
+**Compliance Card (admin only):**
+- Pending data requests count
+- Overdue data requests (red badge)
+- Consent withdrawal count
+
+**Critical Alerts Card:**
+- Top 2-3 fraud alerts from `useFraudAlerts` hook
+- Color-coded by severity (red border for critical)
+
+## Files Changed
 
 | File | Change |
 |---|---|
-| `src/components/layout/StaffSidebar.tsx` | Redesign header with prominent logo card and user name; add Invite Vendor and Reports nav items; fetch user profile |
+| `src/pages/staff/StaffDashboard.tsx` | Complete rewrite with new executive dashboard layout |
 
 ## Technical Details
 
-- Query: `supabase.from('profiles').select('full_name, department').eq('user_id', user.id).maybeSingle()`
-- Logo container: white rounded-lg card with padding, centered in sidebar header area
-- User name: `text-sm font-semibold`, department: `text-xs text-muted-foreground`
-- New nav items use existing route paths (`/staff/invite-vendor` for Invite Vendor, `/staff/reports` for Reports) and lucide icons (`UserPlus`, `BarChart3`)
-- No new routes or pages needed -- all target routes already exist in App.tsx
+- All data comes from existing hooks: `useStaffVendorQueue`, `useDataRequests`, `useFraudAlerts`, `useUserRoles`
+- Additional query for recent activity: reuse `vendors` data sorted by `updated_at`, take top 8
+- Additional query for document stats: new inline `useQuery` to get doc counts by status and expiry
+- KPI cards use `bg-gradient-to-br` with brand colors for premium look
+- Pipeline stages use large `text-4xl font-bold` numbers with color gradients
+- Activity feed items use relative time via `date-fns` `formatDistanceToNow`
+- Clickable cards navigate to relevant pages (`/staff/queue`, `/staff/fraud-alerts`, etc.)
+- Responsive: on smaller screens, KPI grid goes 2x2, bottom grid stacks vertically
+- No dark mode -- stays on light theme but uses gradient accents for visual impact
+- Layout removes `max-w-4xl` constraint to use full width for the data-dense layout
