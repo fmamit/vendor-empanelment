@@ -39,7 +39,7 @@ export function StaffLayout({ children, title }: StaffLayoutProps) {
             <SidebarTrigger className="mr-3" />
             {title && <h1 className="font-semibold text-lg truncate">{title}</h1>}
           </header>
-          <main className="flex-1 overflow-auto">
+          <main className="flex-1 overflow-hidden">
             {children}
           </main>
           <footer className="border-t border-border px-4 py-2 text-xs text-muted-foreground flex items-center justify-between">
