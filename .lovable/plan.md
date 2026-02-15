@@ -1,85 +1,112 @@
 
-# Fix PWA Caching + Add DPDP Compliance to Staff Dashboard
 
-## Root Cause Analysis
+# Implement PII Encryption for DPDP Act Compliance
 
-1. **Stale PWA Cache**: The Workbox configuration in `vite.config.ts` is missing `skipWaiting: true` and `clientsClaim: true`. Without these, the service worker doesn't force activation of new versions—old cached code persists until the browser decides to update, which is why you're seeing outdated UI.
+## Problem
 
-2. **Missing DPDP Compliance Section**: The Staff Dashboard code review shows the DPDP Compliance section was never actually added. The dashboard currently only has: Welcome Card → Quick Actions → Stats → My Workqueue → Reports → Fraud Alerts. There is no DPDP section.
+Sensitive PII fields (PAN, Aadhaar, bank account number, mobile numbers) are stored as **plain text** in the database. While infrastructure provides encryption-at-rest and TLS in-transit, DPDP Act compliance benefits from **application-level encryption** where PII is unreadable even to database administrators.
 
-## Solution Overview
+## Current PII Fields Requiring Protection
 
-### Part 1: Force Latest Code Cache Activation
+| Table | Column | Sensitivity |
+|---|---|---|
+| `vendors` | `pan_number` | High |
+| `vendors` | `gst_number` | High |
+| `vendors` | `cin_number` | Medium |
+| `vendors` | `bank_account_number` | High |
+| `vendors` | `bank_ifsc` | Medium |
+| `vendors` | `primary_mobile` | High |
+| `vendors` | `primary_email` | Medium |
+| `vendors` | `secondary_mobile` | Medium |
+| `vendors` | `nominee_contact` | Medium |
+| `profiles` | `phone` | Medium |
+| `profiles` | `email` | Medium |
 
-**File: `vite.config.ts`**
+## Proposed Approach: Database-Level Encryption using pgcrypto
 
-Modify the Workbox configuration in the VitePWA plugin to:
-- Add `skipWaiting: true` — new service worker activates immediately without waiting for old tabs to close
-- Add `clientsClaim: true` — new service worker claims all existing clients immediately
+Use PostgreSQL's built-in `pgcrypto` extension to encrypt/decrypt PII columns using a server-side encryption key stored in Supabase secrets.
 
-This ensures every code change is served to users without delay.
+### Part 1: Enable pgcrypto and Create Helper Functions
 
-### Part 2: Implement DPDP Compliance Section on Staff Dashboard
+**Database migration:**
 
-**Files to Create:**
-- `src/hooks/useDataRequests.tsx` — New hook to fetch pending and overdue data request counts from the database
+1. Enable `pgcrypto` extension
+2. Create two SQL functions:
+   - `encrypt_pii(plaintext TEXT)` -- encrypts a value using `pgp_sym_encrypt` with the encryption key from a Supabase secret
+   - `decrypt_pii(ciphertext BYTEA)` -- decrypts using `pgp_sym_decrypt`
+3. Both functions will be `SECURITY DEFINER` so the encryption key is never exposed to the client
 
-**Files to Modify:**
-- `src/pages/staff/StaffDashboard.tsx` — Add DPDP Compliance card between Reports and Fraud Alerts sections
+### Part 2: Add Encrypted Columns
 
-**Implementation Details:**
+For each PII field, add a new `_encrypted` column (BYTEA type) alongside the existing plain text column. This allows a phased migration without breaking existing functionality.
 
-The `useDataRequests` hook will:
-- Query the `data_requests` table (created in previous implementation)
-- Count records where `status = 'pending'` or `status = 'in_progress'`
-- Identify overdue requests (where `due_date < now()` and status is still pending/in_progress)
-- Return pending count, overdue count, and a loading state
+**New columns added to `vendors`:**
+- `pan_number_encrypted` (BYTEA)
+- `gst_number_encrypted` (BYTEA)
+- `bank_account_number_encrypted` (BYTEA)
+- `primary_mobile_encrypted` (BYTEA)
 
-The new Staff Dashboard card will:
-- Display as a card with Shield icon and "DPDP Compliance" title
-- Show two sections: "Data Requests" and "Breach Notifications"
-- Display pending data request counts with an "Overdue" badge if any requests exceed the 90-day SLA
-- Provide navigation buttons to the Admin Settings where staff can manage these items
-- Only show if user has admin role (since data request management is admin-only)
+### Part 3: Encryption Trigger
 
-**Visual Layout:**
+Create a trigger on INSERT/UPDATE that automatically encrypts specified columns into their `_encrypted` counterparts and then nullifies the plain text column. This ensures:
+- All new data is encrypted automatically
+- Existing application code continues to work during migration
+- Plain text values are cleared after encryption
 
-```text
-┌─────────────────────────────────────┐
-│ 🛡️  DPDP Compliance                 │
-├─────────────────────────────────────┤
-│ [📋 Data Requests]      Pending: 5  │
-│  Manage access/erasure requests     │
-│                             Arrow > │
-├─────────────────────────────────────┤
-│ [⚠️  Breach Notifications]           │
-│  View or report security incidents  │
-│                             Arrow > │
-└─────────────────────────────────────┘
-```
+### Part 4: Migration of Existing Data
 
-If there are overdue requests, a red "Overdue" badge appears next to the pending count.
+A one-time SQL statement to encrypt all existing plain text PII values into the new encrypted columns and then null out the originals.
 
-**Implementation Flow:**
+### Part 5: Decryption Views
 
-1. Create the hook that queries `data_requests` table
-2. Add the card to the dashboard with data request stats
-3. Clicking either section navigates to `/admin/settings` (relevant tabs: Data Requests or Breach)
-4. Apply RLS security to ensure only staff can see data request counts
+Create a secure database view (`vendors_decrypted`) that:
+- Calls `decrypt_pii()` on encrypted columns
+- Is accessible only to authenticated users with appropriate RLS
+- Is used by the application instead of querying raw tables for PII fields
+
+### Part 6: Application Code Updates
+
+Update hooks and components that read PII fields to use the decrypted view or call decrypt functions:
+- `useVendorData.tsx` -- query from `vendors_decrypted` view
+- `useVendor.tsx` -- use encrypt on write, decrypt on read
+- Edge functions that handle PII (verify-pan, verify-bank-account, etc.) -- decrypt before sending to external APIs
+
+### Part 7: Add Encryption Key Secret
+
+A new secret `PII_ENCRYPTION_KEY` will need to be configured. This is a symmetric key used by pgcrypto for PGP encryption/decryption.
+
+### Part 8: Audit Trail
+
+Add a `pii_access_log` table to record every decryption event, satisfying DPDP Act audit requirements:
+- `user_id` -- who accessed the data
+- `table_name` -- which table
+- `column_name` -- which field
+- `accessed_at` -- timestamp
+- `purpose` -- why (e.g., "verification", "display")
 
 ## Files to Change
 
 | File | Change |
 |---|---|
-| `vite.config.ts` | Add `skipWaiting: true`, `clientsClaim: true` to workbox |
-| `src/hooks/useDataRequests.tsx` | **NEW** - Fetch pending/overdue data request stats |
-| `src/pages/staff/StaffDashboard.tsx` | Add DPDP Compliance card with data request stats |
+| Database migration | Enable pgcrypto, create encrypt/decrypt functions, add encrypted columns, create trigger, migrate existing data, create decrypted view, create audit log table |
+| `src/hooks/useVendorData.tsx` | Query from decrypted view instead of raw table |
+| `src/hooks/useVendor.tsx` | Update to work with encryption flow |
+| Edge functions (verify-pan, verify-bank-account, etc.) | Decrypt PII before external API calls |
+| New secret: `PII_ENCRYPTION_KEY` | Symmetric encryption key for pgcrypto |
 
-## Expected Outcome
+## Security Considerations
 
-After these changes:
-1. **Every code change will be served immediately** — No more stale cached versions
-2. **Staff will see the DPDP Compliance section** on their dashboard with real-time data request metrics
-3. **Staff can quickly navigate to manage** data rights requests and breach notifications
-4. **SLA tracking is visible** — Overdue badges alert staff to requests exceeding the 90-day response deadline
+- The encryption key is stored as a Supabase secret, never exposed to the client
+- Decrypt functions are `SECURITY DEFINER` with RLS checks built in
+- Audit logging tracks every PII access for compliance reporting
+- Encrypted columns use AES-256 via pgcrypto's PGP symmetric encryption
+- Plain text columns are nullified after migration, leaving only encrypted data
+
+## What This Demonstrates for DPDP Compliance
+
+1. **Encryption at rest** -- PII is encrypted in the database, not just at the infrastructure level
+2. **Access control** -- Only authorized roles can decrypt PII via secure functions
+3. **Audit trail** -- Every PII access is logged with user, timestamp, and purpose
+4. **Key management** -- Encryption key is stored separately from data in secrets vault
+5. **Data minimization** -- Plain text PII is removed after encryption
 
