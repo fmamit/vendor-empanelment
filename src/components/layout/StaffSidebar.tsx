@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   ClipboardList,
   ShieldAlert,
+  ShieldCheck,
   Users,
   Settings,
   LogOut,
@@ -35,6 +36,7 @@ const mainItems = [
 const adminItems = [
   { title: "User Management", url: "/admin/users", icon: Users },
   { title: "System Settings", url: "/admin/settings", icon: Settings },
+  { title: "DPDP Audit", url: "/admin/dpdp-audit", icon: ShieldCheck },
 ];
 
 export function StaffSidebar() {
