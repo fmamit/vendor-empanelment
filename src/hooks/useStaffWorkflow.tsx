@@ -41,17 +41,23 @@ export function useVendorDetails(vendorId: string | null) {
     queryFn: async () => {
       if (!vendorId) return null;
 
-      const { data, error } = await supabase
-        .from("vendors")
-        .select(`
-          *,
-          vendor_categories (name)
-        `)
-        .eq("id", vendorId)
+      // Use RPC for decrypted PII fields
+      const { data: decryptedVendor, error: rpcError } = await supabase
+        .rpc("get_vendor_decrypted", { p_vendor_id: vendorId });
+
+      if (rpcError) throw rpcError;
+
+      // Also get category name
+      const { data: categoryData } = await supabase
+        .from("vendor_categories")
+        .select("name")
+        .eq("id", (decryptedVendor as any)?.category_id)
         .single();
 
-      if (error) throw error;
-      return data as VendorWithCategory;
+      return {
+        ...(decryptedVendor as unknown as Vendor),
+        vendor_categories: categoryData || { name: "Unknown" },
+      } as VendorWithCategory;
     },
     enabled: !!vendorId,
   });
