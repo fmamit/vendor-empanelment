@@ -2,6 +2,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRoles } from "@/hooks/useUserRoles";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
   LayoutDashboard,
   ClipboardList,
@@ -11,6 +13,8 @@ import {
   Settings,
   LogOut,
   UserCircle,
+  UserPlus,
+  BarChart3,
 } from "lucide-react";
 import {
   Sidebar,
@@ -24,13 +28,14 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
 import capitalIndiaLogo from "@/assets/capital-india-logo.jpg";
 
 const mainItems = [
   { title: "Dashboard", url: "/staff/dashboard", icon: LayoutDashboard },
   { title: "Vendor Queue", url: "/staff/queue", icon: ClipboardList },
+  { title: "Invite Vendor", url: "/staff/invite-vendor", icon: UserPlus },
   { title: "Fraud Alerts", url: "/staff/fraud-alerts", icon: ShieldAlert },
+  { title: "Reports", url: "/staff/reports", icon: BarChart3 },
 ];
 
 const adminItems = [
@@ -40,12 +45,27 @@ const adminItems = [
 ];
 
 export function StaffSidebar() {
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const { isAdmin } = useUserRoles();
   const navigate = useNavigate();
   const location = useLocation();
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
+
+  const { data: profile } = useQuery({
+    queryKey: ["sidebar-profile", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name, department")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const handleSignOut = async () => {
     await signOut();
@@ -54,10 +74,27 @@ export function StaffSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      {/* Logo */}
-      <div className="flex items-center gap-2 px-4 py-4 border-b">
-        <img src={capitalIndiaLogo} alt="Capital India" className="h-8 w-8 rounded object-cover shrink-0" />
-        {!collapsed && <span className="font-semibold text-sm truncate">Capital India</span>}
+      {/* Logo & User Identity Header */}
+      <div className="flex flex-col items-center gap-2 px-3 py-5 border-b border-border/50">
+        <div className="bg-white rounded-xl p-2 shadow-sm shrink-0">
+          <img
+            src={capitalIndiaLogo}
+            alt="Capital India"
+            className="h-10 w-10 rounded-lg object-cover"
+          />
+        </div>
+        {!collapsed && (
+          <div className="text-center mt-1">
+            <p className="text-sm font-semibold text-foreground truncate max-w-[160px]">
+              {profile?.full_name || "Staff User"}
+            </p>
+            {profile?.department && (
+              <p className="text-xs text-muted-foreground truncate max-w-[160px]">
+                {profile.department}
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       <SidebarContent>
