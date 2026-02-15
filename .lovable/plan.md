@@ -1,62 +1,62 @@
 
 
-# Create Test Vendor with Full PII to Verify Encryption
+# DPDP Compliance Audit Dashboard
 
-## Approach
+## Overview
 
-Create a temporary edge function `test-pii-encryption` that:
-1. Inserts a test vendor with ALL PII fields populated (PAN, GST, CIN, bank account, IFSC, mobile, email, secondary mobile, nominee contact)
-2. Reads back the raw row to confirm plain text is masked/nullified and encrypted columns are populated
-3. Calls `get_vendor_decrypted` RPC to confirm decryption returns the original values
-4. Returns a detailed report showing the encryption status of each field
+Build a new admin-only page at `/admin/dpdp-audit` that displays PII access logs from the `pii_access_log` table, showing who accessed what data and when. The dashboard will include summary stats, filters, a detailed log table, and CSV export.
 
-## Test Data
+## New Files
 
-| Field | Test Value |
-|---|---|
-| PAN | ABCDE1234F |
-| GST | 27ABCDE1234F1Z5 |
-| CIN | U12345MH2020PTC123456 |
-| Bank Account | 1234567890123 |
-| IFSC | SBIN0001234 |
-| Primary Mobile | 9876543210 |
-| Primary Email | rajesh@testcorp.in |
-| Secondary Mobile | 9123456789 |
-| Nominee Contact | 9988776655 |
+### 1. `src/pages/admin/DpdpAuditDashboard.tsx`
 
-## What Gets Created
+A new page using the existing `StaffLayout` wrapper, restricted to admin users via `useUserRoles`. It will contain:
 
-| File | Purpose |
-|---|---|
-| `supabase/functions/test-pii-encryption/index.ts` | Edge function that inserts test vendor, verifies encryption, and returns results |
+**Summary Stat Cards** (gradient style matching StaffReports):
+- Total PII accesses (all time)
+- Accesses today
+- Unique users who accessed PII
+- Unique vendors whose PII was accessed
 
-## Verification Report
+**Filters Row:**
+- Date range picker (from/to using date inputs)
+- Filter by user (dropdown of distinct users from logs)
+- Filter by table name
+- Filter by purpose
 
-The edge function will return a JSON report like:
+**Log Table** with columns:
+- Accessed At (formatted timestamp)
+- User (resolved via join to `profiles` table for full_name)
+- Table
+- Column
+- Vendor ID (truncated)
+- Purpose
 
-```text
-{
-  "test_vendor_id": "...",
-  "raw_storage": {
-    "pan_number": null,           // plain text cleared
-    "pan_number_encrypted": true, // encrypted value exists
-    ...
-  },
-  "decrypted_values": {
-    "pan_number": "ABCDE1234F",   // original value recovered
-    ...
-  },
-  "all_fields_encrypted": true,
-  "all_fields_decryptable": true
-}
-```
+**CSV Export** button reusing the same export pattern from StaffReports.
 
-After verification, the test vendor can be deleted and the edge function removed.
+**Data fetching**: Query `pii_access_log` joined with `profiles` to resolve user names. Since only admins can SELECT from `pii_access_log` (per existing RLS), this is already secured.
+
+### 2. Route Registration
+
+Add route `/admin/dpdp-audit` in `src/App.tsx`.
+
+### 3. Sidebar Navigation
+
+Add "DPDP Audit" link under the Administration section in `src/components/layout/StaffSidebar.tsx` (admin-only, already gated by `isAdmin` check). Use the `ShieldCheck` icon from lucide-react.
 
 ## Technical Details
 
-- Uses `SUPABASE_SERVICE_ROLE_KEY` to bypass RLS for the insert
-- Calls `get_vendor_decrypted` RPC via service role to test decryption
-- Compares decrypted values against original input to confirm round-trip integrity
-- No application code changes needed -- this is a standalone test
+- Query: `supabase.from('pii_access_log').select('*, profiles!pii_access_log_user_id_fkey(full_name)').order('accessed_at', { ascending: false }).limit(500)`
+- Since `pii_access_log` has no FK to profiles, we'll do a secondary lookup: fetch logs, then batch-fetch profiles by user_id
+- Date filtering via `.gte('accessed_at', from).lte('accessed_at', to)`
+- All existing RLS policies already restrict access to admins only
+- Uses same UI patterns (gradient cards, Card components, table styling) as StaffReports for consistency
+
+## Files to Change
+
+| File | Change |
+|---|---|
+| `src/pages/admin/DpdpAuditDashboard.tsx` | New page with audit log dashboard |
+| `src/App.tsx` | Add route for `/admin/dpdp-audit` |
+| `src/components/layout/StaffSidebar.tsx` | Add "DPDP Audit" nav item under Administration |
 
