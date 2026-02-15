@@ -195,7 +195,7 @@ export default function StaffDashboard() {
                 Active
               </span>
             </div>
-            <p className="text-4xl font-extrabold bg-gradient-to-br from-[hsl(var(--warning))] to-[hsl(38,92%,40%)] bg-clip-text text-transparent">
+            <p className="text-4xl font-extrabold text-[hsl(var(--warning))]">
               {pendingReview}
             </p>
             <p className="text-[11px] text-muted-foreground mt-1">Awaiting initial review</p>
@@ -216,7 +216,7 @@ export default function StaffDashboard() {
                 +{approved}
               </span>
             </div>
-            <p className="text-4xl font-extrabold bg-gradient-to-br from-[hsl(var(--success))] to-[hsl(92,47%,35%)] bg-clip-text text-transparent">
+            <p className="text-4xl font-extrabold text-[hsl(var(--success))]">
               {approved}
             </p>
             <p className="text-[11px] text-muted-foreground mt-1">Fully onboarded vendors</p>
@@ -237,7 +237,7 @@ export default function StaffDashboard() {
                 All
               </span>
             </div>
-            <p className="text-4xl font-extrabold bg-gradient-to-br from-primary to-[hsl(204,100%,25%)] bg-clip-text text-transparent">
+            <p className="text-4xl font-extrabold text-primary">
               {totalVendors}
             </p>
             <p className="text-[11px] text-muted-foreground mt-1">{approved} active, {totalVendors - approved} processing</p>
@@ -260,7 +260,7 @@ export default function StaffDashboard() {
                 </span>
               )}
             </div>
-            <p className="text-4xl font-extrabold bg-gradient-to-br from-destructive to-[hsl(0,72%,40%)] bg-clip-text text-transparent">
+            <p className="text-4xl font-extrabold text-destructive">
               {fraudStats.pending}
             </p>
             <p className="text-[11px] text-muted-foreground mt-1">{fraudStats.critical} critical attention needed</p>
@@ -298,9 +298,7 @@ export default function StaffDashboard() {
                   onClick={() => navigate("/staff/queue")}
                   className="group text-center p-4 rounded-xl bg-muted/50 border border-border/50 hover:border-primary/30 hover:bg-primary/5 transition-all hover:-translate-y-0.5"
                 >
-                  <p
-                    className={`text-3xl md:text-4xl font-extrabold bg-gradient-to-b from-[hsl(var(--${stage.color}))] to-[hsl(var(--${stage.color}))/70] bg-clip-text text-transparent`}
-                  >
+                  <p className={`text-3xl md:text-4xl font-extrabold text-[hsl(var(--${stage.color}))]`}>
                     {stage.count}
                   </p>
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mt-2">
