@@ -76,20 +76,20 @@ export function StaffSidebar() {
     <Sidebar collapsible="icon">
       {/* Logo & User Identity Header */}
       <div className="flex flex-col items-center gap-2 px-3 py-5 border-b border-border/50">
-        <div className="bg-white rounded-xl p-2 shadow-sm shrink-0">
+        <div className="bg-white rounded-xl p-3 shadow-sm shrink-0">
           <img
             src={capitalIndiaLogo}
             alt="Capital India"
-            className="h-10 w-10 rounded-lg object-cover"
+            className="h-[120px] w-[120px] rounded-lg object-cover"
           />
         </div>
         {!collapsed && (
           <div className="text-center mt-1">
-            <p className="text-sm font-semibold text-foreground truncate max-w-[160px]">
+            <p className="text-sm font-semibold text-white truncate max-w-[160px]">
               {profile?.full_name || "Staff User"}
             </p>
             {profile?.department && (
-              <p className="text-xs text-muted-foreground truncate max-w-[160px]">
+              <p className="text-xs text-white/70 truncate max-w-[160px]">
                 {profile.department}
               </p>
             )}
