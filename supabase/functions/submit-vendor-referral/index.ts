@@ -45,7 +45,7 @@ serve(async (req) => {
   }
 
   try {
-    const { referral_code, formData } = await req.json();
+    const { referral_code, formData, documents } = await req.json();
 
     if (!referral_code || !formData) {
       return new Response(JSON.stringify({ error: "Invalid request" }), {
@@ -168,6 +168,24 @@ serve(async (req) => {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Link uploaded documents to the vendor
+    if (documents && Array.isArray(documents) && documents.length > 0) {
+      const docRows = documents.map((doc: any) => ({
+        vendor_id: vendor.id,
+        document_type_id: doc.document_type_id,
+        file_name: doc.file_name,
+        file_url: doc.file_path,
+        file_size_bytes: doc.file_size || null,
+        status: "uploaded",
+      }));
+
+      const { error: docErr } = await supabase.from("vendor_documents").insert(docRows);
+      if (docErr) {
+        console.error("Failed to link documents:", docErr);
+        // Don't fail the whole submission for this
+      }
     }
 
     return new Response(

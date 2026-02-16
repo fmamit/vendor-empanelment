@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const VERIFIEDU_BASE_URL = "https://api.verifiedu.in/api/verifiedu";
@@ -89,7 +89,31 @@ serve(async (req) => {
       })
     );
 
-    const responseData = await response.json();
+    const responseText = await response.text();
+    let responseData: any;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch {
+      // API returned non-JSON or empty response
+      await supabase
+        .from("vendor_verifications")
+        .update({
+          status: "error",
+          response_data: { raw: responseText, http_status: response.status },
+        })
+        .eq("id", verificationId);
+
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Verification service returned an invalid response. Please try again later.",
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
 
     // Check for API errors vs verification failures
     if (!responseData.success || !responseData.data) {
