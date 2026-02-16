@@ -8,7 +8,6 @@ import { AuthProvider } from "@/hooks/useAuth";
 // Pages
 
 import NotFound from "./pages/NotFound";
-import InstallApp from "./pages/InstallApp";
 
 // Vendor Pages
 import VendorLogin from "./pages/vendor/VendorLogin";
@@ -47,7 +46,6 @@ const App = () => (
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<StaffLogin />} />
-            <Route path="/install" element={<InstallApp />} />
             <Route path="/register/ref/:token" element={<VendorReferralRegistration />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             
