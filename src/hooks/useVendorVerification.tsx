@@ -1,6 +1,9 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const FUNCTIONS_BASE = `${SUPABASE_URL}/functions/v1`;
+
 async function safeParseJson(response: Response): Promise<any> {
   const text = await response.text();
   try {
@@ -30,7 +33,7 @@ export function useVendorVerifications(vendorId: string) {
 export function useVerifyPan() {
   return useMutation({
     mutationFn: async ({ panNumber, vendorId }: { panNumber: string; vendorId: string }) => {
-      const response = await fetch(`${window.location.origin}/functions/v1/verify-pan`, {
+      const response = await fetch(`${FUNCTIONS_BASE}/verify-pan`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pan_number: panNumber.toUpperCase(), vendor_id: vendorId }),
@@ -54,7 +57,7 @@ export function useVerifyBankAccount() {
       ifscCode: string;
       vendorId: string;
     }) => {
-      const response = await fetch(`${window.location.origin}/functions/v1/verify-bank-account`, {
+      const response = await fetch(`${FUNCTIONS_BASE}/verify-bank-account`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ account_number: accountNumber, ifsc_code: ifscCode, vendor_id: vendorId }),
@@ -70,7 +73,7 @@ export function useVerifyBankAccount() {
 export function useInitiateAadhaar() {
   return useMutation({
     mutationFn: async ({ vendorId }: { vendorId: string }) => {
-      const response = await fetch(`${window.location.origin}/functions/v1/verify-aadhaar`, {
+      const response = await fetch(`${FUNCTIONS_BASE}/verify-aadhaar`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ vendor_id: vendorId }),
@@ -92,7 +95,7 @@ export function useFetchAadhaarDetails() {
       uniqueRequestNumber: string;
       vendorId: string;
     }) => {
-      const response = await fetch(`${window.location.origin}/functions/v1/get-aadhaar-details`, {
+      const response = await fetch(`${FUNCTIONS_BASE}/get-aadhaar-details`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ unique_request_number: uniqueRequestNumber, vendor_id: vendorId }),
