@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 
 // Pages
-import Index from "./pages/Index";
+
 import NotFound from "./pages/NotFound";
 import InstallApp from "./pages/InstallApp";
 
