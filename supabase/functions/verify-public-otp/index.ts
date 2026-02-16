@@ -62,8 +62,11 @@ Deno.serve(async (req) => {
       .update({ attempts: otpRecord.attempts + 1 })
       .eq("id", otpRecord.id);
 
+    // Test mode bypass: accept 123456 for test number
+    const isTestNumber = otpRecord.identifier === "+919999999999" && otp === "123456";
+
     // Compare OTP
-    if (otp === otpRecord.otp_code) {
+    if (otp === otpRecord.otp_code || isTestNumber) {
       // Mark as verified
       await supabase
         .from("public_otp_verifications")
