@@ -8,7 +8,6 @@ import {
   useVendorVerifications,
   useVerifyPan,
   useVerifyBankAccount,
-  useInitiateAadhaar,
 } from "@/hooks/useVendorVerification";
 import { toast } from "@/hooks/use-toast";
 import { VerificationBadge } from "@/components/fraud/VerificationBadge";
@@ -29,7 +28,6 @@ export function VerificationPanel({
   const { data: verifications, isLoading: verificationsLoading, refetch } = useVendorVerifications(vendorId);
   const verifyPan = useVerifyPan();
   const verifyBankAccount = useVerifyBankAccount();
-  const initiateAadhaar = useInitiateAadhaar();
 
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
 
@@ -84,20 +82,6 @@ export function VerificationPanel({
       toast({
         title: "Verification Failed",
         description: error instanceof Error ? error.message : "Bank account verification failed",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleInitiateAadhaar = async () => {
-    try {
-      const result = await initiateAadhaar.mutateAsync({ vendorId });
-      window.open(result.url, "_blank");
-      refetch();
-    } catch (error) {
-      toast({
-        title: "Aadhaar Verification Failed",
-        description: error instanceof Error ? error.message : "Failed to initiate Aadhaar verification",
         variant: "destructive",
       });
     }
@@ -243,45 +227,6 @@ export function VerificationPanel({
           )}
         </div>
 
-        {/* Aadhaar Verification */}
-        <div className="border rounded-lg p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <span className="font-medium">Aadhaar Verification</span>
-              {verificationStatusMap.aadhaar && getStatusIcon(verificationStatusMap.aadhaar.status)}
-            </div>
-            {verificationStatusMap.aadhaar && (
-              <Badge className={cn("text-xs", getStatusBadgeVariant(verificationStatusMap.aadhaar.status))}>
-                {verificationStatusMap.aadhaar.status}
-              </Badge>
-            )}
-          </div>
-
-          {verificationStatusMap.aadhaar?.data && (
-            <div className="text-sm text-muted-foreground mb-3 space-y-1">
-              <p>Name: <span className="text-foreground font-medium">{verificationStatusMap.aadhaar.data.name}</span></p>
-              <p>Gender: <span className="text-foreground font-medium">{verificationStatusMap.aadhaar.data.gender}</span></p>
-              <p>DOB: <span className="text-foreground font-medium">{verificationStatusMap.aadhaar.data.dob}</span></p>
-            </div>
-          )}
-
-          <Button
-            onClick={handleInitiateAadhaar}
-            disabled={initiateAadhaar.isPending}
-            variant={verificationStatusMap.aadhaar ? "outline" : "default"}
-            size="sm"
-            className="w-full"
-          >
-            {initiateAadhaar.isPending ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Initiating...
-              </>
-            ) : (
-              "Verify via Aadhaar"
-            )}
-          </Button>
-        </div>
       </CardContent>
     </Card>
   );
