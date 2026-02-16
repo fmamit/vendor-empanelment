@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ReferralHeader } from "@/components/referral/ReferralHeader";
+import { RegistrationSuccess } from "@/components/referral/RegistrationSuccess";
 import { ConsentStep, CONSENT_VERSION } from "@/components/referral/ConsentStep";
 import { CompanyDetailsStep } from "@/components/referral/CompanyDetailsStep";
 import { ContactDetailsStep } from "@/components/referral/ContactDetailsStep";
@@ -251,19 +252,7 @@ export default function VendorReferralRegistration() {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <ReferralHeader currentStep={0} />
-        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center gap-4">
-          <div className="w-20 h-20 rounded-full bg-accent/10 flex items-center justify-center">
-            <CheckCircle2 className="h-10 w-10 text-accent" />
-          </div>
-          <h2 className="text-xl font-semibold text-foreground">Registration Submitted!</h2>
-          <p className="text-muted-foreground max-w-sm">
-            Your vendor registration has been received. Our team will review your application and get in touch shortly.
-          </p>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mt-4">
-            <ShieldCheck className="h-4 w-4" />
-            <span>256-bit Encrypted | DPDP Act Compliant</span>
-          </div>
-        </div>
+        <RegistrationSuccess />
       </div>
     );
   }
