@@ -74,7 +74,7 @@ export function ContactDetailsStep({ formData, phoneVerified, emailVerified, onC
         setPhoneTestOtp(data.testOtp);
         toast.success(`Test Mode - OTP: ${data.testOtp}`);
       } else {
-        toast.success("OTP sent via WhatsApp");
+        toast.success("OTP sent to your WhatsApp");
       }
     } catch (err: any) {
       toast.error(err.message || "Failed to send OTP");

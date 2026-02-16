@@ -22,14 +22,14 @@ Deno.serve(async (req) => {
     if (!identifier || !identifierType) {
       return new Response(
         JSON.stringify({ error: "identifier and identifierType are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     if (!["phone", "email"].includes(identifierType)) {
       return new Response(
         JSON.stringify({ error: "identifierType must be 'phone' or 'email'" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -39,14 +39,14 @@ Deno.serve(async (req) => {
       if (clean.length !== 10 || !/^[6-9]/.test(clean)) {
         return new Response(
           JSON.stringify({ error: "Invalid 10-digit Indian mobile number" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     } else {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier)) {
         return new Response(
           JSON.stringify({ error: "Invalid email address" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     }
@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
     } else if ((count || 0) >= 5) {
       return new Response(
         JSON.stringify({ error: "Too many OTP requests. Please try again later." }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
