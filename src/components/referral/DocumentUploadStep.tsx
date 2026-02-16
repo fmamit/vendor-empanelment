@@ -55,12 +55,12 @@ export function DocumentUploadStep({ categoryDocs, token, uploadedDocs, onDocUpl
   };
 
   return (
-    <div className="space-y-3 p-4">
-      <p className="text-sm text-muted-foreground">
+    <div className="space-y-4 p-8">
+      <p className="text-base text-muted-foreground">
         Upload required documents. Supported: PDF, JPG, PNG (max 5MB)
       </p>
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         {categoryDocs.map((doc) => {
           const isUploaded = uploadedDocs.has(doc.document_type_id);
           const isUploading = uploadingDocId === doc.document_type_id;
@@ -74,27 +74,27 @@ export function DocumentUploadStep({ categoryDocs, token, uploadedDocs, onDocUpl
                 isUploaded && !showReupload && "border-accent bg-accent/5"
               )}
             >
-              <CardContent className="px-3 py-2">
+              <CardContent className="px-4 py-3">
                 <div className="flex items-center gap-2 mb-1">
-                  <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <span className="text-sm font-medium truncate">{doc.document_types.name}</span>
-                  {doc.is_mandatory && <span className="text-destructive text-xs">*</span>}
+                  <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
+                  <span className="text-base font-medium truncate">{doc.document_types.name}</span>
+                  {doc.is_mandatory && <span className="text-destructive text-sm">*</span>}
                   {isUploaded && !showReupload && (
-                    <CheckCircle2 className="h-4 w-4 text-accent ml-auto shrink-0" />
+                    <CheckCircle2 className="h-5 w-5 text-accent ml-auto shrink-0" />
                   )}
                 </div>
 
                 {isUploaded && !showReupload ? (
                   <div className="flex items-center justify-between mt-1">
-                    <span className="text-xs text-accent font-medium">Uploaded successfully</span>
+                    <span className="text-sm text-accent font-medium">Uploaded successfully</span>
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="h-7 text-xs px-2 text-muted-foreground"
+                      className="h-8 text-sm px-2 text-muted-foreground"
                       onClick={() => setReuploadDocId(doc.document_type_id)}
                     >
-                      <RefreshCw className="h-3 w-3 mr-1" />
+                      <RefreshCw className="h-4 w-4 mr-1" />
                       Re-upload
                     </Button>
                   </div>
@@ -105,8 +105,8 @@ export function DocumentUploadStep({ categoryDocs, token, uploadedDocs, onDocUpl
                       disabled={isUploading}
                     />
                     {isUploading && (
-                      <div className="flex items-center justify-center gap-2 mt-1 text-xs text-muted-foreground">
-                        <Loader2 className="h-3 w-3 animate-spin" />
+                      <div className="flex items-center justify-center gap-2 mt-1 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
                         Uploading...
                       </div>
                     )}
@@ -115,7 +115,7 @@ export function DocumentUploadStep({ categoryDocs, token, uploadedDocs, onDocUpl
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="h-6 text-xs px-2 mt-1 text-muted-foreground"
+                        className="h-7 text-sm px-2 mt-1 text-muted-foreground"
                         onClick={() => setReuploadDocId(null)}
                       >
                         Cancel

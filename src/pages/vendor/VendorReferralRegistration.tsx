@@ -311,20 +311,20 @@ export default function VendorReferralRegistration() {
       </div>
 
       {/* Fixed bottom nav */}
-      <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-4 flex gap-3 safe-area-inset">
+      <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-6 flex gap-4 safe-area-inset">
         {currentStep > 0 && (
-          <Button variant="outline" className="h-12 flex-1" onClick={handleBack}>
-            <ArrowLeft className="h-4 w-4 mr-1" />
+          <Button variant="outline" className="h-16 flex-1 text-lg" onClick={handleBack}>
+            <ArrowLeft className="h-6 w-6 mr-2" />
             Back
           </Button>
         )}
         {currentStep < 4 ? (
-          <Button className="h-12 flex-1" onClick={handleNext} disabled={!canProceed()}>
+          <Button className="h-16 flex-1 text-lg" onClick={handleNext} disabled={!canProceed()}>
             Next
-            <ArrowRight className="h-4 w-4 ml-1" />
+            <ArrowRight className="h-6 w-6 ml-2" />
           </Button>
         ) : (
-          <Button className="h-12 flex-1" onClick={handleSubmit} disabled={!canProceed()}>
+          <Button className="h-16 flex-1 text-lg" onClick={handleSubmit} disabled={!canProceed()}>
             Submit Registration
           </Button>
         )}
