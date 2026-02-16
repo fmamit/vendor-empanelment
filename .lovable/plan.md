@@ -1,35 +1,35 @@
 
 
-# Remove PWA Plugin and Clean Up Caching
+# Revert Staff Pages + Improve Vendor Registration Form
 
-## What This Does
-Removes the PWA service worker plugin (`vite-plugin-pwa`) that has been causing stale cache issues, where old pages keep appearing even after code updates. The app will still work as a regular web app -- users can still add it to their home screen via browser, but there will be no service worker caching old assets.
+## Part 1: Revert Staff Pages
 
-## Changes
+Undo the changes made to:
+- **StaffSidebar.tsx**: Restore the logo to its original fixed `120px` width (instead of `w-full`)
+- **StaffInviteVendor.tsx**: Restore the original form layout (remove the icon-prefixed inputs and mobile-first restructuring)
 
-### 1. Remove PWA plugin from build config (`vite.config.ts`)
-- Remove the `VitePWA` import and its entire configuration block
-- Remove the `vite-plugin-pwa` dependency from `package.json`
+## Part 2: Vendor Registration Form Improvements
 
-### 2. Keep the cache cleanup code (`src/main.tsx`)
-- The existing service worker unregister + cache clear code stays -- this ensures any previously installed service workers from existing users get cleaned up on their next visit
+Based on the screenshot, the vendor registration form (public referral flow) needs:
 
-### 3. Clean up `index.html`
-- Remove PWA-specific meta tags (`apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style`, etc.)
-- Remove the manifest link
-- Keep standard meta tags (title, description, favicon, viewport)
+### A. Make the Capital India logo 5x larger in ReferralHeader
+- Current logo height: `h-8` (32px)
+- New logo height: `h-40` (160px) -- approximately 5x larger
+- Center it prominently in the header area
 
-### 4. Remove PWA-related files
-- Delete `public/manifest.json`
-- Delete `src/pages/InstallApp.tsx`
-- Remove the `/install` route from `src/App.tsx`
+### B. Mobile-first form design for CompanyDetailsStep (and other steps)
+- Increase input heights to `h-12` for better touch targets (already done)
+- Add more spacing between fields
+- Make labels bolder and more readable
+- Ensure the "Next" button at the bottom is large and easy to tap
+- Clean, spacious single-column layout optimized for phone screens
 
-### 5. Keep intact
-- The icons in `public/icons/` can stay (used for favicon/og:image)
-- The favicon link stays
+### Technical Details
 
-## Technical Notes
-- The `vite-plugin-pwa` package will be uninstalled
-- The `@types/qrcode` and `qrcode` packages stay (used elsewhere)
-- Existing users who have the old service worker will get it automatically unregistered by the cleanup code in `main.tsx`
+**Files to modify:**
+1. `src/components/layout/StaffSidebar.tsx` -- revert logo to `w-[120px]`
+2. `src/pages/staff/StaffInviteVendor.tsx` -- revert form to original grid layout without icon prefixes
+3. `src/components/referral/ReferralHeader.tsx` -- increase logo from `h-8` to `h-40`
+4. `src/components/referral/CompanyDetailsStep.tsx` -- polish spacing and mobile touch targets
+5. `src/components/referral/ReferralStepper.tsx` -- ensure stepper is clean on mobile
 
