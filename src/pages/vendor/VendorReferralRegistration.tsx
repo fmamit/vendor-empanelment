@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ReferralHeader } from "@/components/referral/ReferralHeader";
-import { ReferralStepper } from "@/components/referral/ReferralStepper";
 import { ConsentStep, CONSENT_VERSION } from "@/components/referral/ConsentStep";
 import { CompanyDetailsStep } from "@/components/referral/CompanyDetailsStep";
 import { ContactDetailsStep } from "@/components/referral/ContactDetailsStep";
@@ -215,7 +214,7 @@ export default function VendorReferralRegistration() {
   if (pageState === "loading") {
     return (
       <div className="min-h-screen bg-background flex flex-col">
-        <ReferralHeader />
+        <ReferralHeader currentStep={0} />
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -226,7 +225,7 @@ export default function VendorReferralRegistration() {
   if (pageState === "invalid") {
     return (
       <div className="min-h-screen bg-background flex flex-col">
-        <ReferralHeader />
+        <ReferralHeader currentStep={0} />
         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
           <AlertTriangle className="h-16 w-16 text-warning mb-4" />
           <h2 className="text-xl font-semibold text-foreground mb-2">Link Unavailable</h2>
@@ -239,7 +238,7 @@ export default function VendorReferralRegistration() {
   if (pageState === "submitting") {
     return (
       <div className="min-h-screen bg-background flex flex-col">
-        <ReferralHeader />
+        <ReferralHeader currentStep={0} />
         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center gap-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
           <p className="text-muted-foreground">Submitting your registration...</p>
@@ -251,7 +250,7 @@ export default function VendorReferralRegistration() {
   if (pageState === "success") {
     return (
       <div className="min-h-screen bg-background flex flex-col">
-        <ReferralHeader />
+        <ReferralHeader currentStep={0} />
         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center gap-4">
           <div className="w-20 h-20 rounded-full bg-accent/10 flex items-center justify-center">
             <CheckCircle2 className="h-10 w-10 text-accent" />
@@ -274,8 +273,7 @@ export default function VendorReferralRegistration() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <ReferralHeader />
-      <ReferralStepper currentStep={currentStep} />
+      <ReferralHeader currentStep={currentStep} />
 
       <div className="flex-1 overflow-y-auto pb-24">
         {currentStep === 0 && (
