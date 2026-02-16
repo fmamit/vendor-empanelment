@@ -239,54 +239,45 @@ export default function StaffInviteVendor() {
           <TabsContent value="send" className="flex-1 p-3 sm:p-4 mt-0">
             <Card>
               <CardContent className="p-4 sm:p-5 space-y-4">
-                <div className="space-y-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="company_name" className="text-sm font-medium">Company Name</Label>
-                    <div className="relative">
-                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="company_name"
-                        placeholder="Enter company name"
-                        value={companyName}
-                        onChange={(e) => setCompanyName(e.target.value)}
-                        className="pl-10 h-11"
-                      />
-                    </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <Label htmlFor="company_name">Company Name</Label>
+                    <Input
+                      id="company_name"
+                      placeholder="Enter company name"
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      className="mt-1"
+                    />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="contact_email" className="text-sm font-medium">Email Address</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="contact_email"
-                        type="email"
-                        placeholder="vendor@company.com"
-                        value={contactEmail}
-                        onChange={(e) => setContactEmail(e.target.value)}
-                        className="pl-10 h-11"
-                      />
-                    </div>
+                  <div>
+                    <Label htmlFor="contact_email">Email Address</Label>
+                    <Input
+                      id="contact_email"
+                      type="email"
+                      placeholder="vendor@company.com"
+                      value={contactEmail}
+                      onChange={(e) => setContactEmail(e.target.value)}
+                      className="mt-1"
+                    />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="contact_phone" className="text-sm font-medium">Phone Number</Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="contact_phone"
-                        placeholder="+91 9876543210"
-                        value={contactPhone}
-                        onChange={(e) => setContactPhone(e.target.value)}
-                        className="pl-10 h-11"
-                      />
-                    </div>
+                  <div>
+                    <Label htmlFor="contact_phone">Phone Number</Label>
+                    <Input
+                      id="contact_phone"
+                      placeholder="+91 9876543210"
+                      value={contactPhone}
+                      onChange={(e) => setContactPhone(e.target.value)}
+                      className="mt-1"
+                    />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="category" className="text-sm font-medium">Vendor Category</Label>
+                  <div className="sm:col-span-2">
+                    <Label htmlFor="category">Vendor Category</Label>
                     <Select value={categoryId} onValueChange={setCategoryId}>
-                      <SelectTrigger className="h-11">
+                      <SelectTrigger className="mt-1">
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent className="bg-popover z-50">
@@ -301,7 +292,7 @@ export default function StaffInviteVendor() {
                 </div>
 
                 <Button
-                  className="w-full h-12 text-base mt-2"
+                  className="w-full mt-4"
                   onClick={handleSendInvitation}
                   disabled={sending}
                 >

@@ -22,17 +22,17 @@ export function CompanyDetailsStep({ formData, categoryName, categories, onChang
   const hasCategories = categories && categories.length > 0;
 
   return (
-    <div className="space-y-5 p-4">
-      <div className="flex items-center gap-2">
+    <div className="space-y-6 px-4 py-5">
+      <div className="flex items-center gap-2.5">
         <Building2 className="h-5 w-5 text-primary" />
-        <h2 className="text-lg font-semibold text-foreground">Company Details</h2>
+        <h2 className="text-lg font-bold text-foreground">Company Details</h2>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-5">
         <div>
-          <Label>Salutation</Label>
+          <Label className="text-sm font-semibold">Salutation</Label>
           <Select value={formData.salutation} onValueChange={(val) => onChange("salutation", val)}>
-            <SelectTrigger className="h-12 mt-1">
+            <SelectTrigger className="h-12 mt-1.5">
               <SelectValue placeholder="Select salutation" />
             </SelectTrigger>
             <SelectContent>
@@ -45,31 +45,31 @@ export function CompanyDetailsStep({ formData, categoryName, categories, onChang
         </div>
 
         <div>
-          <Label htmlFor="company_name">Company Name *</Label>
+          <Label htmlFor="company_name" className="text-sm font-semibold">Company Name *</Label>
           <Input
             id="company_name"
             value={formData.company_name}
             onChange={(e) => onChange("company_name", e.target.value)}
             placeholder="Registered company name"
-            className="h-12 mt-1"
+            className="h-12 mt-1.5"
           />
         </div>
 
         <div>
-          <Label htmlFor="trade_name">Trade / Brand Name</Label>
+          <Label htmlFor="trade_name" className="text-sm font-semibold">Trade / Brand Name</Label>
           <Input
             id="trade_name"
             value={formData.trade_name}
             onChange={(e) => onChange("trade_name", e.target.value)}
             placeholder="If different from company name"
-            className="h-12 mt-1"
+            className="h-12 mt-1.5"
           />
         </div>
 
         <div>
-          <Label>Constitution Type *</Label>
+          <Label className="text-sm font-semibold">Constitution Type *</Label>
           <Select value={formData.constitution_type} onValueChange={(val) => onChange("constitution_type", val)}>
-            <SelectTrigger className="h-12 mt-1">
+            <SelectTrigger className="h-12 mt-1.5">
               <SelectValue placeholder="Select constitution type" />
             </SelectTrigger>
             <SelectContent>
@@ -84,10 +84,10 @@ export function CompanyDetailsStep({ formData, categoryName, categories, onChang
         </div>
 
         <div>
-          <Label>Vendor Category *</Label>
+          <Label className="text-sm font-semibold">Vendor Category *</Label>
           {hasCategories ? (
             <Select value={formData.category_id} onValueChange={(val) => onChange("category_id", val)}>
-              <SelectTrigger className="h-12 mt-1">
+              <SelectTrigger className="h-12 mt-1.5">
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent>
@@ -99,32 +99,32 @@ export function CompanyDetailsStep({ formData, categoryName, categories, onChang
               </SelectContent>
             </Select>
           ) : (
-            <div className="flex items-center gap-2 mt-1 h-12 px-3 rounded-md border border-input bg-muted/50">
+            <div className="flex items-center gap-2 mt-1.5 h-12 px-3 rounded-md border border-input bg-muted/50">
               <span className="text-sm text-muted-foreground">{categoryName || "Loading..."}</span>
             </div>
           )}
         </div>
 
         <div>
-          <Label htmlFor="gst_number">GST Number</Label>
+          <Label htmlFor="gst_number" className="text-sm font-semibold">GST Number</Label>
           <Input
             id="gst_number"
             value={formData.gst_number}
             onChange={(e) => onChange("gst_number", e.target.value.toUpperCase())}
             placeholder="e.g., 22AAAAA0000A1Z5"
-            className="h-12 mt-1 uppercase"
+            className="h-12 mt-1.5 uppercase"
             maxLength={15}
           />
         </div>
 
         <div>
-          <Label htmlFor="pan_number">PAN Number</Label>
+          <Label htmlFor="pan_number" className="text-sm font-semibold">PAN Number</Label>
           <Input
             id="pan_number"
             value={formData.pan_number}
             onChange={(e) => onChange("pan_number", e.target.value.toUpperCase())}
             placeholder="e.g., ABCDE1234F"
-            className="h-12 mt-1 uppercase"
+            className="h-12 mt-1.5 uppercase"
             maxLength={10}
           />
         </div>
