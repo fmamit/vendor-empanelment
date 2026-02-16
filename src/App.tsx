@@ -26,8 +26,6 @@ import FraudAlertsDashboard from "./pages/staff/FraudAlertsDashboard";
 import StaffProfile from "./pages/staff/StaffProfile";
 import StaffInviteVendor from "./pages/staff/StaffInviteVendor";
 import StaffReports from "./pages/staff/StaffReports";
-import DigiLockerSuccess from "./pages/vendor/DigiLockerSuccess";
-import DigiLockerFailure from "./pages/vendor/DigiLockerFailure";
 
 // Admin Pages
 import AdminUserManagement from "./pages/admin/AdminUserManagement";
@@ -64,8 +62,6 @@ const App = () => (
             <Route path="/staff/profile" element={<StaffProfile />} />
             <Route path="/staff/invite-vendor" element={<StaffInviteVendor />} />
             <Route path="/staff/reports" element={<StaffReports />} />
-            <Route path="/digilocker/success" element={<DigiLockerSuccess />} />
-            <Route path="/digilocker/failure" element={<DigiLockerFailure />} />
             
             {/* Admin Routes */}
             <Route path="/admin/users" element={<AdminUserManagement />} />
