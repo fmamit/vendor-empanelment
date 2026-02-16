@@ -25,13 +25,11 @@ export function DocumentCapture({
   const handleFile = useCallback((file: File) => {
     setError(null);
     
-    // Validate size
     if (file.size > maxSizeMB * 1024 * 1024) {
       setError(`File size must be less than ${maxSizeMB}MB`);
       return;
     }
 
-    // Show preview for images
     if (file.type.startsWith("image/")) {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -58,27 +56,26 @@ export function DocumentCapture({
   };
 
   return (
-    <div className={cn("space-y-3", className)}>
+    <div className={cn("space-y-2", className)}>
       {preview ? (
         <div className="relative">
           <img
             src={preview}
             alt="Preview"
-            className="w-full h-48 object-contain rounded-lg border bg-muted"
+            className="w-full h-24 object-contain rounded-lg border bg-muted"
           />
           <Button
             type="button"
             variant="destructive"
             size="icon"
-            className="absolute top-2 right-2 h-8 w-8"
+            className="absolute top-1 right-1 h-6 w-6"
             onClick={clearPreview}
           >
-            <X className="h-4 w-4" />
+            <X className="h-3 w-3" />
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3">
-          {/* Camera Capture */}
+        <div className="grid grid-cols-2 gap-2">
           <label className="relative cursor-pointer">
             <input
               type="file"
@@ -89,19 +86,18 @@ export function DocumentCapture({
               className="sr-only"
             />
             <div className={cn(
-              "flex flex-col items-center justify-center gap-2 p-6 rounded-lg border-2 border-dashed transition-colors",
+              "flex flex-col items-center justify-center gap-1 p-3 rounded-lg border-2 border-dashed transition-colors",
               disabled ? "opacity-50 cursor-not-allowed" : "hover:border-primary hover:bg-primary/5"
             )}>
               {loading ? (
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               ) : (
-                <Camera className="h-8 w-8 text-primary" />
+                <Camera className="h-5 w-5 text-primary" />
               )}
-              <span className="text-sm font-medium">Take Photo</span>
+              <span className="text-xs font-medium">Take Photo</span>
             </div>
           </label>
 
-          {/* File Upload */}
           <label className="relative cursor-pointer">
             <input
               type="file"
@@ -111,22 +107,22 @@ export function DocumentCapture({
               className="sr-only"
             />
             <div className={cn(
-              "flex flex-col items-center justify-center gap-2 p-6 rounded-lg border-2 border-dashed transition-colors",
+              "flex flex-col items-center justify-center gap-1 p-3 rounded-lg border-2 border-dashed transition-colors",
               disabled ? "opacity-50 cursor-not-allowed" : "hover:border-accent hover:bg-accent/5"
             )}>
               {loading ? (
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               ) : (
-                <Upload className="h-8 w-8 text-accent" />
+                <Upload className="h-5 w-5 text-accent" />
               )}
-              <span className="text-sm font-medium">Upload File</span>
+              <span className="text-xs font-medium">Upload File</span>
             </div>
           </label>
         </div>
       )}
 
       {error && (
-        <p className="text-sm text-destructive text-center">{error}</p>
+        <p className="text-xs text-destructive text-center">{error}</p>
       )}
     </div>
   );
