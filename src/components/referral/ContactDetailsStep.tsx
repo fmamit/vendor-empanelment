@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { User, Phone, Mail, CheckCircle2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -9,6 +10,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 
 interface ContactDetailsStepProps {
   formData: {
+    salutation: string;
     primary_contact_name: string;
     primary_mobile: string;
     primary_email: string;
@@ -158,6 +160,22 @@ export function ContactDetailsStep({ formData, phoneVerified, emailVerified, onC
       </div>
 
       <div className="space-y-4">
+        {/* Salutation */}
+        <div>
+          <Label className="text-sm font-semibold">Salutation</Label>
+          <Select value={formData.salutation} onValueChange={(val) => onChange("salutation", val)}>
+            <SelectTrigger className="h-12 mt-1.5">
+              <SelectValue placeholder="Select salutation" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Mr">Mr</SelectItem>
+              <SelectItem value="Mrs">Mrs</SelectItem>
+              <SelectItem value="Ms">Ms</SelectItem>
+              <SelectItem value="Dr">Dr</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Contact Name */}
         <div>
           <Label htmlFor="primary_contact_name">Contact Person Name *</Label>

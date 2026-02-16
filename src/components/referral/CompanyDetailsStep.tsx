@@ -10,7 +10,6 @@ interface CompanyDetailsStepProps {
     gst_number: string;
     pan_number: string;
     category_id: string;
-    salutation: string;
     constitution_type: string;
   };
   categoryName: string;
@@ -29,21 +28,6 @@ export function CompanyDetailsStep({ formData, categoryName, categories, onChang
       </div>
 
       <div className="space-y-5">
-        <div>
-          <Label className="text-sm font-semibold">Salutation</Label>
-          <Select value={formData.salutation} onValueChange={(val) => onChange("salutation", val)}>
-            <SelectTrigger className="h-12 mt-1.5">
-              <SelectValue placeholder="Select salutation" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Mr">Mr</SelectItem>
-              <SelectItem value="Mrs">Mrs</SelectItem>
-              <SelectItem value="Ms">Ms</SelectItem>
-              <SelectItem value="Dr">Dr</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
         <div>
           <Label htmlFor="company_name" className="text-sm font-semibold">Company Name *</Label>
           <Input
