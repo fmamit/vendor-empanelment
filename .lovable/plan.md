@@ -1,46 +1,47 @@
 
 
-# Scale Up Vendor Referral Page
+# Fix: Test Number OTP Validation and Error Handling
 
-## Summary
-Increase the visual scale of the vendor referral page to suit a large-screen display: 3X the header ribbon elements, 2X all body fonts, and expand the content container to fill the viewport without page-level scrolling.
+## Problem
+The `send-public-otp` and `verify-public-otp` edge functions return HTTP 400/429 status codes for validation errors. The Supabase client (`supabase.functions.invoke`) treats any non-2xx response as a generic "non-2xx response" error, hiding the actual error message (like "Invalid OTP" or "OTP expired") from the user.
+
+## Solution
+Change both edge functions to return HTTP 200 for all validation/business-logic responses, with success/failure indicated in the JSON body. Only genuine server errors remain as HTTP 500. The client code already checks `data?.error` and `data?.verified`, so no frontend changes are needed.
 
 ## Changes
 
-### 1. ReferralHeader.tsx -- Scale ribbon elements 3X
-- Logo height: `h-10` to `h-[120px]` (approx 3X)
-- Title text: `text-sm` to `text-[2.625rem]` (3X of 14px = 42px)
-- Padding: `px-3 py-2` to `px-9 py-6`
+### 1. `supabase/functions/send-public-otp/index.ts`
+- Lines 23-26 (missing identifier): Change `status: 400` to `status: 200`
+- Lines 30-33 (invalid identifierType): Change `status: 400` to `status: 200`
+- Lines 40-43 (invalid phone format): Change `status: 400` to `status: 200`
+- Lines 47-50 (invalid email format): Change `status: 400` to `status: 200`
+- Lines 74-77 (rate limit exceeded): Change `status: 429` to `status: 200`
+- Keep all `status: 500` responses unchanged (genuine server errors)
 
-### 2. ReferralStepper.tsx -- Scale stepper 3X
-- Step circles: `w-6 h-6` to `w-[72px] h-[72px]`
-- Circle text: `text-[10px]` to `text-[30px]`
-- Check icon: `h-3.5 w-3.5` to `h-10 w-10`
-- Step labels: `text-[9px]` to `text-[27px]`, `max-w-[40px]` to `max-w-[120px]`
-- Connectors: `h-0.5 w-4 mx-0.5` to `h-1.5 w-12 mx-1.5`
+### 2. `supabase/functions/verify-public-otp/index.ts`
+- Lines 18-20 (missing params): Change `status: 400` to `status: 200`
+- Lines 37-40 (no valid OTP found): Change `status: 400` to `status: 200`
+- Lines 45-48 (OTP expired): Change `status: 400` to `status: 200`
+- Lines 53-56 (max attempts): Change `status: 429` to `status: 200`
+- Lines 86-89 (invalid OTP mismatch): Change `status: 400` to `status: 200`
+- Keep `status: 500` unchanged
 
-### 3. ConsentStep.tsx -- Scale fonts 2X and expand container
-- Title icon: `h-5 w-5` to `h-10 w-10`
-- Title text: `text-base` to `text-2xl`
-- Body text: `text-sm` to `text-lg`
-- Section headings: add `text-lg`
-- List items: `text-sm` / default to `text-base`
-- ScrollArea: change `h-[320px]` to `h-[55vh]` (fills viewport, avoids outer page scroll)
-- Consent checkbox label: `text-sm` to `text-base`
-- Privacy link: `text-xs` to `text-base`
-- Increase padding: `p-4` to `p-8`
+### 3. `src/components/referral/ContactDetailsStep.tsx` -- Fix toast notification
+- Line 77: Change toast message from `"OTP sent via WhatsApp"` to `"OTP sent to your WhatsApp"` (consistent with backend message)
+- The existing error-handling logic at lines 68-69 (`if (error) throw error; if (data?.error) throw new Error(data.error)`) and lines 94-100 (`if (error) throw error; if (data?.verified) ... else toast.error(...)`) will now work correctly since the Supabase client won't throw on these responses
 
-### 4. VendorReferralRegistration.tsx -- Prevent page scroll
-- The content area already uses `flex-1 overflow-y-auto` which fills available space
-- No changes needed here since the expanded ScrollArea inside ConsentStep handles containment
+## Why This Works
+The client code already has the correct branching logic:
+```
+const { data, error } = await supabase.functions.invoke(...)
+if (error) throw error;          // Won't fire anymore (200 status)
+if (data?.verified) { ... }      // Handles success
+else toast.error(data?.error);   // Handles validation errors with actual message
+```
 
-## Technical Detail
-- All size changes use Tailwind utility classes (no custom CSS needed)
-- The ScrollArea in ConsentStep uses viewport-relative height (`55vh`) so the consent text scrolls internally while the page itself does not scroll
-- Other form steps (Company, Contact, Bank, Docs) will also need their font sizes doubled -- this will be applied consistently across all step components using increased `text-*` classes
+By returning 200, the `error` field from `supabase.functions.invoke` will be `null`, and the code correctly reads `data.error` or `data.verified` from the JSON body.
 
-### 5. Other Step Components (CompanyDetailsStep, ContactDetailsStep, BankDetailsStep, DocumentUploadStep)
-- All label text: increase to `text-base` or `text-lg`
-- All input fields: keep `h-12` (already touch-friendly)
-- Section headings: increase to `text-xl` or `text-2xl`
-- Spacing: increase `space-y` values proportionally
+## Technical Notes
+- No database changes required
+- No frontend logic changes required (only toast text update)
+- Both edge functions will be auto-deployed after the changes
