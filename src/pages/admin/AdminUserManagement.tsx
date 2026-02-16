@@ -34,7 +34,6 @@ const ROLE_OPTIONS = [
   { value: "checker", label: "Checker", description: "Second-level verification" },
   { value: "approver", label: "Approver", description: "Final approval authority" },
   { value: "admin", label: "Admin", description: "Full system access" },
-  { value: "platform_admin", label: "Platform Admin", description: "God-level access, overrides all restrictions" },
 ];
 
 export default function AdminUserManagement() {
