@@ -86,23 +86,39 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Validate token
-    const { data: invitation, error: invErr } = await supabase
+    // Validate token - try vendor_invitations first, then staff_referral_codes
+    let identifier: string;
+    let vendorId: string | null = null;
+
+    const { data: invitation } = await supabase
       .from("vendor_invitations")
       .select("id, vendor_id")
       .eq("token", token)
       .single();
 
-    if (invErr || !invitation) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (invitation) {
+      identifier = invitation.id;
+      vendorId = invitation.vendor_id;
+    } else {
+      const { data: refCode } = await supabase
+        .from("staff_referral_codes")
+        .select("id")
+        .eq("referral_code", token)
+        .eq("is_active", true)
+        .single();
+
+      if (!refCode) {
+        return new Response(JSON.stringify({ error: "Invalid token" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      identifier = refCode.id;
     }
 
     // Generate unique file path with sanitized name
     const sanitizedName = sanitizeFileName(fileName);
-    const filePath = `referral/${invitation.id}/${documentTypeId}/${Date.now()}_${sanitizedName}`;
+    const filePath = `referral/${identifier}/${documentTypeId}/${Date.now()}_${sanitizedName}`;
 
     // Upload to storage
     const { error: uploadErr } = await supabase.storage
@@ -120,10 +136,10 @@ serve(async (req) => {
       });
     }
 
-    // If vendor already created, link the document
-    if (invitation.vendor_id) {
+    // If vendor already created (invitation flow), link the document
+    if (vendorId) {
       await supabase.from("vendor_documents").insert({
-        vendor_id: invitation.vendor_id,
+        vendor_id: vendorId,
         document_type_id: documentTypeId,
         file_name: sanitizedName,
         file_url: filePath,
