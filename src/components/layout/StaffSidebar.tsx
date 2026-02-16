@@ -75,12 +75,12 @@ export function StaffSidebar() {
   return (
     <Sidebar collapsible="icon">
       {/* Logo & User Identity Header */}
-      <div className="flex flex-col items-center gap-2 px-3 py-5 border-b border-border/50">
-        <div className="bg-white rounded-xl p-3 shadow-sm shrink-0">
+      <div className="flex flex-col items-center gap-2 px-2 py-5 border-b border-border/50">
+        <div className="bg-white rounded-xl p-2 shadow-sm shrink-0 w-full">
           <img
             src={capitalIndiaLogo}
             alt="Capital India"
-            className="h-[120px] w-[120px] rounded-lg object-cover"
+            className="w-full rounded-lg object-contain"
           />
         </div>
         {!collapsed && (

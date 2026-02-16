@@ -236,12 +236,12 @@ export default function StaffInviteVendor() {
           </TabsList>
 
           {/* Send Invitation Tab */}
-          <TabsContent value="send" className="flex-1 p-4 mt-0">
+          <TabsContent value="send" className="flex-1 p-3 sm:p-4 mt-0">
             <Card>
-              <CardContent className="p-4 space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <CardContent className="p-4 sm:p-5 space-y-4">
+                <div className="space-y-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="company_name" className="text-xs">Company Name</Label>
+                    <Label htmlFor="company_name" className="text-sm font-medium">Company Name</Label>
                     <div className="relative">
                       <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -249,13 +249,13 @@ export default function StaffInviteVendor() {
                         placeholder="Enter company name"
                         value={companyName}
                         onChange={(e) => setCompanyName(e.target.value)}
-                        className="pl-10 h-9"
+                        className="pl-10 h-11"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="contact_email" className="text-xs">Email Address</Label>
+                    <Label htmlFor="contact_email" className="text-sm font-medium">Email Address</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -264,13 +264,13 @@ export default function StaffInviteVendor() {
                         placeholder="vendor@company.com"
                         value={contactEmail}
                         onChange={(e) => setContactEmail(e.target.value)}
-                        className="pl-10 h-9"
+                        className="pl-10 h-11"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="contact_phone" className="text-xs">Phone Number</Label>
+                    <Label htmlFor="contact_phone" className="text-sm font-medium">Phone Number</Label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -278,15 +278,15 @@ export default function StaffInviteVendor() {
                         placeholder="+91 9876543210"
                         value={contactPhone}
                         onChange={(e) => setContactPhone(e.target.value)}
-                        className="pl-10 h-9"
+                        className="pl-10 h-11"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="category" className="text-xs">Vendor Category</Label>
+                    <Label htmlFor="category" className="text-sm font-medium">Vendor Category</Label>
                     <Select value={categoryId} onValueChange={setCategoryId}>
-                      <SelectTrigger className="h-9">
+                      <SelectTrigger className="h-11">
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent className="bg-popover z-50">
@@ -301,14 +301,14 @@ export default function StaffInviteVendor() {
                 </div>
 
                 <Button
-                  className="w-full"
+                  className="w-full h-12 text-base mt-2"
                   onClick={handleSendInvitation}
                   disabled={sending}
                 >
                   {sending ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
                   ) : (
-                    <Send className="h-4 w-4 mr-2" />
+                    <Send className="h-5 w-5 mr-2" />
                   )}
                   {sending ? "Sending..." : "Send Invitation"}
                 </Button>
