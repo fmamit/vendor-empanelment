@@ -1315,11 +1315,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_internal_staff: { Args: { _user_id: string }; Returns: boolean }
       is_vendor_user: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "maker" | "checker" | "approver" | "admin"
+      app_role: "maker" | "checker" | "approver" | "admin" | "platform_admin"
       document_status:
         | "uploaded"
         | "under_review"
@@ -1469,7 +1470,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["maker", "checker", "approver", "admin"],
+      app_role: ["maker", "checker", "approver", "admin", "platform_admin"],
       document_status: [
         "uploaded",
         "under_review",
