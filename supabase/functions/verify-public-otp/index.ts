@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
     if (!sessionId || !otp) {
       return new Response(
         JSON.stringify({ error: "sessionId and otp are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
     if (fetchError || !otpRecord) {
       return new Response(
         JSON.stringify({ error: "No valid OTP found. Please request a new one." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
     if (new Date(otpRecord.expires_at) < new Date()) {
       return new Response(
         JSON.stringify({ error: "OTP has expired. Please request a new one." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
     if (otpRecord.attempts >= otpRecord.max_attempts) {
       return new Response(
         JSON.stringify({ error: "Maximum attempts exceeded. Please request a new OTP." }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
     const remaining = otpRecord.max_attempts - (otpRecord.attempts + 1);
     return new Response(
       JSON.stringify({ error: "Invalid OTP", remainingAttempts: remaining }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Error in verify-public-otp:", error);
