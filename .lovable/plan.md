@@ -1,40 +1,46 @@
 
 
-# Redesign Referral Page Header: 3-Column Single Row
+# Scale Up Vendor Referral Page
 
-## Current Layout
-The header currently has two stacked sections:
-1. A tall centered logo (h-40) with padding
-2. A "Vendor Registration" title bar
-3. Below that, a separate stepper row
+## Summary
+Increase the visual scale of the vendor referral page to suit a large-screen display: 3X the header ribbon elements, 2X all body fonts, and expand the content container to fill the viewport without page-level scrolling.
 
-## New Layout
-Combine everything into a single compact top ribbon with 3 columns in one row:
+## Changes
 
-```text
-+------------------------------------------------------------------+
-| [Logo]  |  Vendor Registration  |  [0] -- [1] -- [2] -- [3] -- [4] |
-|  (left) |      (center)         |        Stepper (right)            |
-+------------------------------------------------------------------+
-```
+### 1. ReferralHeader.tsx -- Scale ribbon elements 3X
+- Logo height: `h-10` to `h-[120px]` (approx 3X)
+- Title text: `text-sm` to `text-[2.625rem]` (3X of 14px = 42px)
+- Padding: `px-3 py-2` to `px-9 py-6`
 
-### Changes
+### 2. ReferralStepper.tsx -- Scale stepper 3X
+- Step circles: `w-6 h-6` to `w-[72px] h-[72px]`
+- Circle text: `text-[10px]` to `text-[30px]`
+- Check icon: `h-3.5 w-3.5` to `h-10 w-10`
+- Step labels: `text-[9px]` to `text-[27px]`, `max-w-[40px]` to `max-w-[120px]`
+- Connectors: `h-0.5 w-4 mx-0.5` to `h-1.5 w-12 mx-1.5`
 
-**1. `src/components/referral/ReferralHeader.tsx`**
-- Accept `currentStep` as a prop
-- Replace the stacked layout with a single `flex` row (`items-center justify-between`)
-- Left column: Logo scaled down to ~h-10 for the ribbon
-- Center column: "Vendor Registration" title text
-- Right column: Inline the stepper (import and render `ReferralStepper`)
-- Remove the separate blue title bar since the title is now inline
-- Keep the sticky top behavior and border
+### 3. ConsentStep.tsx -- Scale fonts 2X and expand container
+- Title icon: `h-5 w-5` to `h-10 w-10`
+- Title text: `text-base` to `text-2xl`
+- Body text: `text-sm` to `text-lg`
+- Section headings: add `text-lg`
+- List items: `text-sm` / default to `text-base`
+- ScrollArea: change `h-[320px]` to `h-[55vh]` (fills viewport, avoids outer page scroll)
+- Consent checkbox label: `text-sm` to `text-base`
+- Privacy link: `text-xs` to `text-base`
+- Increase padding: `p-4` to `p-8`
 
-**2. `src/components/referral/ReferralStepper.tsx`**
-- Make it more compact to fit inside the header row (reduce circle size from w-9 to w-7, reduce connector width, smaller text)
-- Remove the outer padding and background/border since it will be embedded inside the header
+### 4. VendorReferralRegistration.tsx -- Prevent page scroll
+- The content area already uses `flex-1 overflow-y-auto` which fills available space
+- No changes needed here since the expanded ScrollArea inside ConsentStep handles containment
 
-**3. `src/pages/vendor/VendorReferralRegistration.tsx`**
-- Remove the separate `<ReferralStepper>` component usage
-- Pass `currentStep` to `<ReferralHeader>` instead
-- Update all render paths (loading, invalid, submitting, success) to pass `currentStep={0}` to ReferralHeader
+## Technical Detail
+- All size changes use Tailwind utility classes (no custom CSS needed)
+- The ScrollArea in ConsentStep uses viewport-relative height (`55vh`) so the consent text scrolls internally while the page itself does not scroll
+- Other form steps (Company, Contact, Bank, Docs) will also need their font sizes doubled -- this will be applied consistently across all step components using increased `text-*` classes
 
+### 5. Other Step Components (CompanyDetailsStep, ContactDetailsStep, BankDetailsStep, DocumentUploadStep)
+- All label text: increase to `text-base` or `text-lg`
+- All input fields: keep `h-12` (already touch-friendly)
+- Section headings: increase to `text-xl` or `text-2xl`
+- Spacing: increase `space-y` values proportionally
