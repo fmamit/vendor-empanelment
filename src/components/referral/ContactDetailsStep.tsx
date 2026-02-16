@@ -153,18 +153,18 @@ export function ContactDetailsStep({ formData, phoneVerified, emailVerified, onC
   }, [emailOtpValue, emailSessionId, onEmailVerified]);
 
   return (
-    <div className="space-y-5 p-4">
-      <div className="flex items-center gap-2">
-        <User className="h-5 w-5 text-primary" />
-        <h2 className="text-lg font-semibold text-foreground">Contact Details</h2>
+    <div className="space-y-6 p-8">
+      <div className="flex items-center gap-3">
+        <User className="h-8 w-8 text-primary" />
+        <h2 className="text-2xl font-semibold text-foreground">Contact Details</h2>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-5">
         {/* Salutation */}
         <div>
-          <Label className="text-sm font-semibold">Salutation</Label>
+          <Label className="text-base font-semibold">Salutation</Label>
           <Select value={formData.salutation} onValueChange={(val) => onChange("salutation", val)}>
-            <SelectTrigger className="h-12 mt-1.5">
+            <SelectTrigger className="h-14 mt-2 text-base">
               <SelectValue placeholder="Select salutation" />
             </SelectTrigger>
             <SelectContent>
@@ -178,21 +178,21 @@ export function ContactDetailsStep({ formData, phoneVerified, emailVerified, onC
 
         {/* Contact Name */}
         <div>
-          <Label htmlFor="primary_contact_name">Contact Person Name *</Label>
+          <Label htmlFor="primary_contact_name" className="text-base font-semibold">Contact Person Name *</Label>
           <Input
             id="primary_contact_name"
             value={formData.primary_contact_name}
             onChange={(e) => onChange("primary_contact_name", e.target.value)}
             placeholder="Full name"
-            className="h-12 mt-1"
+            className="h-14 mt-2 text-base"
           />
         </div>
 
         {/* Mobile Number + Phone OTP */}
         <div>
-          <Label htmlFor="primary_mobile">Mobile Number *</Label>
-          <div className="flex gap-2 mt-1">
-            <div className="flex items-center px-3 h-12 rounded-md border border-input bg-muted/50 text-sm text-muted-foreground">
+          <Label htmlFor="primary_mobile" className="text-base font-semibold">Mobile Number *</Label>
+          <div className="flex gap-2 mt-2">
+            <div className="flex items-center px-3 h-14 rounded-md border border-input bg-muted/50 text-base text-muted-foreground">
               +91
             </div>
             <Input
@@ -201,34 +201,33 @@ export function ContactDetailsStep({ formData, phoneVerified, emailVerified, onC
               value={formData.primary_mobile}
               onChange={(e) => onChange("primary_mobile", e.target.value.replace(/\D/g, ""))}
               placeholder="10-digit number"
-              className="h-12 flex-1"
+              className="h-14 flex-1 text-base"
               maxLength={10}
               disabled={phoneVerified}
             />
           </div>
 
           {phoneVerified ? (
-            <div className="flex items-center gap-1.5 mt-2 text-sm text-accent">
-              <CheckCircle2 className="h-4 w-4" />
+            <div className="flex items-center gap-1.5 mt-2 text-base text-accent">
+              <CheckCircle2 className="h-5 w-5" />
               Phone verified
             </div>
           ) : !phoneOtpSent ? (
             <Button
               type="button"
               variant="outline"
-              size="sm"
-              className="mt-2"
+              className="mt-2 h-12 text-base"
               onClick={sendPhoneOtp}
               disabled={phoneSending || formData.primary_mobile.replace(/\D/g, "").length !== 10}
             >
-              {phoneSending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Phone className="h-4 w-4 mr-1" />}
+              {phoneSending ? <Loader2 className="h-5 w-5 animate-spin mr-1" /> : <Phone className="h-5 w-5 mr-1" />}
               Send OTP via WhatsApp
             </Button>
           ) : (
             <div className="mt-3 space-y-3">
-              <Label>Enter 6-digit OTP</Label>
+              <Label className="text-base">Enter 6-digit OTP</Label>
               {phoneTestOtp && (
-                <p className="text-xs text-muted-foreground bg-muted p-2 rounded">Test mode OTP: <span className="font-mono font-bold">{phoneTestOtp}</span></p>
+                <p className="text-sm text-muted-foreground bg-muted p-2 rounded">Test mode OTP: <span className="font-mono font-bold">{phoneTestOtp}</span></p>
               )}
               <InputOTP maxLength={6} value={phoneOtpValue} onChange={setPhoneOtpValue}>
                 <InputOTPGroup>
@@ -238,11 +237,11 @@ export function ContactDetailsStep({ formData, phoneVerified, emailVerified, onC
                 </InputOTPGroup>
               </InputOTP>
               <div className="flex items-center gap-2">
-                <Button type="button" size="sm" onClick={verifyPhoneOtp} disabled={phoneVerifying || phoneOtpValue.length !== 6}>
-                  {phoneVerifying ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                <Button type="button" className="h-12 text-base" onClick={verifyPhoneOtp} disabled={phoneVerifying || phoneOtpValue.length !== 6}>
+                  {phoneVerifying ? <Loader2 className="h-5 w-5 animate-spin mr-1" /> : null}
                   Verify
                 </Button>
-                <Button type="button" variant="ghost" size="sm" onClick={sendPhoneOtp} disabled={phoneCooldown > 0 || phoneSending}>
+                <Button type="button" variant="ghost" className="h-12 text-base" onClick={sendPhoneOtp} disabled={phoneCooldown > 0 || phoneSending}>
                   {phoneCooldown > 0 ? `Resend (${phoneCooldown}s)` : "Resend OTP"}
                 </Button>
               </div>
@@ -252,40 +251,39 @@ export function ContactDetailsStep({ formData, phoneVerified, emailVerified, onC
 
         {/* Email + Email OTP */}
         <div>
-          <Label htmlFor="primary_email">Email Address *</Label>
-          <div className="flex items-center gap-2 mt-1">
-            <Mail className="h-4 w-4 text-muted-foreground" />
+          <Label htmlFor="primary_email" className="text-base font-semibold">Email Address *</Label>
+          <div className="flex items-center gap-2 mt-2">
+            <Mail className="h-5 w-5 text-muted-foreground" />
             <Input
               id="primary_email"
               type="email"
               value={formData.primary_email}
               onChange={(e) => onChange("primary_email", e.target.value)}
               placeholder="email@company.com"
-              className="h-12 flex-1"
+              className="h-14 flex-1 text-base"
               disabled={emailVerified}
             />
           </div>
 
           {emailVerified ? (
-            <div className="flex items-center gap-1.5 mt-2 text-sm text-accent">
-              <CheckCircle2 className="h-4 w-4" />
+            <div className="flex items-center gap-1.5 mt-2 text-base text-accent">
+              <CheckCircle2 className="h-5 w-5" />
               Email verified
             </div>
           ) : !emailOtpSent ? (
             <Button
               type="button"
               variant="outline"
-              size="sm"
-              className="mt-2"
+              className="mt-2 h-12 text-base"
               onClick={sendEmailOtp}
               disabled={emailSending || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.primary_email.trim())}
             >
-              {emailSending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Mail className="h-4 w-4 mr-1" />}
+              {emailSending ? <Loader2 className="h-5 w-5 animate-spin mr-1" /> : <Mail className="h-5 w-5 mr-1" />}
               Send OTP via Email
             </Button>
           ) : (
             <div className="mt-3 space-y-3">
-              <Label>Enter 6-digit Email OTP</Label>
+              <Label className="text-base">Enter 6-digit Email OTP</Label>
               <InputOTP maxLength={6} value={emailOtpValue} onChange={setEmailOtpValue}>
                 <InputOTPGroup>
                   {[0, 1, 2, 3, 4, 5].map((i) => (
@@ -294,11 +292,11 @@ export function ContactDetailsStep({ formData, phoneVerified, emailVerified, onC
                 </InputOTPGroup>
               </InputOTP>
               <div className="flex items-center gap-2">
-                <Button type="button" size="sm" onClick={verifyEmailOtp} disabled={emailVerifying || emailOtpValue.length !== 6}>
-                  {emailVerifying ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                <Button type="button" className="h-12 text-base" onClick={verifyEmailOtp} disabled={emailVerifying || emailOtpValue.length !== 6}>
+                  {emailVerifying ? <Loader2 className="h-5 w-5 animate-spin mr-1" /> : null}
                   Verify
                 </Button>
-                <Button type="button" variant="ghost" size="sm" onClick={sendEmailOtp} disabled={emailCooldown > 0 || emailSending}>
+                <Button type="button" variant="ghost" className="h-12 text-base" onClick={sendEmailOtp} disabled={emailCooldown > 0 || emailSending}>
                   {emailCooldown > 0 ? `Resend (${emailCooldown}s)` : "Resend OTP"}
                 </Button>
               </div>
