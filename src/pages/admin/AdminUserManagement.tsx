@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { 
   Plus, 
   Search,
-  Shield,
+  Pencil,
   Loader2,
 } from "lucide-react";
 
@@ -95,21 +95,31 @@ export default function AdminUserManagement() {
     onError: (error: Error) => toast.error(error.message || "Failed to create user"),
   });
 
-  const updateRoles = useMutation({
-    mutationFn: async ({ userId, roles }: { userId: string; roles: string[] }) => {
-      const { error: deleteError } = await supabase.from("user_roles").delete().eq("user_id", userId);
+  const updateProfile = useMutation({
+    mutationFn: async ({ user }: { user: StaffUser }) => {
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          full_name: user.full_name,
+          phone: user.phone || null,
+          department: user.department || null,
+        })
+        .eq("user_id", user.user_id);
+      if (profileError) throw profileError;
+
+      const { error: deleteError } = await supabase.from("user_roles").delete().eq("user_id", user.user_id);
       if (deleteError) throw deleteError;
-      for (const role of roles) {
-        const { error: insertError } = await supabase.from("user_roles").insert({ user_id: userId, role: role as any });
+      for (const role of user.roles) {
+        const { error: insertError } = await supabase.from("user_roles").insert({ user_id: user.user_id, role: role as any });
         if (insertError) throw insertError;
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-staff-users"] });
-      toast.success("Roles updated successfully");
+      toast.success("Profile updated successfully");
       setEditingUser(null);
     },
-    onError: (error: Error) => toast.error(error.message || "Failed to update roles"),
+    onError: (error: Error) => toast.error(error.message || "Failed to update profile"),
   });
 
   const resetForm = () => {
@@ -148,7 +158,7 @@ export default function AdminUserManagement() {
             <Input placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
           </div>
           <Button onClick={() => setShowAddDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" /> Add Staff User
+            <Plus className="h-4 w-4 mr-2" /> Add User
           </Button>
         </div>
 
@@ -156,7 +166,7 @@ export default function AdminUserManagement() {
           {isLoading ? (
             <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
           ) : filteredUsers?.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">No staff users found</p>
+            <p className="text-center text-muted-foreground py-8">No users found</p>
           ) : (
             filteredUsers?.map((staffUser) => (
               <Card key={staffUser.id}>
@@ -173,7 +183,7 @@ export default function AdminUserManagement() {
                       </div>
                     </div>
                     <Button variant="ghost" size="icon" onClick={() => setEditingUser(staffUser)}>
-                      <Shield className="h-4 w-4" />
+                      <Pencil className="h-4 w-4" />
                     </Button>
                   </div>
                 </CardContent>
@@ -186,7 +196,7 @@ export default function AdminUserManagement() {
       {/* Add User Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent className="max-h-[90vh] overflow-auto">
-          <DialogHeader><DialogTitle>Add Staff User</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Add User</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div><Label htmlFor="full_name">Full Name *</Label><Input id="full_name" value={formData.full_name} onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))} placeholder="Enter full name" /></div>
             <div><Label htmlFor="email">Email *</Label><Input id="email" type="email" value={formData.email} onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))} placeholder="email@capitalindia.com" /></div>
@@ -214,22 +224,43 @@ export default function AdminUserManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Roles Dialog */}
+      {/* Edit Profile Dialog */}
       <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Edit Roles - {editingUser?.full_name}</DialogTitle></DialogHeader>
-          <div className="space-y-2">
-            {ROLE_OPTIONS.map((role) => (
-              <div key={role.value} className="flex items-start gap-3 p-2 rounded-lg border">
-                <Checkbox id={`edit-role-${role.value}`} checked={editingUser?.roles.includes(role.value)} onCheckedChange={(checked) => handleRoleToggle(role.value, !!checked)} />
-                <div className="flex-1"><label htmlFor={`edit-role-${role.value}`} className="font-medium cursor-pointer">{role.label}</label><p className="text-xs text-muted-foreground">{role.description}</p></div>
+        <DialogContent className="max-h-[90vh] overflow-auto">
+          <DialogHeader><DialogTitle>Edit Profile - {editingUser?.full_name}</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Email</Label>
+              <Input value={editingUser?.email || ""} disabled className="bg-muted" />
+            </div>
+            <div>
+              <Label htmlFor="edit-full_name">Full Name</Label>
+              <Input id="edit-full_name" value={editingUser?.full_name || ""} onChange={(e) => editingUser && setEditingUser({ ...editingUser, full_name: e.target.value })} placeholder="Enter full name" />
+            </div>
+            <div>
+              <Label htmlFor="edit-phone">Phone</Label>
+              <Input id="edit-phone" value={editingUser?.phone || ""} onChange={(e) => editingUser && setEditingUser({ ...editingUser, phone: e.target.value })} placeholder="Mobile number" />
+            </div>
+            <div>
+              <Label htmlFor="edit-department">Department</Label>
+              <Input id="edit-department" value={editingUser?.department || ""} onChange={(e) => editingUser && setEditingUser({ ...editingUser, department: e.target.value })} placeholder="e.g., Operations, Finance" />
+            </div>
+            <div>
+              <Label>Roles</Label>
+              <div className="space-y-2 mt-2">
+                {ROLE_OPTIONS.map((role) => (
+                  <div key={role.value} className="flex items-start gap-3 p-2 rounded-lg border">
+                    <Checkbox id={`edit-role-${role.value}`} checked={editingUser?.roles.includes(role.value)} onCheckedChange={(checked) => handleRoleToggle(role.value, !!checked)} />
+                    <div className="flex-1"><label htmlFor={`edit-role-${role.value}`} className="font-medium cursor-pointer">{role.label}</label><p className="text-xs text-muted-foreground">{role.description}</p></div>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingUser(null)}>Cancel</Button>
-            <Button onClick={() => editingUser && updateRoles.mutate({ userId: editingUser.user_id, roles: editingUser.roles })} disabled={updateRoles.isPending}>
-              {updateRoles.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Roles"}
+            <Button onClick={() => editingUser && updateProfile.mutate({ user: editingUser })} disabled={!editingUser?.full_name || updateProfile.isPending}>
+              {updateProfile.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Profile"}
             </Button>
           </DialogFooter>
         </DialogContent>
