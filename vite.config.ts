@@ -21,10 +21,11 @@ export default defineConfig(({ mode }) => ({
       includeAssets: ["favicon.ico", "icons/*.png"],
       manifest: false, // We use public/manifest.json
       workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+      globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         navigateFallback: '/index.html',
         skipWaiting: true,
         clientsClaim: true,
+        cleanupOutdatedCaches: true,
       },
       devOptions: {
         enabled: false,
