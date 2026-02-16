@@ -1,6 +1,16 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+async function safeParseJson(response: Response): Promise<any> {
+  const text = await response.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    console.error("Failed to parse response:", text);
+    throw new Error("Verification service is temporarily unavailable. Please try again.");
+  }
+}
+
 export function useVendorVerifications(vendorId: string) {
   return useQuery({
     queryKey: ["vendor-verifications", vendorId],
@@ -22,17 +32,12 @@ export function useVerifyPan() {
     mutationFn: async ({ panNumber, vendorId }: { panNumber: string; vendorId: string }) => {
       const response = await fetch(`${window.location.origin}/functions/v1/verify-pan`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          pan_number: panNumber.toUpperCase(),
-          vendor_id: vendorId,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pan_number: panNumber.toUpperCase(), vendor_id: vendorId }),
       });
 
-      const data = await response.json();
-      if (!data.success) throw new Error(data.error);
+      const data = await safeParseJson(response);
+      if (!data.success) throw new Error(data.error || "PAN verification failed");
       return data.data;
     },
   });
@@ -51,18 +56,12 @@ export function useVerifyBankAccount() {
     }) => {
       const response = await fetch(`${window.location.origin}/functions/v1/verify-bank-account`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          account_number: accountNumber,
-          ifsc_code: ifscCode,
-          vendor_id: vendorId,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ account_number: accountNumber, ifsc_code: ifscCode, vendor_id: vendorId }),
       });
 
-      const data = await response.json();
-      if (!data.success) throw new Error(data.error);
+      const data = await safeParseJson(response);
+      if (!data.success) throw new Error(data.error || "Bank account verification failed");
       return data.data;
     },
   });
@@ -73,16 +72,12 @@ export function useInitiateAadhaar() {
     mutationFn: async ({ vendorId }: { vendorId: string }) => {
       const response = await fetch(`${window.location.origin}/functions/v1/verify-aadhaar`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          vendor_id: vendorId,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vendor_id: vendorId }),
       });
 
-      const data = await response.json();
-      if (!data.success) throw new Error(data.error);
+      const data = await safeParseJson(response);
+      if (!data.success) throw new Error(data.error || "Aadhaar verification failed");
       return data.data;
     },
   });
@@ -99,17 +94,12 @@ export function useFetchAadhaarDetails() {
     }) => {
       const response = await fetch(`${window.location.origin}/functions/v1/get-aadhaar-details`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          unique_request_number: uniqueRequestNumber,
-          vendor_id: vendorId,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ unique_request_number: uniqueRequestNumber, vendor_id: vendorId }),
       });
 
-      const data = await response.json();
-      if (!data.success) throw new Error(data.error);
+      const data = await safeParseJson(response);
+      if (!data.success) throw new Error(data.error || "Failed to fetch Aadhaar details");
       return data.data;
     },
   });

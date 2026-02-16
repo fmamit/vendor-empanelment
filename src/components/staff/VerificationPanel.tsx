@@ -219,22 +219,28 @@ export function VerificationPanel({
             </div>
           )}
 
-          <Button
-            onClick={handleVerifyBankAccount}
-            disabled={!bankAccountNumber || !bankIfsc || verifyBankAccount.isPending}
-            variant={verificationStatusMap.bank_account ? "outline" : "default"}
-            size="sm"
-            className="w-full"
-          >
-            {verifyBankAccount.isPending ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Verifying...
-              </>
-            ) : (
-              "Verify Bank Account"
-            )}
-          </Button>
+          {!bankAccountNumber || !bankIfsc ? (
+            <p className="text-sm text-muted-foreground italic">
+              Bank details not available for this vendor. Please ensure bank account number and IFSC are provided during registration.
+            </p>
+          ) : (
+            <Button
+              onClick={handleVerifyBankAccount}
+              disabled={verifyBankAccount.isPending}
+              variant={verificationStatusMap.bank_account ? "outline" : "default"}
+              size="sm"
+              className="w-full"
+            >
+              {verifyBankAccount.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Verifying...
+                </>
+              ) : (
+                "Verify Bank Account"
+              )}
+            </Button>
+          )}
         </div>
 
         {/* Aadhaar Verification */}

@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const VERIFIEDU_BASE_URL = "https://api.verifiedu.in/api/verifiedu";
@@ -52,7 +52,17 @@ serve(async (req) => {
       }),
     });
 
-    const responseData = await response.json();
+    const responseText = await response.text();
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch {
+      console.error("Failed to parse Aadhaar verification response:", responseText);
+      return new Response(
+        JSON.stringify({ success: false, error: "Verification service returned an invalid response. Please try again." }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     if (!responseData.success || !responseData.data) {
       return new Response(
