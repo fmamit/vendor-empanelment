@@ -1,35 +1,23 @@
 
+# Move Salutation to Contact Details Step
 
-# Revert Staff Pages + Improve Vendor Registration Form
+## Problem
+The "Salutation" field (Mr/Mrs/Ms/Dr) is currently placed at the top of the Company Details step, before "Company Name". This doesn't make logical sense -- salutation is a personal title for the contact person, not a company attribute.
 
-## Part 1: Revert Staff Pages
+## Solution
+Move the Salutation field from `CompanyDetailsStep` to `ContactDetailsStep`, placing it before the contact person's name field where it naturally belongs.
 
-Undo the changes made to:
-- **StaffSidebar.tsx**: Restore the logo to its original fixed `120px` width (instead of `w-full`)
-- **StaffInviteVendor.tsx**: Restore the original form layout (remove the icon-prefixed inputs and mobile-first restructuring)
+### Changes
 
-## Part 2: Vendor Registration Form Improvements
+**1. `src/components/referral/CompanyDetailsStep.tsx`**
+- Remove the Salutation select field
+- Remove `salutation` from the component's `formData` interface
+- The first field will now be "Company Name"
 
-Based on the screenshot, the vendor registration form (public referral flow) needs:
+**2. `src/components/referral/ContactDetailsStep.tsx`**
+- Add the Salutation select field at the top, before the contact name
+- Add `salutation` to this component's `formData` interface
+- Import Select components if not already imported
 
-### A. Make the Capital India logo 5x larger in ReferralHeader
-- Current logo height: `h-8` (32px)
-- New logo height: `h-40` (160px) -- approximately 5x larger
-- Center it prominently in the header area
-
-### B. Mobile-first form design for CompanyDetailsStep (and other steps)
-- Increase input heights to `h-12` for better touch targets (already done)
-- Add more spacing between fields
-- Make labels bolder and more readable
-- Ensure the "Next" button at the bottom is large and easy to tap
-- Clean, spacious single-column layout optimized for phone screens
-
-### Technical Details
-
-**Files to modify:**
-1. `src/components/layout/StaffSidebar.tsx` -- revert logo to `w-[120px]`
-2. `src/pages/staff/StaffInviteVendor.tsx` -- revert form to original grid layout without icon prefixes
-3. `src/components/referral/ReferralHeader.tsx` -- increase logo from `h-8` to `h-40`
-4. `src/components/referral/CompanyDetailsStep.tsx` -- polish spacing and mobile touch targets
-5. `src/components/referral/ReferralStepper.tsx` -- ensure stepper is clean on mobile
-
+**3. Parent form component (if needed)**
+- Verify `salutation` is already passed in the contact step's formData -- since it's part of the shared form state, this should just work with the field move
