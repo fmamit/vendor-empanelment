@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { DocumentCapture } from "@/components/vendor/DocumentCapture";
-import { FileText, CheckCircle2, Loader2 } from "lucide-react";
+import { FileText, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -28,6 +29,7 @@ interface DocumentUploadStepProps {
 
 export function DocumentUploadStep({ categoryDocs, token, uploadedDocs, onDocUploaded }: DocumentUploadStepProps) {
   const [uploadingDocId, setUploadingDocId] = useState<string | null>(null);
+  const [reuploadDocId, setReuploadDocId] = useState<string | null>(null);
 
   const handleUpload = async (documentTypeId: string, file: File) => {
     setUploadingDocId(documentTypeId);
@@ -43,6 +45,7 @@ export function DocumentUploadStep({ categoryDocs, token, uploadedDocs, onDocUpl
 
       if (error) throw error;
       onDocUploaded(documentTypeId);
+      setReuploadDocId(null);
       toast.success("Document uploaded");
     } catch (err: any) {
       toast.error(err.message || "Upload failed");
@@ -52,48 +55,78 @@ export function DocumentUploadStep({ categoryDocs, token, uploadedDocs, onDocUpl
   };
 
   return (
-    <div className="space-y-5 p-4">
-      <div className="flex items-center gap-2">
-        <FileText className="h-5 w-5 text-primary" />
-        <h2 className="text-lg font-semibold text-foreground">Upload Documents</h2>
-      </div>
+    <div className="space-y-3 p-4">
       <p className="text-sm text-muted-foreground">
         Upload required documents. Supported: PDF, JPG, PNG (max 5MB)
       </p>
 
-      <div className="space-y-4">
-        {categoryDocs.map((doc) => (
-          <Card
-            key={doc.id}
-            className={cn(
-              "transition-colors",
-              uploadedDocs.has(doc.document_type_id) && "border-accent"
-            )}
-          >
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                {doc.document_types.name}
-                {doc.is_mandatory && <span className="text-destructive text-sm">*</span>}
-                {uploadedDocs.has(doc.document_type_id) && (
-                  <CheckCircle2 className="h-4 w-4 text-accent ml-auto" />
-                )}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <DocumentCapture
-                onCapture={(file) => handleUpload(doc.document_type_id, file)}
-                disabled={uploadingDocId === doc.document_type_id}
-              />
-              {uploadingDocId === doc.document_type_id && (
-                <div className="flex items-center justify-center gap-2 mt-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Uploading...
-                </div>
+      <div className="space-y-3">
+        {categoryDocs.map((doc) => {
+          const isUploaded = uploadedDocs.has(doc.document_type_id);
+          const isUploading = uploadingDocId === doc.document_type_id;
+          const showReupload = reuploadDocId === doc.document_type_id;
+
+          return (
+            <Card
+              key={doc.id}
+              className={cn(
+                "transition-colors",
+                isUploaded && !showReupload && "border-accent bg-accent/5"
               )}
-            </CardContent>
-          </Card>
-        ))}
+            >
+              <CardContent className="px-3 py-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span className="text-sm font-medium truncate">{doc.document_types.name}</span>
+                  {doc.is_mandatory && <span className="text-destructive text-xs">*</span>}
+                  {isUploaded && !showReupload && (
+                    <CheckCircle2 className="h-4 w-4 text-accent ml-auto shrink-0" />
+                  )}
+                </div>
+
+                {isUploaded && !showReupload ? (
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-xs text-accent font-medium">Uploaded successfully</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs px-2 text-muted-foreground"
+                      onClick={() => setReuploadDocId(doc.document_type_id)}
+                    >
+                      <RefreshCw className="h-3 w-3 mr-1" />
+                      Re-upload
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <DocumentCapture
+                      onCapture={(file) => handleUpload(doc.document_type_id, file)}
+                      disabled={isUploading}
+                    />
+                    {isUploading && (
+                      <div className="flex items-center justify-center gap-2 mt-1 text-xs text-muted-foreground">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Uploading...
+                      </div>
+                    )}
+                    {showReupload && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-xs px-2 mt-1 text-muted-foreground"
+                        onClick={() => setReuploadDocId(null)}
+                      >
+                        Cancel
+                      </Button>
+                    )}
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );
