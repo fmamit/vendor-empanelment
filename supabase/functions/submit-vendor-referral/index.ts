@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 // Validation helper functions
@@ -43,12 +44,11 @@ serve(async (req) => {
 
     if (!referral_code || !formData) {
       return new Response(JSON.stringify({ error: "Invalid request" }), {
-        status: 400,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Validate required fields
     const {
       company_name,
       primary_contact_name,
@@ -66,56 +66,51 @@ serve(async (req) => {
       constitution_type,
     } = formData;
 
-    // Validate required fields
     if (!company_name || !primary_contact_name || !primary_mobile || !primary_email || !category_id) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
-        status: 400,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Validate phone number
     if (!isValidIndianPhone(primary_mobile)) {
       return new Response(JSON.stringify({ error: "Invalid phone number" }), {
-        status: 400,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Validate email
     if (!isValidEmail(primary_email)) {
       return new Response(JSON.stringify({ error: "Invalid email address" }), {
-        status: 400,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Validate optional but formatted fields
     if (gst_number && !isValidGST(gst_number)) {
       return new Response(JSON.stringify({ error: "Invalid GST number" }), {
-        status: 400,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (pan_number && !isValidPAN(pan_number)) {
       return new Response(JSON.stringify({ error: "Invalid PAN number" }), {
-        status: 400,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (bank_ifsc && !isValidIFSC(bank_ifsc)) {
       return new Response(JSON.stringify({ error: "Invalid IFSC code" }), {
-        status: 400,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Validate string lengths
     if (company_name.length > 255 || primary_contact_name.length > 255) {
       return new Response(JSON.stringify({ error: "Field length exceeded" }), {
-        status: 400,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -124,7 +119,6 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // 1. Validate referral code and get referring staff user_id
     const { data: refCode, error: refErr } = await supabase
       .from("staff_referral_codes")
       .select("user_id, is_active")
@@ -134,12 +128,11 @@ serve(async (req) => {
 
     if (refErr || !refCode) {
       return new Response(JSON.stringify({ error: "Invalid referral code" }), {
-        status: 400,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // 2. Create vendor record with referred_by (DO NOT create auth user here)
     const { data: vendor, error: vendorErr } = await supabase
       .from("vendors")
       .insert({
@@ -165,7 +158,7 @@ serve(async (req) => {
       .single();
 
     if (vendorErr) {
-      console.error("Vendor creation failed");
+      console.error("Vendor creation failed:", vendorErr);
       return new Response(JSON.stringify({ error: "Registration failed" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -177,7 +170,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error("Error processing request");
+    console.error("Error processing request:", err);
     return new Response(JSON.stringify({ error: "Registration failed" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
