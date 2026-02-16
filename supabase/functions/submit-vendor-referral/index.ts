@@ -10,7 +10,12 @@ const corsHeaders = {
 // Validation helper functions
 function isValidIndianPhone(phone: string): boolean {
   const phoneRegex = /^[6-9]\d{9}$/;
-  return phoneRegex.test(phone.replace(/\D/g, ''));
+  let digits = phone.replace(/\D/g, '');
+  // Strip leading country code 91 if present
+  if (digits.length === 12 && digits.startsWith('91')) {
+    digits = digits.substring(2);
+  }
+  return phoneRegex.test(digits);
 }
 
 function isValidEmail(email: string): boolean {
