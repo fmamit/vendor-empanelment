@@ -1,23 +1,30 @@
 
-# Move Salutation to Contact Details Step
+# Fix Document Upload in Referral Registration
 
 ## Problem
-The "Salutation" field (Mr/Mrs/Ms/Dr) is currently placed at the top of the Company Details step, before "Company Name". This doesn't make logical sense -- salutation is a personal title for the contact person, not a company attribute.
+The document upload fails because of a **token mismatch** between the referral flow and the edge function:
+
+- The referral registration page passes the **referral code** (e.g., `REF-ABCD1234`) as the `token` to the upload function
+- The `upload-referral-document` edge function tries to look up this token in the `vendor_invitations` table, which is for the **old invitation flow**
+- Since no matching record exists in `vendor_invitations`, the function returns "Invalid token" (400 error)
 
 ## Solution
-Move the Salutation field from `CompanyDetailsStep` to `ContactDetailsStep`, placing it before the contact person's name field where it naturally belongs.
+Update the `upload-referral-document` edge function to support **both** flows:
 
-### Changes
+1. First, try looking up the token in `vendor_invitations` (existing invitation flow)
+2. If not found, try looking up the token in `staff_referral_codes` (referral flow)
+3. Use the matched record to determine the storage path
 
-**1. `src/components/referral/CompanyDetailsStep.tsx`**
-- Remove the Salutation select field
-- Remove `salutation` from the component's `formData` interface
-- The first field will now be "Company Name"
+### Technical Changes
 
-**2. `src/components/referral/ContactDetailsStep.tsx`**
-- Add the Salutation select field at the top, before the contact name
-- Add `salutation` to this component's `formData` interface
-- Import Select components if not already imported
+**File: `supabase/functions/upload-referral-document/index.ts`**
 
-**3. Parent form component (if needed)**
-- Verify `salutation` is already passed in the contact step's formData -- since it's part of the shared form state, this should just work with the field move
+Replace the token validation logic (lines 89-101) to:
+- First attempt: query `vendor_invitations` by `token` (existing behavior)
+- Fallback attempt: query `staff_referral_codes` by `referral_code` where `is_active = true`
+- Use the referral code's `id` as the folder identifier for storage path when matched via referral flow
+- Return "Invalid token" only if **both** lookups fail
+
+The storage path will use `referral/{identifier}/{documentTypeId}/...` where `identifier` is either the invitation ID or the referral code ID, keeping uploads organized.
+
+The vendor document record linking (lines 124-133) will be skipped for referral uploads since no vendor record exists yet at upload time -- documents will be linked during the final `submit-vendor-referral` step.
