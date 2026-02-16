@@ -24,7 +24,7 @@ interface DocumentUploadStepProps {
   categoryDocs: CategoryDoc[];
   token: string;
   uploadedDocs: Set<string>;
-  onDocUploaded: (documentTypeId: string) => void;
+  onDocUploaded: (documentTypeId: string, filePath: string, fileName: string, fileSize: number) => void;
 }
 
 export function DocumentUploadStep({ categoryDocs, token, uploadedDocs, onDocUploaded }: DocumentUploadStepProps) {
@@ -44,7 +44,7 @@ export function DocumentUploadStep({ categoryDocs, token, uploadedDocs, onDocUpl
       });
 
       if (error) throw error;
-      onDocUploaded(documentTypeId);
+      onDocUploaded(documentTypeId, data.file_path, file.name, file.size);
       setReuploadDocId(null);
       toast.success("Document uploaded");
     } catch (err: any) {

@@ -25,6 +25,7 @@ export default function VendorReferralRegistration() {
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
   const [uploadedDocs, setUploadedDocs] = useState<Set<string>>(new Set());
+  const [uploadedDocFiles, setUploadedDocFiles] = useState<Record<string, { file_path: string; file_name: string; file_size: number }>>({})
   const [categoryDocs, setCategoryDocs] = useState<any[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
@@ -197,6 +198,12 @@ export default function VendorReferralRegistration() {
             ...formData,
             primary_mobile: `+91${formData.primary_mobile.replace(/\D/g, "")}`,
           },
+          documents: Object.entries(uploadedDocFiles).map(([docTypeId, info]) => ({
+            document_type_id: docTypeId,
+            file_path: info.file_path,
+            file_name: info.file_name,
+            file_size: info.file_size,
+          })),
         },
       });
       if (error) throw error;
@@ -294,7 +301,10 @@ export default function VendorReferralRegistration() {
             categoryDocs={categoryDocs}
             token={token || ""}
             uploadedDocs={uploadedDocs}
-            onDocUploaded={(id) => setUploadedDocs((prev) => new Set(prev).add(id))}
+            onDocUploaded={(id, filePath, fileName, fileSize) => {
+              setUploadedDocs((prev) => new Set(prev).add(id));
+              setUploadedDocFiles((prev) => ({ ...prev, [id]: { file_path: filePath, file_name: fileName, file_size: fileSize } }));
+            }}
           />
         )}
       </div>
