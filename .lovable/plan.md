@@ -1,50 +1,35 @@
 
 
-# Fix: Clear Stale PWA Cache Showing Old Pages
+# Remove PWA Plugin and Clean Up Caching
 
-## Problem
+## What This Does
+Removes the PWA service worker plugin (`vite-plugin-pwa`) that has been causing stale cache issues, where old pages keep appearing even after code updates. The app will still work as a regular web app -- users can still add it to their home screen via browser, but there will be no service worker caching old assets.
 
-The current `StaffLogin` code is already correct (no header, large logo). However, the PWA service worker has cached an older version of the page and keeps serving it. Even though `skipWaiting` and `clientsClaim` are set to `true`, the browser may still be holding onto a stale precache.
+## Changes
 
-## Solution
+### 1. Remove PWA plugin from build config (`vite.config.ts`)
+- Remove the `VitePWA` import and its entire configuration block
+- Remove the `vite-plugin-pwa` dependency from `package.json`
 
-Force a cache bust by incrementing the service worker version. This ensures all users get the latest assets on their next visit.
+### 2. Keep the cache cleanup code (`src/main.tsx`)
+- The existing service worker unregister + cache clear code stays -- this ensures any previously installed service workers from existing users get cleaned up on their next visit
 
-### Changes
+### 3. Clean up `index.html`
+- Remove PWA-specific meta tags (`apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style`, etc.)
+- Remove the manifest link
+- Keep standard meta tags (title, description, favicon, viewport)
 
-1. **Add a cache version identifier to vite.config.ts** -- add a `version` field or a `cacheSuffix` to the Workbox config so the service worker treats all existing caches as stale and re-fetches everything.
+### 4. Remove PWA-related files
+- Delete `public/manifest.json`
+- Delete `src/pages/InstallApp.tsx`
+- Remove the `/install` route from `src/App.tsx`
 
-2. **Add cleanup logic** -- enable `cleanupOutdatedCaches: true` in the Workbox config so old caches from previous service worker versions are automatically deleted.
+### 5. Keep intact
+- The icons in `public/icons/` can stay (used for favicon/og:image)
+- The favicon link stays
 
-3. **Optional: Add a manual cache-clear utility** -- add a small "Clear Cache & Reload" button (visible only to admins or on the login page) as a fallback for stubborn caches.
-
-## Technical Details
-
-In `vite.config.ts`, update the workbox config:
-
-```typescript
-workbox: {
-  globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-  navigateFallback: '/index.html',
-  skipWaiting: true,
-  clientsClaim: true,
-  cleanupOutdatedCaches: true,  // NEW: auto-delete old caches
-},
-```
-
-In `src/main.tsx`, add service worker cache-clearing on app startup to force a fresh load:
-
-```typescript
-// Unregister old service workers and clear caches on load
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(registrations => {
-    registrations.forEach(r => r.unregister());
-  });
-  caches.keys().then(names => {
-    names.forEach(name => caches.delete(name));
-  });
-}
-```
-
-This one-time cleanup code can be removed in a future release once all users have refreshed.
+## Technical Notes
+- The `vite-plugin-pwa` package will be uninstalled
+- The `@types/qrcode` and `qrcode` packages stay (used elsewhere)
+- Existing users who have the old service worker will get it automatically unregistered by the cleanup code in `main.tsx`
 
