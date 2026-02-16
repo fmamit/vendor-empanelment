@@ -1,30 +1,25 @@
 
-# Fix Document Upload in Referral Registration
 
-## Problem
-The document upload fails because of a **token mismatch** between the referral flow and the edge function:
+# Compact Document Upload UI
 
-- The referral registration page passes the **referral code** (e.g., `REF-ABCD1234`) as the `token` to the upload function
-- The `upload-referral-document` edge function tries to look up this token in the `vendor_invitations` table, which is for the **old invitation flow**
-- Since no matching record exists in `vendor_invitations`, the function returns "Invalid token" (400 error)
+## Goal
+Make the document upload step fit on one screen without scrolling by compressing the capture buttons and showing a better visual indicator for uploaded documents.
 
-## Solution
-Update the `upload-referral-document` edge function to support **both** flows:
+## Changes
 
-1. First, try looking up the token in `vendor_invitations` (existing invitation flow)
-2. If not found, try looking up the token in `staff_referral_codes` (referral flow)
-3. Use the matched record to determine the storage path
+### 1. `src/components/vendor/DocumentCapture.tsx`
+- Reduce the button padding from `p-6` to `p-3` for a more compact layout
+- Shrink icons from `h-8 w-8` to `h-5 w-5`
+- When a document is already uploaded (will add a new `uploaded` prop), show a compact success state (filename + green checkmark) instead of the camera/upload buttons
+- Reduce the image preview height from `h-48` to `h-24` to save space
 
-### Technical Changes
+### 2. `src/components/referral/DocumentUploadStep.tsx`
+- Reduce outer spacing from `space-y-5` to `space-y-3` and card spacing from `space-y-4` to `space-y-3`
+- Reduce `CardHeader` padding further (use `py-2 px-3`)
+- Reduce `CardContent` padding (use `px-3 pb-3 pt-0`)
+- When a document is already uploaded, show a compact row with the filename, a green check icon, and a small "Re-upload" button instead of the full camera/upload grid
+- Remove the separate header section ("Upload Documents" title) to save vertical space -- merge it into the subtitle text
 
-**File: `supabase/functions/upload-referral-document/index.ts`**
+### Visual Result
+Each document card will be roughly 60-70px tall when capture buttons are shown (vs ~120px+ currently), allowing 3-4 documents to fit on screen without scrolling. Uploaded documents will show a clean, single-line confirmation with a re-upload option.
 
-Replace the token validation logic (lines 89-101) to:
-- First attempt: query `vendor_invitations` by `token` (existing behavior)
-- Fallback attempt: query `staff_referral_codes` by `referral_code` where `is_active = true`
-- Use the referral code's `id` as the folder identifier for storage path when matched via referral flow
-- Return "Invalid token" only if **both** lookups fail
-
-The storage path will use `referral/{identifier}/{documentTypeId}/...` where `identifier` is either the invitation ID or the referral code ID, keeping uploads organized.
-
-The vendor document record linking (lines 124-133) will be skipped for referral uploads since no vendor record exists yet at upload time -- documents will be linked during the final `submit-vendor-referral` step.
