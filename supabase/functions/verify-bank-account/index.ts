@@ -6,7 +6,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const VERIFIEDU_BASE_URL = "https://api.verifiedu.in/api/verifiedu";
+const VERIFIEDU_BASE_URL = "http://localdev.earlywages.in/api/verifiedu";
+const VERIFIEDU_TOKEN = "VgBFAFIASQBGAEkARQBEAFUAVABFAFMAVABJAE4ARwBKAFUATgBPAE8ATgAtADEANAAtAEoAYQBuAC0AMgAwADIANgA=";
+const VERIFIEDU_COMPANY_ID = "VUTJ";
 
 async function retryWithBackoff(fn: () => Promise<Response>, maxRetries = 2) {
   for (let i = 0; i <= maxRetries; i++) {
@@ -82,11 +84,10 @@ serve(async (req) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          token: "", // Embedded in API
-          companyid: "", // Embedded in API
+          token: VERIFIEDU_TOKEN,
+          companyid: VERIFIEDU_COMPANY_ID,
         },
         body: JSON.stringify({
-          verification_type: "pennyless",
           account_number: account_number.trim(),
           account_ifsc: sanitizedIfsc,
         }),

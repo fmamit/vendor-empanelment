@@ -3,10 +3,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const VERIFIEDU_BASE_URL = "https://api.verifiedu.in/api/verifiedu";
+const VERIFIEDU_BASE_URL = "http://localdev.earlywages.in/api/verifiedu";
+const VERIFIEDU_TOKEN = "VgBFAFIASQBGAEkARQBEAFUAVABFAFMAVABJAE4ARwBKAFUATgBPAE8ATgAtADEANAAtAEoAYQBuAC0AMgAwADIANgA=";
+const VERIFIEDU_COMPANY_ID = "VUTJ";
 
 async function retryWithBackoff(fn: () => Promise<Response>, maxRetries = 2) {
   for (let i = 0; i <= maxRetries; i++) {
@@ -65,8 +67,8 @@ serve(async (req) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          token: "", // Embedded in API
-          companyid: "", // Embedded in API
+          token: VERIFIEDU_TOKEN,
+          companyid: VERIFIEDU_COMPANY_ID,
         },
         body: JSON.stringify({
           unique_request_number,
@@ -74,9 +76,19 @@ serve(async (req) => {
       })
     );
 
-    const responseData = await response.json();
+    const responseText = await response.text();
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch {
+      console.error("Failed to parse Aadhaar details response:", responseText);
+      return new Response(
+        JSON.stringify({ success: false, error: "Verification service returned an invalid response. Please try again." }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-    if (!responseData.success || !responseData) {
+    if (!responseData.success || !responseData.data) {
       return new Response(
         JSON.stringify({
           success: false,
@@ -89,8 +101,9 @@ serve(async (req) => {
       );
     }
 
-    // Map address fields
-    const addresses = responseData.addresses || [];
+    // Map address fields from the response data
+    const aadhaarData = responseData.data;
+    const addresses = aadhaarData.addresses || [];
     const primaryAddress = addresses[0] || {};
     
     const mappedAddress = {
@@ -110,13 +123,13 @@ serve(async (req) => {
       await supabase
         .from("vendor_verifications")
         .update({
-          status: responseData.is_valid ? "success" : "failed",
+          status: aadhaarData.is_valid ? "success" : "failed",
           response_data: {
-            aadhaar_uid: responseData.aadhaar_uid,
-            name: responseData.name,
-            gender: responseData.gender,
-            dob: responseData.dob,
-            is_valid: responseData.is_valid,
+            aadhaar_uid: aadhaarData.aadhaar_uid,
+            name: aadhaarData.name,
+            gender: aadhaarData.gender,
+            dob: aadhaarData.date_of_birth_masked,
+            is_valid: aadhaarData.is_valid,
             address: mappedAddress,
           },
           verified_at: new Date().toISOString(),
@@ -130,11 +143,11 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         data: {
-          aadhaar_uid: responseData.aadhaar_uid,
-          name: responseData.name,
-          gender: responseData.gender,
-          dob: responseData.dob,
-          is_valid: responseData.is_valid,
+          aadhaar_uid: aadhaarData.aadhaar_uid,
+          name: aadhaarData.name,
+          gender: aadhaarData.gender,
+          dob: aadhaarData.date_of_birth_masked,
+          is_valid: aadhaarData.is_valid,
           address: mappedAddress,
         },
       }),
