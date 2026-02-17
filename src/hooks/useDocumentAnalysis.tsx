@@ -134,6 +134,37 @@ export function useVendorDocumentAnalyses(vendorId: string | null) {
   return { analyses: analyses ?? [], isLoading };
 }
 
+export function useDocumentAnalysesBatch(documentIds: string[]) {
+  const { data: analysesMap, isLoading } = useQuery({
+    queryKey: ["document-analyses-batch", documentIds],
+    queryFn: async () => {
+      if (!documentIds.length) return {} as Record<string, DocumentAnalysis>;
+      const { data, error } = await supabase
+        .from("document_analyses" as any)
+        .select("*")
+        .in("document_id", documentIds)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching batch analyses:", error);
+        return {} as Record<string, DocumentAnalysis>;
+      }
+
+      const map: Record<string, DocumentAnalysis> = {};
+      for (const row of (data || []) as any[]) {
+        // Keep only latest analysis per document
+        if (!map[row.document_id]) {
+          map[row.document_id] = mapDbToAnalysis(row);
+        }
+      }
+      return map;
+    },
+    enabled: documentIds.length > 0,
+  });
+
+  return { analysesMap: analysesMap ?? {}, isLoading };
+}
+
 export function useDocumentAnalysisStats() {
   const { data: stats, isLoading } = useQuery({
     queryKey: ["document-analysis-stats"],
