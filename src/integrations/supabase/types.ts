@@ -1395,6 +1395,7 @@ export type Database = {
         | "approved"
         | "rejected"
         | "consent_withdrawn"
+        | "deactivated"
       workflow_action:
         | "submitted"
         | "forwarded"
@@ -1546,6 +1547,7 @@ export const Constants = {
         "approved",
         "rejected",
         "consent_withdrawn",
+        "deactivated",
       ],
       workflow_action: [
         "submitted",

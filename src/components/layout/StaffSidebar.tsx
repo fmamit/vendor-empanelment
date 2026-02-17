@@ -10,6 +10,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   Users,
+  CheckCircle2,
   Settings,
   LogOut,
   UserCircle,
@@ -33,6 +34,7 @@ import capitalIndiaLogo from "@/assets/capital-india-logo.jpg";
 const mainItems = [
   { title: "Dashboard", url: "/staff/dashboard", icon: LayoutDashboard },
   { title: "Vendor Queue", url: "/staff/queue", icon: ClipboardList },
+  { title: "Approved Vendors", url: "/staff/approved-vendors", icon: CheckCircle2 },
   { title: "Invite Vendor", url: "/staff/invite-vendor", icon: UserPlus },
   { title: "Fraud Alerts", url: "/staff/fraud-alerts", icon: ShieldAlert },
   { title: "Reports", url: "/staff/reports", icon: BarChart3 },
