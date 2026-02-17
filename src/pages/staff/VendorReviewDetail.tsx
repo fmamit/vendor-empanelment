@@ -8,6 +8,7 @@ import {
   useUpdateVendorStatus,
   useUpdateDocumentStatus 
 } from "@/hooks/useStaffWorkflow";
+import { supabase } from "@/integrations/supabase/client";
 import { useDocumentAnalysesBatch, type ExtractedField } from "@/hooks/useDocumentAnalysis";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -396,7 +397,16 @@ export default function VendorReviewDetail() {
                   )}
 
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" className="flex-1" onClick={() => window.open(doc.file_url, "_blank")}>
+                    <Button variant="outline" size="sm" className="flex-1" onClick={async () => {
+                      if (doc.file_url.startsWith("http")) {
+                        window.open(doc.file_url, "_blank");
+                      } else {
+                        const { data } = await supabase.storage
+                          .from("vendor-documents")
+                          .createSignedUrl(doc.file_url, 300);
+                        if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+                      }
+                    }}>
                       <ExternalLink className="h-3 w-3 mr-1" /> View
                     </Button>
                     {doc.status !== "approved" && canForward && (

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,6 +19,7 @@ import { DocumentCardData } from "./DocumentCard";
 import { useDocumentAnalysis, useTriggerAnalysis } from "@/hooks/useDocumentAnalysis";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DocumentViewerProps {
   document: DocumentCardData | null;
@@ -37,6 +38,14 @@ const STATUS_CONFIG = {
   expired: { label: "Expired", className: "bg-destructive/20 text-destructive", icon: XCircle },
 };
 
+async function getViewableUrl(fileUrl: string): Promise<string> {
+  if (fileUrl.startsWith("http")) return fileUrl;
+  const { data } = await supabase.storage
+    .from("vendor-documents")
+    .createSignedUrl(fileUrl, 300);
+  return data?.signedUrl || fileUrl;
+}
+
 export function DocumentViewer({
   document,
   open,
@@ -48,6 +57,14 @@ export function DocumentViewer({
   const [activeTab, setActiveTab] = useState<string>("preview");
   const { analysis, isLoading: analysisLoading } = useDocumentAnalysis(document?.id || null);
   const triggerAnalysis = useTriggerAnalysis();
+  const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (document?.file_url && open) {
+      setResolvedUrl(null);
+      getViewableUrl(document.file_url).then(setResolvedUrl);
+    }
+  }, [document?.file_url, open]);
 
   if (!document) return null;
 
@@ -56,6 +73,8 @@ export function DocumentViewer({
 
   const isPdf = document.file_name.toLowerCase().endsWith('.pdf');
   const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(document.file_name);
+
+  const displayUrl = resolvedUrl || document.file_url;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -87,9 +106,9 @@ export function DocumentViewer({
               <div className="space-y-4">
                 {/* Document Preview */}
                 <div className="aspect-[4/3] bg-muted rounded-lg flex items-center justify-center overflow-hidden">
-                  {isImage ? (
+                  {isImage && resolvedUrl ? (
                     <img 
-                      src={document.file_url} 
+                      src={resolvedUrl} 
                       alt={document.file_name}
                       className="max-w-full max-h-full object-contain"
                     />
@@ -97,11 +116,12 @@ export function DocumentViewer({
                     <div className="text-center p-6">
                       <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
                       <p className="text-sm text-muted-foreground mb-3">PDF Document</p>
-                      <Button variant="outline" size="sm" asChild>
-                        <a href={document.file_url} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="h-4 w-4 mr-1.5" />
-                          Open in New Tab
-                        </a>
+                      <Button variant="outline" size="sm" onClick={async () => {
+                        const url = await getViewableUrl(document.file_url);
+                        window.open(url, "_blank");
+                      }}>
+                        <ExternalLink className="h-4 w-4 mr-1.5" />
+                        Open in New Tab
                       </Button>
                     </div>
                   ) : (
@@ -146,17 +166,22 @@ export function DocumentViewer({
 
                 {/* Actions */}
                 <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1" asChild>
-                    <a href={document.file_url} download={document.file_name}>
-                      <Download className="h-4 w-4 mr-1.5" />
-                      Download
-                    </a>
+                  <Button variant="outline" className="flex-1" onClick={async () => {
+                    const url = await getViewableUrl(document.file_url);
+                    const a = window.document.createElement("a");
+                    a.href = url;
+                    a.download = document.file_name;
+                    a.click();
+                  }}>
+                    <Download className="h-4 w-4 mr-1.5" />
+                    Download
                   </Button>
-                  <Button variant="outline" className="flex-1" asChild>
-                    <a href={document.file_url} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="h-4 w-4 mr-1.5" />
-                      Open
-                    </a>
+                  <Button variant="outline" className="flex-1" onClick={async () => {
+                    const url = await getViewableUrl(document.file_url);
+                    window.open(url, "_blank");
+                  }}>
+                    <ExternalLink className="h-4 w-4 mr-1.5" />
+                    Open
                   </Button>
                 </div>
 
