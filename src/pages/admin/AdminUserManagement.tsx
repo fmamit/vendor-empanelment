@@ -8,13 +8,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { 
   Plus, 
   Search,
   Pencil,
+  Trash2,
   Loader2,
 } from "lucide-react";
 
@@ -42,6 +43,7 @@ export default function AdminUserManagement() {
 
   const [search, setSearch] = useState("");
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [deletingUser, setDeletingUser] = useState<StaffUser | null>(null);
   const [editingUser, setEditingUser] = useState<StaffUser | null>(null);
   const [formData, setFormData] = useState({
     email: "",
@@ -122,6 +124,26 @@ export default function AdminUserManagement() {
     onError: (error: Error) => toast.error(error.message || "Failed to update profile"),
   });
 
+  const deleteUser = useMutation({
+    mutationFn: async (user: StaffUser) => {
+      // Remove roles
+      const { error: rolesError } = await supabase.from("user_roles").delete().eq("user_id", user.user_id);
+      if (rolesError) throw rolesError;
+      // Deactivate profile
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({ is_active: false })
+        .eq("user_id", user.user_id);
+      if (profileError) throw profileError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-staff-users"] });
+      toast.success("User deactivated successfully");
+      setDeletingUser(null);
+    },
+    onError: (error: Error) => toast.error(error.message || "Failed to deactivate user"),
+  });
+
   const resetForm = () => {
     setFormData({ email: "", password: "", full_name: "", phone: "", department: "", roles: [] });
   };
@@ -182,9 +204,14 @@ export default function AdminUserManagement() {
                         ))}
                       </div>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={() => setEditingUser(staffUser)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => setEditingUser(staffUser)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setDeletingUser(staffUser)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -261,6 +288,24 @@ export default function AdminUserManagement() {
             <Button variant="outline" onClick={() => setEditingUser(null)}>Cancel</Button>
             <Button onClick={() => editingUser && updateProfile.mutate({ user: editingUser })} disabled={!editingUser?.full_name || updateProfile.isPending}>
               {updateProfile.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Profile"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deletingUser} onOpenChange={() => setDeletingUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Deactivate User</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to deactivate <strong>{deletingUser?.full_name}</strong>? Their roles will be removed and they will no longer be able to log in. This action can be reversed by re-activating the profile.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeletingUser(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => deletingUser && deleteUser.mutate(deletingUser)} disabled={deleteUser.isPending}>
+              {deleteUser.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Deactivate"}
             </Button>
           </DialogFooter>
         </DialogContent>
