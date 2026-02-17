@@ -1,65 +1,53 @@
 
 
-# Display Parsed Document Data Inline on Review Page
+# Auto-Run AI Parsing on Document Upload
 
 ## Problem
-AI-extracted key data from documents is currently buried inside a multi-step flow: click "View" then switch to "AI Analysis" tab. Staff reviewers cannot see parsed data at a glance on the vendor review page.
+Currently, staff must manually click "Run AI Analysis" on each document. The user wants a zero-click experience: upload a document and see parsed results automatically.
 
 ## Solution
-Show a summary of extracted key fields directly beneath each document card on the VendorReviewDetail page. PII fields remain masked per DPDP policy.
 
-## What Changes
+### 1. Trigger Analysis Automatically After Upload (Backend)
 
-### 1. Update VendorReviewDetail.tsx - Document Cards
-For each document in the list, fetch its `document_analyses` record and display extracted fields inline:
-- Show 2-3 key extracted fields as compact label-value pairs below the document name
-- Show a small confidence badge (e.g., "AI 92%")
-- If no analysis exists, show a subtle "Run AI Analysis" link
-- PII values displayed in masked form (PAN as `AA***34B`, account numbers as `****6789`)
+Modify the `upload-referral-document` edge function so that after a document is successfully inserted into `vendor_documents`, it fires a background call to the `analyze-document` function. This means every uploaded document gets analyzed immediately.
 
-### 2. Add a Batch Query Hook
-Create a `useDocumentAnalysesBatch` hook that fetches all analyses for a vendor's documents in one query (by document IDs), instead of one query per document.
+- After the `vendor_documents` insert succeeds, make an internal fetch to the `analyze-document` edge function with the new document's ID
+- Use a fire-and-forget pattern (don't await the full AI response) so the upload response returns quickly to the user
+- If the vendor isn't created yet (referral flow without `vendorId`), skip auto-analysis since there's no `vendor_documents` row
 
-### 3. Visual Layout per Document Card
+### 2. Auto-Poll for Results on the Review Page (Frontend)
 
-```text
-+--------------------------------------------------+
-| Trade License                         Approved    |
-|                                                   |
-| License No: TL-2024-001234        AI: 94%         |
-| Issuing Authority: Municipal Corp                 |
-| Valid Until: 2025-12-31                           |
-|                                                   |
-|              [View]         [check] [x]           |
-+--------------------------------------------------+
-```
+Update the `useDocumentAnalysesBatch` hook to poll every 5 seconds while any document has a "processing" or missing analysis status. This way, when staff opens the review page, results appear automatically as they complete.
 
-For PII-sensitive documents:
-```text
-| PAN: AB***78C                     AI: 96%         |
-| Name: ACME CORP PVT LTD                          |
-```
+### 3. Remove Manual "Run AI Analysis" Button
 
-### 4. No Analysis State
-If a document hasn't been analyzed yet, show:
-```text
-| No parsed data available  [Run AI Analysis]       |
-```
+In `VendorReviewDetail.tsx`, replace the "No parsed data available / Run AI Analysis" section with an "Analyzing..." spinner state. Since analysis is triggered automatically, no manual button is needed.
+
+- If a document somehow has no analysis (edge case), show "Analysis pending..." instead of a button
+- Keep the analyzing spinner for documents currently being processed
 
 ## Technical Details
 
-### New hook: `useDocumentAnalysesBatch`
-- Query `document_analyses` table filtered by an array of document IDs
-- Returns a map of `document_id -> DocumentAnalysis`
-- Used in VendorReviewDetail to avoid N+1 queries
-
 ### Files Modified
-- `src/hooks/useDocumentAnalysis.tsx` -- add `useDocumentAnalysesBatch` hook
-- `src/pages/staff/VendorReviewDetail.tsx` -- render extracted fields inline on each document card, add "Run AI Analysis" button per card
 
-### PII Display Rules (unchanged)
-- PAN: `AB***78C` (first 2 + last 2)
-- Bank Account: `****6789` (last 4 only)
-- Mobile: `****8423` (last 4 only)
-- GST, names, dates, addresses: shown as-is
+**`supabase/functions/upload-referral-document/index.ts`**
+- After the `vendor_documents` insert (line 141-148), add a fire-and-forget call:
+  ```
+  // Fire-and-forget: trigger AI analysis
+  const docRecord = insertResult (get the new doc ID)
+  fetch(`${supabaseUrl}/functions/v1/analyze-document`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${serviceRoleKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ document_id: docRecord.id })
+  }).catch(err => console.error("Auto-analysis trigger failed:", err));
+  ```
+
+**`src/hooks/useDocumentAnalysis.tsx`**
+- Add `refetchInterval` to `useDocumentAnalysesBatch`: poll every 5 seconds if any document in the batch has status "processing" or is missing from the map
+
+**`src/pages/staff/VendorReviewDetail.tsx`**
+- Remove the "Run AI Analysis" button block
+- Remove the `handleRunAnalysis` function and `analyzingDocId` state
+- Show "Analysis pending..." for documents without analysis results yet
+- Keep the spinner for documents with `analysis_status === "processing"`
 
