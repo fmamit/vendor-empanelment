@@ -1,4 +1,6 @@
-import { useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export interface ExtractedField {
   field_name: string;
@@ -21,153 +23,146 @@ export interface DocumentAnalysis {
   classification_confidence: number;
   analyzed_at: string | null;
   ai_model_version: string;
+  error_message?: string | null;
 }
 
-// Mock document analysis data
-const MOCK_ANALYSES: DocumentAnalysis[] = [
-  {
-    id: "analysis-1",
-    document_id: "doc-001",
-    document_type: "GST Certificate",
-    analysis_status: "completed",
-    extracted_data: [
-      { field_name: "GSTIN", extracted_value: "27AABCU9603R1ZM", entered_value: "27AABCU9603R1ZM", is_match: true, confidence: 98 },
-      { field_name: "Legal Name", extracted_value: "ABC SUPPLIES PVT LTD", entered_value: "ABC Supplies Pvt Ltd", is_match: true, confidence: 95 },
-      { field_name: "Trade Name", extracted_value: "ABC SUPPLIES", entered_value: "ABC Supplies", is_match: true, confidence: 92 },
-      { field_name: "Registration Date", extracted_value: "01/07/2017", entered_value: null, is_match: false, confidence: 88 },
-      { field_name: "State", extracted_value: "Maharashtra", entered_value: null, is_match: false, confidence: 96 },
-    ],
-    confidence_score: 94,
-    tampering_score: 12,
-    tampering_indicators: [],
-    classification_result: "GST Certificate",
-    classification_confidence: 99,
-    analyzed_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    ai_model_version: "gemini-2.5-pro-v1",
-  },
-  {
-    id: "analysis-2",
-    document_id: "doc-002",
-    document_type: "PAN Card",
-    analysis_status: "completed",
-    extracted_data: [
-      { field_name: "PAN Number", extracted_value: "AADCA1234B", entered_value: "AADCA1234B", is_match: true, confidence: 99 },
-      { field_name: "Name", extracted_value: "ABC SUPPLIES PRIVATE LIMITED", entered_value: "ABC Supplies Pvt Ltd", is_match: false, confidence: 97 },
-      { field_name: "Date of Incorporation", extracted_value: "15/03/2010", entered_value: null, is_match: false, confidence: 85 },
-    ],
-    confidence_score: 94,
-    tampering_score: 8,
-    tampering_indicators: [],
-    classification_result: "PAN Card",
-    classification_confidence: 98,
-    analyzed_at: new Date(Date.now() - 1.5 * 60 * 60 * 1000).toISOString(),
-    ai_model_version: "gemini-2.5-pro-v1",
-  },
-  {
-    id: "analysis-3",
-    document_id: "doc-003",
-    document_type: "Cancelled Cheque",
-    analysis_status: "completed",
-    extracted_data: [
-      { field_name: "Bank Name", extracted_value: "HDFC BANK", entered_value: "HDFC Bank", is_match: true, confidence: 97 },
-      { field_name: "Account Number", extracted_value: "50100123456789", entered_value: "50100123456789", is_match: true, confidence: 95 },
-      { field_name: "IFSC Code", extracted_value: "HDFC0001234", entered_value: "HDFC0001234", is_match: true, confidence: 98 },
-      { field_name: "Account Holder", extracted_value: "ABC SUPPLIES PVT LTD", entered_value: "ABC Supplies Pvt Ltd", is_match: true, confidence: 93 },
-    ],
-    confidence_score: 96,
-    tampering_score: 5,
-    tampering_indicators: [],
-    classification_result: "Cancelled Cheque",
-    classification_confidence: 97,
-    analyzed_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-    ai_model_version: "gemini-2.5-pro-v1",
-  },
-  {
-    id: "analysis-4",
-    document_id: "doc-004",
-    document_type: "GST Certificate",
-    analysis_status: "completed",
-    extracted_data: [
-      { field_name: "GSTIN", extracted_value: "29AABCM1234A1ZP", entered_value: "29AABCM1234A1ZP", is_match: true, confidence: 72 },
-      { field_name: "Legal Name", extracted_value: "METRO CONTRACTORS", entered_value: "Metro Contractors", is_match: true, confidence: 68 },
-    ],
-    confidence_score: 65,
-    tampering_score: 78,
-    tampering_indicators: [
-      "Inconsistent font detected in GST number field",
-      "Metadata shows file was edited with image software",
-      "Compression artifacts around text regions",
-      "Date field appears to have been modified"
-    ],
-    classification_result: "GST Certificate",
-    classification_confidence: 85,
-    analyzed_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-    ai_model_version: "gemini-2.5-pro-v1",
-  },
-  {
-    id: "analysis-5",
-    document_id: "doc-005",
-    document_type: "Certificate of Incorporation",
-    analysis_status: "processing",
-    extracted_data: [],
-    confidence_score: 0,
-    tampering_score: 0,
-    tampering_indicators: [],
-    classification_result: "",
-    classification_confidence: 0,
-    analyzed_at: null,
-    ai_model_version: "gemini-2.5-pro-v1",
-  },
-  {
-    id: "analysis-6",
-    document_id: "doc-006",
-    document_type: "Trade License",
-    analysis_status: "pending",
-    extracted_data: [],
-    confidence_score: 0,
-    tampering_score: 0,
-    tampering_indicators: [],
-    classification_result: "",
-    classification_confidence: 0,
-    analyzed_at: null,
-    ai_model_version: "gemini-2.5-pro-v1",
-  },
-];
+function mapDbToAnalysis(row: any): DocumentAnalysis {
+  return {
+    id: row.id,
+    document_id: row.document_id,
+    document_type: row.document_type_detected || "",
+    analysis_status: row.analysis_status,
+    extracted_data: Array.isArray(row.extracted_data) ? row.extracted_data : [],
+    confidence_score: row.confidence_score || 0,
+    tampering_score: row.tampering_score || 0,
+    tampering_indicators: Array.isArray(row.tampering_indicators) ? row.tampering_indicators : [],
+    classification_result: row.document_type_detected || "",
+    classification_confidence: row.classification_confidence || 0,
+    analyzed_at: row.analyzed_at,
+    ai_model_version: row.ai_model_version || "",
+    error_message: row.error_message,
+  };
+}
 
 export function useDocumentAnalysis(documentId: string | null) {
-  const analysis = useMemo(() => {
-    if (!documentId) return null;
-    return MOCK_ANALYSES.find(a => a.document_id === documentId) || null;
-  }, [documentId]);
+  const { data: analysis, isLoading } = useQuery({
+    queryKey: ["document-analysis", documentId],
+    queryFn: async () => {
+      if (!documentId) return null;
+      const { data, error } = await supabase
+        .from("document_analyses" as any)
+        .select("*")
+        .eq("document_id", documentId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-  return {
-    analysis,
-    isLoading: false,
-  };
+      if (error) {
+        console.error("Error fetching analysis:", error);
+        return null;
+      }
+      return data ? mapDbToAnalysis(data) : null;
+    },
+    enabled: !!documentId,
+    refetchInterval: (query) => {
+      const data = query.state.data as DocumentAnalysis | null;
+      // Poll while processing
+      if (data?.analysis_status === "processing") return 3000;
+      return false;
+    },
+  });
+
+  return { analysis: analysis ?? null, isLoading };
+}
+
+export function useTriggerAnalysis() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (documentId: string) => {
+      const { data, error } = await supabase.functions.invoke("analyze-document", {
+        body: { document_id: documentId },
+      });
+
+      if (error) throw error;
+      if (data && !data.success) throw new Error(data.error || "Analysis failed");
+      return data;
+    },
+    onSuccess: (_data, documentId) => {
+      queryClient.invalidateQueries({ queryKey: ["document-analysis", documentId] });
+      queryClient.invalidateQueries({ queryKey: ["document-analyses"] });
+      toast.success("AI analysis started");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to start analysis");
+    },
+  });
 }
 
 export function useVendorDocumentAnalyses(vendorId: string | null) {
-  // In real implementation, filter by vendor's documents
-  const analyses = useMemo(() => {
-    if (!vendorId) return [];
-    // Return all mock analyses for demo purposes
-    return MOCK_ANALYSES.filter(a => a.analysis_status === 'completed');
-  }, [vendorId]);
+  const { data: analyses, isLoading } = useQuery({
+    queryKey: ["document-analyses", vendorId],
+    queryFn: async () => {
+      if (!vendorId) return [];
 
-  return {
-    analyses,
-    isLoading: false,
-  };
+      // Get vendor's document IDs first
+      const { data: docs, error: docsError } = await supabase
+        .from("vendor_documents")
+        .select("id")
+        .eq("vendor_id", vendorId);
+
+      if (docsError || !docs?.length) return [];
+
+      const docIds = docs.map((d) => d.id);
+
+      const { data, error } = await supabase
+        .from("document_analyses" as any)
+        .select("*")
+        .in("document_id", docIds)
+        .eq("analysis_status", "completed");
+
+      if (error) {
+        console.error("Error fetching analyses:", error);
+        return [];
+      }
+
+      return (data || []).map(mapDbToAnalysis);
+    },
+    enabled: !!vendorId,
+  });
+
+  return { analyses: analyses ?? [], isLoading };
 }
 
 export function useDocumentAnalysisStats() {
-  const stats = useMemo(() => ({
-    total_analyzed: MOCK_ANALYSES.filter(a => a.analysis_status === 'completed').length,
-    pending: MOCK_ANALYSES.filter(a => a.analysis_status === 'pending').length,
-    processing: MOCK_ANALYSES.filter(a => a.analysis_status === 'processing').length,
-    flagged: MOCK_ANALYSES.filter(a => a.tampering_score > 50).length,
-    high_confidence: MOCK_ANALYSES.filter(a => a.confidence_score > 90).length,
-  }), []);
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ["document-analysis-stats"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("document_analyses" as any)
+        .select("analysis_status, tampering_score, confidence_score");
 
-  return { stats, isLoading: false };
+      if (error) {
+        console.error("Error fetching stats:", error);
+        return {
+          total_analyzed: 0,
+          pending: 0,
+          processing: 0,
+          flagged: 0,
+          high_confidence: 0,
+        };
+      }
+
+      const rows = data || [];
+      return {
+        total_analyzed: rows.filter((r: any) => r.analysis_status === "completed").length,
+        pending: rows.filter((r: any) => r.analysis_status === "pending").length,
+        processing: rows.filter((r: any) => r.analysis_status === "processing").length,
+        flagged: rows.filter((r: any) => r.tampering_score > 50).length,
+        high_confidence: rows.filter((r: any) => r.confidence_score > 90).length,
+      };
+    },
+  });
+
+  return { stats: stats ?? { total_analyzed: 0, pending: 0, processing: 0, flagged: 0, high_confidence: 0 }, isLoading };
 }

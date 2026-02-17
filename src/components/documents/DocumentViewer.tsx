@@ -16,7 +16,7 @@ import {
 import { AIAnalysisPanel } from "./AIAnalysisPanel";
 import { ExpiryBadge } from "./ExpiryBadge";
 import { DocumentCardData } from "./DocumentCard";
-import { useDocumentAnalysis } from "@/hooks/useDocumentAnalysis";
+import { useDocumentAnalysis, useTriggerAnalysis } from "@/hooks/useDocumentAnalysis";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
@@ -47,6 +47,7 @@ export function DocumentViewer({
 }: DocumentViewerProps) {
   const [activeTab, setActiveTab] = useState<string>("preview");
   const { analysis, isLoading: analysisLoading } = useDocumentAnalysis(document?.id || null);
+  const triggerAnalysis = useTriggerAnalysis();
 
   if (!document) return null;
 
@@ -182,8 +183,17 @@ export function DocumentViewer({
               </div>
             </TabsContent>
 
-            <TabsContent value="analysis" className="m-0">
-              <AIAnalysisPanel analysis={analysis} isLoading={analysisLoading} />
+            <TabsContent value="analysis" className="m-0 space-y-3">
+              <AIAnalysisPanel 
+                analysis={analysis} 
+                isLoading={analysisLoading}
+                onRunAnalysis={
+                  !analysis || analysis.analysis_status === "failed"
+                    ? () => document && triggerAnalysis.mutate(document.id)
+                    : undefined
+                }
+                isRunningAnalysis={triggerAnalysis.isPending}
+              />
             </TabsContent>
           </div>
         </Tabs>

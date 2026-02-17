@@ -194,6 +194,65 @@ export type Database = {
           },
         ]
       }
+      document_analyses: {
+        Row: {
+          ai_model_version: string | null
+          analysis_status: string
+          analyzed_at: string | null
+          classification_confidence: number | null
+          confidence_score: number | null
+          created_at: string
+          document_id: string
+          document_type_detected: string | null
+          error_message: string | null
+          extracted_data: Json
+          id: string
+          tampering_indicators: Json
+          tampering_score: number | null
+          updated_at: string
+        }
+        Insert: {
+          ai_model_version?: string | null
+          analysis_status?: string
+          analyzed_at?: string | null
+          classification_confidence?: number | null
+          confidence_score?: number | null
+          created_at?: string
+          document_id: string
+          document_type_detected?: string | null
+          error_message?: string | null
+          extracted_data?: Json
+          id?: string
+          tampering_indicators?: Json
+          tampering_score?: number | null
+          updated_at?: string
+        }
+        Update: {
+          ai_model_version?: string | null
+          analysis_status?: string
+          analyzed_at?: string | null
+          classification_confidence?: number | null
+          confidence_score?: number | null
+          created_at?: string
+          document_id?: string
+          document_type_detected?: string | null
+          error_message?: string | null
+          extracted_data?: Json
+          id?: string
+          tampering_indicators?: Json
+          tampering_score?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_analyses_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_types: {
         Row: {
           accepted_formats: string[] | null

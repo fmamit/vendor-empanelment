@@ -167,7 +167,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message || "Verification failed",
+        error: error instanceof Error ? error.message : "Verification failed",
       }),
       {
         status: 500,
