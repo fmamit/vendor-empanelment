@@ -2,13 +2,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 import { 
   Sparkles, 
   CheckCircle2, 
   XCircle, 
   AlertTriangle,
   Loader2,
-  FileText
+  FileText,
+  Play
 } from "lucide-react";
 import { TamperingIndicator } from "@/components/fraud/TamperingIndicator";
 import { DocumentAnalysis, ExtractedField } from "@/hooks/useDocumentAnalysis";
@@ -17,6 +19,8 @@ import { cn } from "@/lib/utils";
 interface AIAnalysisPanelProps {
   analysis: DocumentAnalysis | null;
   isLoading?: boolean;
+  onRunAnalysis?: () => void;
+  isRunningAnalysis?: boolean;
 }
 
 function ConfidenceBar({ value, label }: { value: number; label: string }) {
@@ -88,7 +92,7 @@ function ExtractedFieldRow({ field }: { field: ExtractedField }) {
   );
 }
 
-export function AIAnalysisPanel({ analysis, isLoading }: AIAnalysisPanelProps) {
+export function AIAnalysisPanel({ analysis, isLoading, onRunAnalysis, isRunningAnalysis }: AIAnalysisPanelProps) {
   if (isLoading) {
     return (
       <Card>
@@ -105,7 +109,21 @@ export function AIAnalysisPanel({ analysis, isLoading }: AIAnalysisPanelProps) {
       <Card>
         <CardContent className="p-6 text-center">
           <Sparkles className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">No AI analysis available</p>
+          <p className="text-sm text-muted-foreground mb-3">No AI analysis available</p>
+          {onRunAnalysis && (
+            <Button 
+              onClick={onRunAnalysis} 
+              disabled={isRunningAnalysis}
+              size="sm"
+            >
+              {isRunningAnalysis ? (
+                <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+              ) : (
+                <Play className="h-4 w-4 mr-1.5" />
+              )}
+              Run AI Analysis
+            </Button>
+          )}
         </CardContent>
       </Card>
     );
@@ -149,9 +167,24 @@ export function AIAnalysisPanel({ analysis, isLoading }: AIAnalysisPanelProps) {
             <XCircle className="h-6 w-6 text-destructive" />
           </div>
           <p className="font-medium text-sm mb-1 text-destructive">Analysis Failed</p>
-          <p className="text-xs text-muted-foreground">
-            Unable to analyze this document. Please try re-uploading.
+          <p className="text-xs text-muted-foreground mb-3">
+            {analysis.error_message || "Unable to analyze this document. Please try re-uploading."}
           </p>
+          {onRunAnalysis && (
+            <Button 
+              onClick={onRunAnalysis} 
+              disabled={isRunningAnalysis}
+              variant="outline"
+              size="sm"
+            >
+              {isRunningAnalysis ? (
+                <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+              ) : (
+                <Play className="h-4 w-4 mr-1.5" />
+              )}
+              Retry Analysis
+            </Button>
+          )}
         </CardContent>
       </Card>
     );
