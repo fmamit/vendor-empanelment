@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { StaffLayout } from "@/components/layout/StaffLayout";
 import { useUserRoles } from "@/hooks/useUserRoles";
@@ -8,6 +8,7 @@ import {
   useUpdateVendorStatus,
   useUpdateDocumentStatus 
 } from "@/hooks/useStaffWorkflow";
+import { useDocumentAnalysesBatch, useTriggerAnalysis, type ExtractedField } from "@/hooks/useDocumentAnalysis";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,8 +28,32 @@ import {
   CreditCard,
   Phone,
   Mail,
-  MapPin
+  MapPin,
+  Sparkles
 } from "lucide-react";
+
+const PII_FIELDS = ["pan", "pan_number", "bank_account", "bank_account_number", "account_number", "mobile", "phone", "mobile_number"];
+
+function maskPiiValue(fieldName: string, value: string): string {
+  const lowerField = fieldName.toLowerCase();
+  if (lowerField.includes("pan")) {
+    // Show first 2 + last 2: AB***78C
+    if (value.length >= 4) return value.slice(0, 2) + "***" + value.slice(-2);
+  }
+  if (lowerField.includes("account") || lowerField.includes("bank_account")) {
+    // Show last 4 only
+    if (value.length >= 4) return "****" + value.slice(-4);
+  }
+  if (lowerField.includes("mobile") || lowerField.includes("phone")) {
+    if (value.length >= 4) return "****" + value.slice(-4);
+  }
+  return value;
+}
+
+function isPiiField(fieldName: string): boolean {
+  const lower = fieldName.toLowerCase();
+  return PII_FIELDS.some(p => lower.includes(p));
+}
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "Draft",
@@ -64,6 +89,20 @@ export default function VendorReviewDetail() {
   const [rejectReason, setRejectReason] = useState("");
   const [sendBackReason, setSendBackReason] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const documentIds = useMemo(() => (documents || []).map(d => d.id), [documents]);
+  const { analysesMap } = useDocumentAnalysesBatch(documentIds);
+  const triggerAnalysis = useTriggerAnalysis();
+  const [analyzingDocId, setAnalyzingDocId] = useState<string | null>(null);
+
+  const handleRunAnalysis = async (docId: string) => {
+    setAnalyzingDocId(docId);
+    try {
+      await triggerAnalysis.mutateAsync(docId);
+    } finally {
+      setAnalyzingDocId(null);
+    }
+  };
 
   // Store vendor ID for DigiLocker callback
   useEffect(() => {
@@ -311,31 +350,88 @@ export default function VendorReviewDetail() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {documents?.map((doc) => (
-              <div key={doc.id} className={`p-3 rounded-lg ${DOC_STATUS_COLORS[doc.status]}`}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-sm">{doc.document_types.name}</span>
-                  <Badge variant="outline" className="text-xs capitalize">
-                    {doc.status.replace("_", " ")}
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" className="flex-1" onClick={() => window.open(doc.file_url, "_blank")}>
-                    <ExternalLink className="h-3 w-3 mr-1" /> View
-                  </Button>
-                  {doc.status !== "approved" && canForward && (
-                    <Button variant="outline" size="sm" className="text-success border-success" onClick={() => handleDocumentAction(doc.id, "approved")} disabled={actionLoading === doc.id}>
-                      {actionLoading === doc.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
-                    </Button>
+            {documents?.map((doc) => {
+              const analysis = analysesMap[doc.id];
+              const extractedFields = analysis?.extracted_data?.slice(0, 3) || [];
+              const hasAnalysis = analysis && analysis.analysis_status === "completed";
+              const isAnalyzing = analyzingDocId === doc.id || analysis?.analysis_status === "processing";
+
+              return (
+                <div key={doc.id} className={`p-3 rounded-lg ${DOC_STATUS_COLORS[doc.status]}`}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-medium text-sm">{doc.document_types.name}</span>
+                    <div className="flex items-center gap-1.5">
+                      {hasAnalysis && (
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-0.5">
+                          <Sparkles className="h-2.5 w-2.5" />
+                          AI {analysis.confidence_score}%
+                        </Badge>
+                      )}
+                      <Badge variant="outline" className="text-xs capitalize">
+                        {doc.status.replace("_", " ")}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* Inline parsed data */}
+                  {hasAnalysis && extractedFields.length > 0 && (
+                    <div className="mt-1.5 mb-2 space-y-0.5">
+                      {extractedFields.map((field: ExtractedField, idx: number) => (
+                        <div key={idx} className="flex justify-between text-xs">
+                          <span className="text-muted-foreground capitalize">
+                            {field.field_name.replace(/_/g, " ")}
+                          </span>
+                          <span className="font-mono font-medium">
+                            {field.extracted_value
+                              ? isPiiField(field.field_name)
+                                ? maskPiiValue(field.field_name, field.extracted_value)
+                                : field.extracted_value
+                              : "—"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   )}
-                  {doc.status !== "rejected" && canForward && (
-                    <Button variant="outline" size="sm" className="text-destructive border-destructive" onClick={() => handleDocumentAction(doc.id, "rejected")} disabled={actionLoading === doc.id}>
-                      {actionLoading === doc.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <XCircle className="h-3 w-3" />}
-                    </Button>
+
+                  {/* No analysis state */}
+                  {!hasAnalysis && !isAnalyzing && (
+                    <div className="mt-1.5 mb-2 flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">No parsed data available</span>
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="text-xs h-auto p-0 text-primary"
+                        onClick={() => handleRunAnalysis(doc.id)}
+                      >
+                        <Sparkles className="h-3 w-3 mr-1" /> Run AI Analysis
+                      </Button>
+                    </div>
                   )}
+
+                  {isAnalyzing && (
+                    <div className="mt-1.5 mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" /> Analyzing…
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" className="flex-1" onClick={() => window.open(doc.file_url, "_blank")}>
+                      <ExternalLink className="h-3 w-3 mr-1" /> View
+                    </Button>
+                    {doc.status !== "approved" && canForward && (
+                      <Button variant="outline" size="sm" className="text-success border-success" onClick={() => handleDocumentAction(doc.id, "approved")} disabled={actionLoading === doc.id}>
+                        {actionLoading === doc.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
+                      </Button>
+                    )}
+                    {doc.status !== "rejected" && canForward && (
+                      <Button variant="outline" size="sm" className="text-destructive border-destructive" onClick={() => handleDocumentAction(doc.id, "rejected")} disabled={actionLoading === doc.id}>
+                        {actionLoading === doc.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <XCircle className="h-3 w-3" />}
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             {(!documents || documents.length === 0) && (
               <p className="text-sm text-muted-foreground text-center py-4">No documents uploaded yet</p>
             )}
