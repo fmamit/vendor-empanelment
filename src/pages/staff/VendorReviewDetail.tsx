@@ -8,7 +8,7 @@ import {
   useUpdateVendorStatus,
   useUpdateDocumentStatus 
 } from "@/hooks/useStaffWorkflow";
-import { useDocumentAnalysesBatch, useTriggerAnalysis, type ExtractedField } from "@/hooks/useDocumentAnalysis";
+import { useDocumentAnalysesBatch, type ExtractedField } from "@/hooks/useDocumentAnalysis";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -92,17 +92,6 @@ export default function VendorReviewDetail() {
 
   const documentIds = useMemo(() => (documents || []).map(d => d.id), [documents]);
   const { analysesMap } = useDocumentAnalysesBatch(documentIds);
-  const triggerAnalysis = useTriggerAnalysis();
-  const [analyzingDocId, setAnalyzingDocId] = useState<string | null>(null);
-
-  const handleRunAnalysis = async (docId: string) => {
-    setAnalyzingDocId(docId);
-    try {
-      await triggerAnalysis.mutateAsync(docId);
-    } finally {
-      setAnalyzingDocId(null);
-    }
-  };
 
   // Store vendor ID for DigiLocker callback
   useEffect(() => {
@@ -354,7 +343,7 @@ export default function VendorReviewDetail() {
               const analysis = analysesMap[doc.id];
               const extractedFields = analysis?.extracted_data?.slice(0, 3) || [];
               const hasAnalysis = analysis && analysis.analysis_status === "completed";
-              const isAnalyzing = analyzingDocId === doc.id || analysis?.analysis_status === "processing";
+              const isAnalyzing = analysis?.analysis_status === "processing";
 
               return (
                 <div key={doc.id} className={`p-3 rounded-lg ${DOC_STATUS_COLORS[doc.status]}`}>
@@ -393,18 +382,10 @@ export default function VendorReviewDetail() {
                     </div>
                   )}
 
-                  {/* No analysis state */}
+                  {/* No analysis yet - auto-pending state */}
                   {!hasAnalysis && !isAnalyzing && (
-                    <div className="mt-1.5 mb-2 flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">No parsed data available</span>
-                      <Button
-                        variant="link"
-                        size="sm"
-                        className="text-xs h-auto p-0 text-primary"
-                        onClick={() => handleRunAnalysis(doc.id)}
-                      >
-                        <Sparkles className="h-3 w-3 mr-1" /> Run AI Analysis
-                      </Button>
+                    <div className="mt-1.5 mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" /> Analysis pending…
                     </div>
                   )}
 

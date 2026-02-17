@@ -138,14 +138,26 @@ serve(async (req) => {
 
     // If vendor already created (invitation flow), link the document
     if (vendorId) {
-      await supabase.from("vendor_documents").insert({
+      const { data: docRecord } = await supabase.from("vendor_documents").insert({
         vendor_id: vendorId,
         document_type_id: documentTypeId,
         file_name: sanitizedName,
         file_url: filePath,
         file_size_bytes: file.size,
         status: "uploaded",
-      });
+      }).select("id").single();
+
+      // Fire-and-forget: trigger AI analysis
+      if (docRecord?.id) {
+        fetch(`${supabaseUrl}/functions/v1/analyze-document`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${serviceRoleKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ document_id: docRecord.id }),
+        }).catch((err) => console.error("Auto-analysis trigger failed:", err));
+      }
     }
 
     return new Response(
