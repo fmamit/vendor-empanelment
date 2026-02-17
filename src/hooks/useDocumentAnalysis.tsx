@@ -160,6 +160,15 @@ export function useDocumentAnalysesBatch(documentIds: string[]) {
       return map;
     },
     enabled: documentIds.length > 0,
+    refetchInterval: (query) => {
+      const map = query.state.data as Record<string, DocumentAnalysis> | undefined;
+      if (!map) return 5000;
+      // Poll if any document is missing analysis or still processing
+      const hasPending = documentIds.some(
+        (id) => !map[id] || map[id].analysis_status === "processing"
+      );
+      return hasPending ? 5000 : false;
+    },
   });
 
   return { analysesMap: analysesMap ?? {}, isLoading };
