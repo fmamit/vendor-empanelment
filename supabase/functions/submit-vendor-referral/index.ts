@@ -181,10 +181,27 @@ serve(async (req) => {
         status: "uploaded",
       }));
 
-      const { error: docErr } = await supabase.from("vendor_documents").insert(docRows);
+      const { data: insertedDocs, error: docErr } = await supabase
+        .from("vendor_documents")
+        .insert(docRows)
+        .select("id");
       if (docErr) {
         console.error("Failed to link documents:", docErr);
         // Don't fail the whole submission for this
+      }
+
+      // Fire-and-forget: trigger AI analysis for each inserted document
+      if (insertedDocs && insertedDocs.length > 0) {
+        for (const insertedDoc of insertedDocs) {
+          fetch(`${supabaseUrl}/functions/v1/analyze-document`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${serviceRoleKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ document_id: insertedDoc.id }),
+          }).catch((err) => console.error("Auto-analysis trigger failed:", err));
+        }
       }
     }
 

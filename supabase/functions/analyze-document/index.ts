@@ -120,11 +120,21 @@ serve(async (req) => {
       analysisId = newAnalysis.id;
     }
 
-    // Download the document file
+    // Download the document file (generate signed URL from storage path)
     let fileBase64: string;
     let mimeType: string;
     try {
-      const fileResponse = await fetch(doc.file_url);
+      let downloadUrl = doc.file_url;
+      if (!doc.file_url.startsWith("http")) {
+        const { data: signedData, error: signError } = await supabase.storage
+          .from("vendor-documents")
+          .createSignedUrl(doc.file_url, 300);
+        if (signError || !signedData?.signedUrl) {
+          throw new Error("Failed to generate signed URL for document");
+        }
+        downloadUrl = signedData.signedUrl;
+      }
+      const fileResponse = await fetch(downloadUrl);
       if (!fileResponse.ok) throw new Error("Failed to download document file");
       
       const contentType = fileResponse.headers.get("content-type") || "application/octet-stream";
