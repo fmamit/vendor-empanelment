@@ -1,31 +1,28 @@
 
 
-## Fix: Azure Static Web Apps SPA Fallback Routing
+## Fix OTP Email: Sender Name and Text Visibility
 
-### Problem
-The referral URL `civ.in-sync.co.in/register/ref/REF-8AF65A17` returns a **404 from Azure Static Web Apps** because there is no server-side fallback rule telling Azure to serve `index.html` for all client-side routes. The React route `/register/ref/:token` is correctly defined in `App.tsx`, but Azure never gets to serve it.
+### Problems
+1. **Wrong sender name** -- The `from` field says "Paisaa Saarthi" instead of "Capital India"
+2. **Invisible OTP code** -- The email uses white/light-gray text colors on a dark CSS gradient background. Many email clients (Outlook, Gmail) strip gradient backgrounds, leaving the text invisible against a white background.
 
 ### Solution
-Create a `staticwebapp.config.json` file in the `public/` folder (so it gets copied to the build output). This file tells Azure to redirect all unmatched routes to `index.html`, enabling SPA client-side routing.
 
-### Technical Details
+**File to modify:** `supabase/functions/send-public-otp/index.ts`
 
-**File to create:** `public/staticwebapp.config.json`
+1. Change `from` on line 223 from `"Paisaa Saarthi <noreply@in-sync.co.in>"` to `"Capital India <noreply@in-sync.co.in>"`
 
-Contents:
-```json
-{
-  "navigationFallback": {
-    "rewrite": "/index.html",
-    "exclude": ["/assets/*", "/*.ico", "/*.png", "/*.svg", "/*.js", "/*.css"]
-  }
-}
-```
+2. Rebuild the email HTML template with email-safe styling:
+   - Use solid dark background color instead of CSS gradient (better email client support)
+   - Make all text use high-contrast colors: headings and OTP in solid black or dark navy
+   - Use a light/white card-style layout that works even if backgrounds are stripped
+   - OTP code styled in large, bold, black text so it is always visible regardless of email client rendering
 
-This single config change will:
-- Route all non-file requests (like `/register/ref/REF-8AF65A17`) to `index.html`
-- Exclude actual static assets from the fallback so they load normally
-- Fix the 404 for all deep links (referral, vendor dashboard, admin pages, etc.)
-
-No other code changes are needed. After publishing, the referral links will work correctly.
+### Revised Email Design
+- White/light background card
+- "Capital India" heading in dark text
+- "Vendor Registration Verification" subtitle in dark gray
+- OTP code in large bold black text with a light gray bordered box
+- Expiry notice in dark gray
+- All text remains readable even if the email client strips all CSS background properties
 
