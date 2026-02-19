@@ -1,18 +1,19 @@
 
+# Replace Logo Across the Application
 
-# Add Help Widget Script to index.html
-
-## What This Does
-Adds the Go-in-Sync help widget script to the application so it loads on every page.
+## Overview
+Replace the current Capital India logo (`capital-india-logo.jpg`) with the new uploaded logo (`CI.webp`) throughout the application.
 
 ## Changes
 
-### File: `index.html`
-Add the script tag just before the closing `</body>` tag, after the existing module script:
+### 1. Copy the new logo
+Copy `user-uploads://CI.webp` to `src/assets/capital-india-logo.webp`
 
-```html
-<script src="https://go-in-sync.lovable.app/help-widget.js" data-source="vendor_gateway"></script>
-```
+### 2. Update imports in 4 files
+Update the import path from `capital-india-logo.jpg` to `capital-india-logo.webp` in:
+- `src/components/referral/ReferralHeader.tsx`
+- `src/components/layout/StaffSidebar.tsx`
+- `src/components/layout/MobileLayout.tsx`
+- `src/pages/staff/StaffLogin.tsx`
 
-This ensures the widget loads on all pages of the application.
-
+No other changes needed -- the variable name `capitalIndiaLogo` stays the same, so all usages continue to work.
