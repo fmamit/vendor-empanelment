@@ -1362,6 +1362,7 @@ export type Database = {
         Args: { _user_id: string; _vendor_id: string }
         Returns: boolean
       }
+      check_encryption_key_exists: { Args: never; Returns: boolean }
       decrypt_pii: { Args: { ciphertext: string }; Returns: string }
       encrypt_pii: { Args: { plaintext: string }; Returns: string }
       generate_referral_code: { Args: never; Returns: string }
@@ -1377,6 +1378,10 @@ export type Database = {
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_internal_staff: { Args: { _user_id: string }; Returns: boolean }
       is_vendor_user: { Args: { _user_id: string }; Returns: boolean }
+      upsert_vault_secret: {
+        Args: { secret_name: string; secret_value: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "maker" | "checker" | "approver" | "admin" | "platform_admin"
