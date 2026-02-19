@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import capitalIndiaLogo from "@/assets/capital-india-logo.jpg";
+import capitalIndiaLogo from "@/assets/capital-india-logo.webp";
 
 interface MobileLayoutProps {
   children: ReactNode;

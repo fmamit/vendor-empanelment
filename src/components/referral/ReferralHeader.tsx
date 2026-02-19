@@ -1,4 +1,4 @@
-import capitalIndiaLogo from "@/assets/capital-india-logo.jpg";
+import capitalIndiaLogo from "@/assets/capital-india-logo.webp";
 import { ReferralStepper } from "./ReferralStepper";
 
 interface ReferralHeaderProps {
