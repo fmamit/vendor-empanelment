@@ -11,9 +11,10 @@ const STEPS = [
 
 interface ReferralStepperProps {
   currentStep: number;
+  mobile?: boolean;
 }
 
-export function ReferralStepper({ currentStep }: ReferralStepperProps) {
+export function ReferralStepper({ currentStep, mobile }: ReferralStepperProps) {
   return (
     <div className="flex items-center justify-end">
       {STEPS.map((step, index) => (
@@ -21,7 +22,10 @@ export function ReferralStepper({ currentStep }: ReferralStepperProps) {
           <div className="flex flex-col items-center">
             <div
               className={cn(
-                "w-[72px] h-[72px] rounded-full flex items-center justify-center text-[30px] font-semibold transition-colors",
+                "rounded-full flex items-center justify-center font-semibold transition-colors",
+                mobile
+                  ? "w-8 h-8 text-sm"
+                  : "w-[72px] h-[72px] text-[30px]",
                 currentStep > step.id
                   ? "bg-accent text-accent-foreground"
                   : currentStep === step.id
@@ -30,14 +34,17 @@ export function ReferralStepper({ currentStep }: ReferralStepperProps) {
               )}
             >
               {currentStep > step.id ? (
-                <CheckCircle2 className="h-10 w-10" />
+                <CheckCircle2 className={mobile ? "h-4 w-4" : "h-10 w-10"} />
               ) : (
                 step.id
               )}
             </div>
             <span
               className={cn(
-                "text-[27px] mt-1 max-w-[120px] text-center leading-tight font-medium",
+                "mt-1 text-center leading-tight font-medium",
+                mobile
+                  ? "text-[10px] max-w-[40px]"
+                  : "text-[27px] max-w-[120px]",
                 currentStep >= step.id ? "text-foreground" : "text-muted-foreground"
               )}
             >
@@ -47,7 +54,10 @@ export function ReferralStepper({ currentStep }: ReferralStepperProps) {
           {index < STEPS.length - 1 && (
             <div
               className={cn(
-                "h-1.5 w-12 mx-1.5 rounded-full transition-colors",
+                "rounded-full transition-colors",
+                mobile
+                  ? "h-0.5 w-4 mx-0.5"
+                  : "h-1.5 w-12 mx-1.5",
                 currentStep > step.id ? "bg-accent" : "bg-muted"
               )}
             />
