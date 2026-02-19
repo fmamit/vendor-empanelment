@@ -4,7 +4,7 @@ import { StaffLayout } from "@/components/layout/StaffLayout";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -21,6 +21,12 @@ import {
   BarChart3,
   ShieldAlert,
   Database,
+  KeyRound,
+  Eye,
+  EyeOff,
+  AlertTriangle,
+  CheckCircle2,
+  Shield,
 } from "lucide-react";
 import { DataRequestsPanel } from "@/components/admin/DataRequestsPanel";
 import { BreachNotificationPanel } from "@/components/admin/BreachNotificationPanel";
@@ -38,6 +44,10 @@ export default function AdminSettings() {
   const [categoryForm, setCategoryForm] = useState({ name: "", description: "", is_active: true });
   const [docTypeForm, setDocTypeForm] = useState({ name: "", description: "", has_expiry: false, max_file_size_mb: 5 });
 
+  // Encryption key state
+  const [encryptionKey, setEncryptionKey] = useState("");
+  const [showKey, setShowKey] = useState(false);
+
   const { data: categories, isLoading: categoriesLoading } = useQuery({
     queryKey: ["admin-categories"],
     queryFn: async () => { const { data, error } = await supabase.from("vendor_categories").select("*").order("name"); if (error) throw error; return data; },
@@ -46,6 +56,37 @@ export default function AdminSettings() {
   const { data: docTypes, isLoading: docTypesLoading } = useQuery({
     queryKey: ["admin-doc-types"],
     queryFn: async () => { const { data, error } = await supabase.from("document_types").select("*").order("name"); if (error) throw error; return data; },
+  });
+
+  // Check if encryption key is configured
+  const { data: keyStatus, isLoading: keyStatusLoading } = useQuery({
+    queryKey: ["encryption-key-status"],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("set-encryption-key", {
+        body: { action: "check" },
+      });
+      if (error) throw error;
+      return data as { configured: boolean };
+    },
+    enabled: isAdmin,
+  });
+
+  const saveEncryptionKey = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("set-encryption-key", {
+        body: { encryption_key: encryptionKey, action: "save" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["encryption-key-status"] });
+      toast.success("Encryption key saved successfully");
+      setEncryptionKey("");
+      setShowKey(false);
+    },
+    onError: (error: Error) => toast.error(error.message),
   });
 
   const saveCategory = useMutation({
@@ -89,9 +130,10 @@ export default function AdminSettings() {
     <StaffLayout title="System Settings">
       <div className="flex-1 flex flex-col">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-          <TabsList className="w-full justify-start px-4 h-auto py-2 bg-card border-b rounded-none">
+          <TabsList className="w-full justify-start px-4 h-auto py-2 bg-card border-b rounded-none flex-wrap">
             <TabsTrigger value="categories" className="flex items-center gap-2"><Building2 className="h-4 w-4" />Categories</TabsTrigger>
             <TabsTrigger value="documents" className="flex items-center gap-2"><FileText className="h-4 w-4" />Doc Types</TabsTrigger>
+            <TabsTrigger value="encryption" className="flex items-center gap-2"><KeyRound className="h-4 w-4" />Encryption</TabsTrigger>
             <TabsTrigger value="data-requests" className="flex items-center gap-2"><Database className="h-4 w-4" />Data Requests</TabsTrigger>
             <TabsTrigger value="breach" className="flex items-center gap-2"><ShieldAlert className="h-4 w-4" />Breach</TabsTrigger>
             <TabsTrigger value="reports" className="flex items-center gap-2"><BarChart3 className="h-4 w-4" />Reports</TabsTrigger>
@@ -145,7 +187,112 @@ export default function AdminSettings() {
                 </Card>
               ))}
             </div>
-           </TabsContent>
+          </TabsContent>
+
+          <TabsContent value="encryption" className="flex-1 flex flex-col mt-0">
+            <div className="flex-1 overflow-auto p-4 space-y-4 max-w-2xl">
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-3">
+                    <Shield className="h-6 w-6 text-primary" />
+                    <div>
+                      <CardTitle className="text-lg">PII Encryption Key</CardTitle>
+                      <CardDescription>
+                        AES-256 encryption key used to protect Personally Identifiable Information (PII) as required by the DPDP Act 2023.
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-2 mb-4">
+                    {keyStatusLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    ) : keyStatus?.configured ? (
+                      <>
+                        <CheckCircle2 className="h-4 w-4 text-primary" />
+                        <span className="text-sm text-primary font-medium">Encryption key is configured</span>
+                      </>
+                    ) : (
+                      <>
+                        <AlertTriangle className="h-4 w-4 text-destructive" />
+                        <span className="text-sm text-destructive font-medium">No encryption key configured</span>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label htmlFor="encryption-key">
+                      {keyStatus?.configured ? "Rotate Encryption Key" : "Set Encryption Key"}
+                    </Label>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Input
+                          id="encryption-key"
+                          type={showKey ? "text" : "password"}
+                          value={encryptionKey}
+                          onChange={(e) => setEncryptionKey(e.target.value)}
+                          placeholder="Enter AES-256 encryption key (min 16 chars)"
+                          className="pr-10"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                          onClick={() => setShowKey(!showKey)}
+                        >
+                          {showKey ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+                        </Button>
+                      </div>
+                      <Button
+                        onClick={() => saveEncryptionKey.mutate()}
+                        disabled={!encryptionKey || encryptionKey.length < 16 || saveEncryptionKey.isPending}
+                      >
+                        {saveEncryptionKey.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <KeyRound className="h-4 w-4 mr-2" />
+                            Save Key
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    {encryptionKey && encryptionKey.length < 16 && (
+                      <p className="text-xs text-destructive">Key must be at least 16 characters long</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {keyStatus?.configured && (
+                <Card className="border-warning/50 bg-warning/5">
+                  <CardContent className="p-4 flex gap-3">
+                    <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-sm">Key Rotation Warning</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Changing the encryption key will make previously encrypted PII data unreadable unless all existing data is re-encrypted with the new key. 
+                        Ensure you have a data migration plan before rotating keys.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <Card className="border-primary/20 bg-primary/5">
+                <CardContent className="p-4">
+                  <p className="font-medium text-sm mb-2">How it works</p>
+                  <ul className="text-sm text-muted-foreground space-y-1 list-disc pl-4">
+                    <li>The key is stored securely in the backend vault — it never appears in application code or logs.</li>
+                    <li>Fields like PAN, GST, Bank Account, Mobile, and Email are automatically encrypted using this key via database triggers.</li>
+                    <li>Decryption happens only through authorized RPCs with full audit logging (DPDP compliance).</li>
+                    <li>Use a strong, random key of at least 32 characters for production environments.</li>
+                  </ul>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
 
           <TabsContent value="data-requests" className="flex-1 flex flex-col mt-0">
             <DataRequestsPanel />
