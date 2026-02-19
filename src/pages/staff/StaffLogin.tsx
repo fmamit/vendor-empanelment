@@ -1,7 +1,7 @@
 import { MobileLayout } from "@/components/layout/MobileLayout";
 import { StaffEmailLogin } from "@/components/auth/StaffEmailLogin";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import capitalIndiaLogo from "@/assets/capital-india-logo.jpg";
+import capitalIndiaLogo from "@/assets/capital-india-logo.webp";
 
 export default function StaffLogin() {
   return (

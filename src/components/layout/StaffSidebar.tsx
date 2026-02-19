@@ -29,7 +29,7 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
-import capitalIndiaLogo from "@/assets/capital-india-logo.jpg";
+import capitalIndiaLogo from "@/assets/capital-india-logo.webp";
 
 const mainItems = [
   { title: "Dashboard", url: "/staff/dashboard", icon: LayoutDashboard },
