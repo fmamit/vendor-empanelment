@@ -131,7 +131,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const registrationUrl = `https://onboardly-path.lovable.app${registrationPath}`;
+    const registrationUrl = `https://civ.in-sync.co.in${registrationPath}`;
 
     // Send email via Resend
     const emailRes = await fetch("https://api.resend.com/emails", {

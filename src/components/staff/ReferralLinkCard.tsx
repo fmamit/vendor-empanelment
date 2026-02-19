@@ -17,7 +17,7 @@ export function ReferralLinkCard({ referralCode, isLoading }: ReferralLinkCardPr
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const referralUrl = referralCode
-    ? `https://onboardly-path.lovable.app/register/ref/${referralCode}`
+    ? `https://civ.in-sync.co.in/register/ref/${referralCode}`
     : "";
 
   useEffect(() => {
