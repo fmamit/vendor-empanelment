@@ -1,4 +1,4 @@
-project_id = "knsdcrnslpaprfilwvda"
+project_id = "dqmsdovyzcfjnifwjrfm"
 
 [functions.submit-vendor-referral]
 verify_jwt = false
@@ -24,17 +24,11 @@ verify_jwt = false
 [functions.verify-bank-account]
 verify_jwt = false
 
-[functions.verify-aadhaar]
-verify_jwt = false
-
-[functions.digilocker-callback]
-verify_jwt = false
-
-[functions.get-aadhaar-details]
-verify_jwt = false
-
 [functions.analyze-document]
 verify_jwt = false
 
 [functions.set-encryption-key]
+verify_jwt = false
+
+[functions.seed-stress-test]
 verify_jwt = false
