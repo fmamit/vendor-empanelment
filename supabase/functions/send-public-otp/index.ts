@@ -1,5 +1,4 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { encode as base64Encode } from "https://deno.land/std@0.208.0/encoding/base64.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -131,15 +130,16 @@ Deno.serve(async (req) => {
 
       const payload = {
         custom_data: toPhone,
-        to: toPhone,
-        from: fromNumber,
         whatsapp: {
           messages: [
             {
+              from: fromNumber,
+              to: toPhone,
               content: {
+                type: "template",
                 template: {
                   name: "otp",
-                  language: "en_US",
+                  language: { code: "en" },
                   components: [
                     {
                       type: "body",
@@ -159,17 +159,11 @@ Deno.serve(async (req) => {
         },
       };
 
-      const exotelUrl = `https://${subdomain}/v2/accounts/${wsConfig.exotel_sid}/messages`;
-      const authString = base64Encode(
-        new TextEncoder().encode(`${wsConfig.exotel_api_key}:${wsConfig.exotel_api_token}`)
-      );
+      const exotelUrl = `https://${wsConfig.exotel_api_key}:${wsConfig.exotel_api_token}@${subdomain}/v2/accounts/${wsConfig.exotel_sid}/messages`;
 
       const exotelResponse = await fetch(exotelUrl, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Basic ${authString}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
