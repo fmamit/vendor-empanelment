@@ -14,7 +14,7 @@ interface ReferralStepperProps {
   mobile?: boolean;
 }
 
-export function ReferralStepper({ currentStep, mobile }: ReferralStepperProps) {
+export function ReferralStepper({ currentStep }: ReferralStepperProps) {
   return (
     <div className="flex items-center justify-end">
       {STEPS.map((step, index) => (
@@ -22,10 +22,7 @@ export function ReferralStepper({ currentStep, mobile }: ReferralStepperProps) {
           <div className="flex flex-col items-center">
             <div
               className={cn(
-                "rounded-full flex items-center justify-center font-semibold transition-colors",
-                mobile
-                  ? "w-8 h-8 text-sm"
-                  : "w-[72px] h-[72px] text-[30px]",
+                "w-7 h-7 text-xs rounded-full flex items-center justify-center font-semibold transition-colors",
                 currentStep > step.id
                   ? "bg-accent text-accent-foreground"
                   : currentStep === step.id
@@ -34,17 +31,14 @@ export function ReferralStepper({ currentStep, mobile }: ReferralStepperProps) {
               )}
             >
               {currentStep > step.id ? (
-                <CheckCircle2 className={mobile ? "h-4 w-4" : "h-10 w-10"} />
+                <CheckCircle2 className="h-4 w-4" />
               ) : (
                 step.id
               )}
             </div>
             <span
               className={cn(
-                "mt-1 text-center leading-tight font-medium",
-                mobile
-                  ? "text-[10px] max-w-[40px]"
-                  : "text-[27px] max-w-[120px]",
+                "mt-0.5 text-[10px] text-center leading-tight font-medium",
                 currentStep >= step.id ? "text-foreground" : "text-muted-foreground"
               )}
             >
@@ -54,10 +48,7 @@ export function ReferralStepper({ currentStep, mobile }: ReferralStepperProps) {
           {index < STEPS.length - 1 && (
             <div
               className={cn(
-                "rounded-full transition-colors",
-                mobile
-                  ? "h-0.5 w-4 mx-0.5"
-                  : "h-1.5 w-12 mx-1.5",
+                "h-0.5 w-4 mx-0.5 rounded-full transition-colors",
                 currentStep > step.id ? "bg-accent" : "bg-muted"
               )}
             />

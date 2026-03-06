@@ -71,22 +71,18 @@ export default function AdminUserManagement() {
 
   const createUser = useMutation({
     mutationFn: async () => {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: { emailRedirectTo: window.location.origin },
+      const { data, error } = await supabase.functions.invoke("create-staff-user", {
+        body: {
+          email: formData.email,
+          password: formData.password,
+          full_name: formData.full_name,
+          phone: formData.phone || null,
+          department: formData.department || null,
+          roles: formData.roles,
+        },
       });
-      if (authError) throw authError;
-      if (!authData.user) throw new Error("Failed to create user");
-      const { error: profileError } = await supabase.from("profiles").insert({
-        user_id: authData.user.id, full_name: formData.full_name, email: formData.email,
-        phone: formData.phone || null, department: formData.department || null,
-      });
-      if (profileError) throw profileError;
-      for (const role of formData.roles) {
-        const { error: roleError } = await supabase.from("user_roles").insert({ user_id: authData.user.id, role: role as any });
-        if (roleError) throw roleError;
-      }
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-staff-users"] });
