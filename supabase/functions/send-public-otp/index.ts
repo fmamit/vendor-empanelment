@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
             {
               content: {
                 template: {
-                  name: "psotp1",
+                  name: "otp",
                   language: "en_US",
                   components: [
                     {
