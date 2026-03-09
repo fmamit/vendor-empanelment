@@ -51,8 +51,8 @@ export default function StaffLogin() {
 
           {/* Title */}
           <div className="relative z-10 text-center">
-            <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Vendor Empanelment Platform</h2>
-            <p className="text-sm text-slate-500 mt-1">See how the onboarding process works</p>
+            <h2 className="text-4xl font-bold text-slate-800 tracking-tight font-sans">Vendor Empanelment Platform</h2>
+            <p className="text-base text-slate-500 mt-2 font-sans">See how the onboarding process works</p>
           </div>
 
           {/* Framed video container */}
