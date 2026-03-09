@@ -1,801 +1,604 @@
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
+import { useState, useEffect, useCallback, useRef, useImperativeHandle, forwardRef } from "react";
 import {
-  Accordion,
-  AccordionItem,
-  AccordionTrigger,
-  AccordionContent,
-} from "@/components/ui/accordion";
-import {
+  Play,
+  Pause,
+  SkipBack,
+  SkipForward,
+  RotateCcw,
   Building2,
+  ShieldCheck,
+  CheckCircle2,
   Phone,
   Landmark,
   FileText,
-  ShieldCheck,
-  CheckCircle2,
-  XCircle,
-  AlertCircle,
-  ArrowRight,
-  Users,
-  ClipboardCheck,
   Lock,
-  ScanSearch,
   CreditCard,
   Fingerprint,
   Receipt,
   Wallet,
+  ScanSearch,
   Bot,
   Upload,
+  ArrowRight,
+  XCircle,
+  AlertCircle,
+  ClipboardCheck,
   Eye,
 } from "lucide-react";
 
-export function ProcessWalkthrough() {
-  return (
-    <div className="h-full flex flex-col bg-card border-l">
-      {/* Header */}
-      <div className="px-5 py-4 border-b bg-primary/5">
-        <h2 className="text-lg font-semibold text-primary">Process Walkthrough</h2>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          End-to-end vendor onboarding guide
-        </p>
-      </div>
+/* ════════════════════════════════════════════════════
+   SLIDE DATA
+   ════════════════════════════════════════════════════ */
 
-      {/* Tabs */}
-      <Tabs defaultValue="overview" className="flex-1 flex flex-col min-h-0">
-        <div className="px-3 pt-3 border-b">
-          <TabsList className="w-full h-auto flex-wrap gap-1 bg-transparent p-0 justify-start">
-            <TabsTrigger value="overview" className="text-xs px-2.5 py-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Overview</TabsTrigger>
-            <TabsTrigger value="registration" className="text-xs px-2.5 py-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Registration</TabsTrigger>
-            <TabsTrigger value="verification" className="text-xs px-2.5 py-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Verifications</TabsTrigger>
-            <TabsTrigger value="documents" className="text-xs px-2.5 py-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Documents</TabsTrigger>
-            <TabsTrigger value="workflow" className="text-xs px-2.5 py-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Workflow</TabsTrigger>
-            <TabsTrigger value="security" className="text-xs px-2.5 py-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Security</TabsTrigger>
-          </TabsList>
-        </div>
-
-        <ScrollArea className="flex-1">
-          <div className="p-4">
-            {/* ─── OVERVIEW ─── */}
-            <TabsContent value="overview" className="mt-0">
-              <OverviewTab />
-            </TabsContent>
-
-            {/* ─── REGISTRATION ─── */}
-            <TabsContent value="registration" className="mt-0">
-              <RegistrationTab />
-            </TabsContent>
-
-            {/* ─── VERIFICATION ─── */}
-            <TabsContent value="verification" className="mt-0">
-              <VerificationTab />
-            </TabsContent>
-
-            {/* ─── DOCUMENTS ─── */}
-            <TabsContent value="documents" className="mt-0">
-              <DocumentsTab />
-            </TabsContent>
-
-            {/* ─── WORKFLOW ─── */}
-            <TabsContent value="workflow" className="mt-0">
-              <WorkflowTab />
-            </TabsContent>
-
-            {/* ─── SECURITY ─── */}
-            <TabsContent value="security" className="mt-0">
-              <SecurityTab />
-            </TabsContent>
-          </div>
-        </ScrollArea>
-      </Tabs>
-    </div>
-  );
+interface Slide {
+  title: string;
+  subtitle: string;
+  duration: number;
+  render: () => React.ReactNode;
 }
 
-/* ════════════════════════════════════════════════════
-   OVERVIEW TAB
-   ════════════════════════════════════════════════════ */
-function OverviewTab() {
-  return (
-    <div className="space-y-4">
-      {/* 3-step summary */}
-      <div className="grid gap-3">
-        <StepCard
-          icon={<Building2 className="h-4 w-4" />}
-          color="blue"
-          step="1"
-          title="Register"
-          description="Vendor fills multi-step form via staff referral link. Phone & email verified with OTP."
-        />
-        <StepCard
-          icon={<ShieldCheck className="h-4 w-4" />}
-          color="amber"
-          step="2"
-          title="Verify"
-          description="Six real-time API checks (PAN, GST, Bank, UPI, Aadhaar, Experian) plus AI document analysis."
-        />
-        <StepCard
-          icon={<CheckCircle2 className="h-4 w-4" />}
-          color="green"
-          step="3"
-          title="Approve"
-          description="Maker > Checker > Approver workflow with full audit trail and send-back capability."
-        />
-      </div>
-
-      {/* Status lifecycle */}
-      <div className="rounded-lg border p-3 bg-muted/30">
-        <h4 className="text-sm font-semibold mb-3">Vendor Status Lifecycle</h4>
-        <div className="flex flex-wrap items-center gap-1.5 text-xs">
-          <StatusBadge color="bg-slate-100 text-slate-600 border-slate-300">Draft</StatusBadge>
-          <ArrowRight className="h-3 w-3 text-muted-foreground" />
-          <StatusBadge color="bg-amber-50 text-amber-700 border-amber-300">Pending Review</StatusBadge>
-          <ArrowRight className="h-3 w-3 text-muted-foreground" />
-          <StatusBadge color="bg-blue-50 text-blue-700 border-blue-300">In Verification</StatusBadge>
-          <ArrowRight className="h-3 w-3 text-muted-foreground" />
-          <StatusBadge color="bg-purple-50 text-purple-700 border-purple-300">Pending Approval</StatusBadge>
-          <ArrowRight className="h-3 w-3 text-muted-foreground" />
-          <StatusBadge color="bg-green-50 text-green-700 border-green-300">Approved</StatusBadge>
+const slides: Slide[] = [
+  // 0 — Title
+  {
+    title: "Vendor Onboarding",
+    subtitle: "Capital India",
+    duration: 5,
+    render: () => (
+      <div className="flex flex-col items-center justify-center h-full text-center px-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
+          <Building2 className="h-8 w-8 text-primary" />
         </div>
-        <div className="flex flex-wrap items-center gap-1.5 text-xs mt-2">
-          <StatusBadge color="bg-orange-50 text-orange-700 border-orange-300">Sent Back</StatusBadge>
-          <span className="text-muted-foreground text-[10px]">at any stage</span>
-          <span className="mx-2" />
-          <StatusBadge color="bg-red-50 text-red-700 border-red-300">Deactivated</StatusBadge>
-          <span className="text-muted-foreground text-[10px]">admin action</span>
-        </div>
-      </div>
-
-      {/* Tech stack */}
-      <div className="rounded-lg border p-3">
-        <h4 className="text-sm font-semibold mb-2">Technology Stack</h4>
-        <div className="space-y-2">
-          <TagGroup label="Frontend" tags={["React 18", "TypeScript", "Tailwind", "Shadcn/ui"]} />
-          <TagGroup label="Backend" tags={["Supabase", "Deno Edge Functions", "PostgreSQL", "RLS"]} />
-          <TagGroup label="APIs" tags={["VerifiedU (KYC)", "Exotel (WhatsApp)", "Resend (Email)", "Gemini 2.5 Pro"]} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ════════════════════════════════════════════════════
-   REGISTRATION TAB
-   ════════════════════════════════════════════════════ */
-function RegistrationTab() {
-  return (
-    <div className="space-y-4">
-      <p className="text-xs text-muted-foreground">
-        Five-step form accessed via staff referral link: <code className="bg-muted px-1 rounded text-[11px]">/register/ref/:token</code>
-      </p>
-
-      <Accordion type="single" collapsible className="w-full">
-        {/* Step 1: Consent */}
-        <AccordionItem value="consent">
-          <AccordionTrigger className="text-sm py-3">
-            <span className="flex items-center gap-2">
-              <span className="h-5 w-5 rounded-full bg-purple-100 text-purple-700 text-xs flex items-center justify-center font-bold">1</span>
-              DPDP Consent
-            </span>
-          </AccordionTrigger>
-          <AccordionContent>
-            <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-4">
-              <li>Explicit consent checkbox with full privacy policy</li>
-              <li>Stores consent version, purpose, IP address, user agent</li>
-              <li>Consent can be withdrawn later (status changes to <strong>consent_withdrawn</strong>)</li>
-            </ul>
-          </AccordionContent>
-        </AccordionItem>
-
-        {/* Step 2: Company */}
-        <AccordionItem value="company">
-          <AccordionTrigger className="text-sm py-3">
-            <span className="flex items-center gap-2">
-              <span className="h-5 w-5 rounded-full bg-blue-100 text-blue-700 text-xs flex items-center justify-center font-bold">2</span>
-              Company Details
-            </span>
-          </AccordionTrigger>
-          <AccordionContent>
-            <div className="space-y-1.5 text-xs">
-              <FieldRow field="Company Name" required />
-              <FieldRow field="Trade Name" />
-              <FieldRow field="Constitution Type" required note="Dropdown" />
-              <FieldRow field="Vendor Category" required note="From referral link" />
-              <FieldRow field="GST Number" note="15-char GSTIN format" />
-              <FieldRow field="PAN Number" note="10-char format" />
+        <h2 className="text-2xl font-bold text-foreground mb-2">Vendor Onboarding Platform</h2>
+        <p className="text-muted-foreground text-sm max-w-xs">End-to-end registration, verification, and approval workflow</p>
+        <div className="flex gap-8 mt-8">
+          {[
+            { icon: <Building2 className="h-5 w-5" />, label: "Register", color: "text-blue-600 bg-blue-50" },
+            { icon: <ShieldCheck className="h-5 w-5" />, label: "Verify", color: "text-amber-600 bg-amber-50" },
+            { icon: <CheckCircle2 className="h-5 w-5" />, label: "Approve", color: "text-green-600 bg-green-50" },
+          ].map((s, i) => (
+            <div key={i} className="flex flex-col items-center gap-2 animate-in fade-in duration-500" style={{ animationDelay: `${(i + 1) * 300}ms`, animationFillMode: "both" }}>
+              <div className={`h-12 w-12 rounded-full flex items-center justify-center ${s.color}`}>{s.icon}</div>
+              <span className="text-xs font-medium">{s.label}</span>
             </div>
-          </AccordionContent>
-        </AccordionItem>
+          ))}
+        </div>
+      </div>
+    ),
+  },
 
-        {/* Step 3: Contact */}
-        <AccordionItem value="contact">
-          <AccordionTrigger className="text-sm py-3">
-            <span className="flex items-center gap-2">
-              <span className="h-5 w-5 rounded-full bg-green-100 text-green-700 text-xs flex items-center justify-center font-bold">3</span>
-              Contact & OTP
-            </span>
-          </AccordionTrigger>
-          <AccordionContent>
-            <div className="space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-2">
-                <div className="rounded border p-2 bg-green-50/50">
-                  <div className="font-medium text-green-800 mb-1 flex items-center gap-1">
-                    <Phone className="h-3 w-3" /> Phone OTP
-                  </div>
-                  <ul className="text-muted-foreground space-y-0.5 list-disc pl-3 text-[11px]">
-                    <li>WhatsApp via Exotel</li>
-                    <li>6-digit, 5min expiry</li>
-                    <li>Max 3 attempts</li>
-                    <li>60s cooldown</li>
-                  </ul>
-                </div>
-                <div className="rounded border p-2 bg-blue-50/50">
-                  <div className="font-medium text-blue-800 mb-1 flex items-center gap-1">
-                    <FileText className="h-3 w-3" /> Email OTP
-                  </div>
-                  <ul className="text-muted-foreground space-y-0.5 list-disc pl-3 text-[11px]">
-                    <li>Via Resend</li>
-                    <li>Branded template</li>
-                    <li>Same 6-digit, 5min</li>
-                    <li>Max 3 attempts</li>
-                  </ul>
-                </div>
-              </div>
-              <div className="rounded bg-blue-50 border border-blue-200 p-2 text-[11px] text-blue-800">
-                <strong>Test mode:</strong> Phone +919999999999 accepts code 123456
+  // 1 — Status Lifecycle
+  {
+    title: "Status Lifecycle",
+    subtitle: "From draft to approved",
+    duration: 7,
+    render: () => (
+      <div className="flex flex-col items-center justify-center h-full px-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <h3 className="text-lg font-semibold mb-6">Vendor Status Lifecycle</h3>
+        <div className="space-y-3 w-full max-w-sm">
+          {[
+            { label: "Draft", color: "bg-slate-100 border-slate-300 text-slate-700", delay: 0 },
+            { label: "Pending Review", color: "bg-amber-50 border-amber-300 text-amber-700", delay: 200 },
+            { label: "In Verification", color: "bg-blue-50 border-blue-300 text-blue-700", delay: 400 },
+            { label: "Pending Approval", color: "bg-purple-50 border-purple-300 text-purple-700", delay: 600 },
+            { label: "Approved", color: "bg-green-50 border-green-300 text-green-700", delay: 800 },
+          ].map((s, i) => (
+            <div key={i} className="flex items-center gap-3 animate-in fade-in slide-in-from-left-4 duration-500" style={{ animationDelay: `${s.delay}ms`, animationFillMode: "both" }}>
+              <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">{i + 1}</div>
+              <div className={`flex-1 px-4 py-2.5 rounded-lg border font-medium text-sm ${s.color}`}>{s.label}</div>
+              {i < 4 && <ArrowRight className="h-4 w-4 text-muted-foreground animate-in fade-in duration-300" style={{ animationDelay: `${s.delay + 100}ms`, animationFillMode: "both" }} />}
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-3 mt-4">
+          <span className="text-[11px] px-2 py-1 rounded border bg-orange-50 border-orange-300 text-orange-700 animate-in fade-in duration-500" style={{ animationDelay: "1200ms", animationFillMode: "both" }}>Sent Back (at any stage)</span>
+          <span className="text-[11px] px-2 py-1 rounded border bg-red-50 border-red-300 text-red-700 animate-in fade-in duration-500" style={{ animationDelay: "1400ms", animationFillMode: "both" }}>Deactivated (admin)</span>
+        </div>
+      </div>
+    ),
+  },
+
+  // 2 — Registration Step 1: Consent
+  {
+    title: "Step 1: Consent",
+    subtitle: "DPDP compliance",
+    duration: 5,
+    render: () => (
+      <SlideLayout step={1} total={5} icon={<ClipboardCheck className="h-6 w-6" />} color="purple" title="DPDP Consent" subtitle="Vendor provides explicit data processing consent">
+        <AnimatedList items={[
+          "Consent checkbox with full privacy policy",
+          "Records: version, purpose, IP, user agent",
+          "Can be withdrawn — status changes to consent_withdrawn",
+          "Compliant with Digital Personal Data Protection Act",
+        ]} />
+      </SlideLayout>
+    ),
+  },
+
+  // 3 — Registration Step 2: Company
+  {
+    title: "Step 2: Company",
+    subtitle: "Business details",
+    duration: 6,
+    render: () => (
+      <SlideLayout step={2} total={5} icon={<Building2 className="h-6 w-6" />} color="blue" title="Company Details" subtitle="Business information and identifiers">
+        <div className="space-y-2 mt-3">
+          {[
+            { field: "Company Name", req: true },
+            { field: "Trade Name", req: false },
+            { field: "Constitution Type", req: true },
+            { field: "GST Number", req: false, note: "15-char GSTIN" },
+            { field: "PAN Number", req: false, note: "10-char format" },
+          ].map((f, i) => (
+            <div key={i} className="flex items-center justify-between py-1.5 px-3 rounded bg-muted/50 animate-in fade-in slide-in-from-right-2 duration-300" style={{ animationDelay: `${i * 150}ms`, animationFillMode: "both" }}>
+              <span className="text-sm">{f.field}</span>
+              <div className="flex items-center gap-2">
+                {f.note && <span className="text-[10px] text-muted-foreground">{f.note}</span>}
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${f.req ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-500"}`}>
+                  {f.req ? "Required" : "Optional"}
+                </span>
               </div>
             </div>
-          </AccordionContent>
-        </AccordionItem>
+          ))}
+        </div>
+      </SlideLayout>
+    ),
+  },
 
-        {/* Step 4: Bank */}
-        <AccordionItem value="bank">
-          <AccordionTrigger className="text-sm py-3">
-            <span className="flex items-center gap-2">
-              <span className="h-5 w-5 rounded-full bg-amber-100 text-amber-700 text-xs flex items-center justify-center font-bold">4</span>
-              Bank Details
-            </span>
-          </AccordionTrigger>
-          <AccordionContent>
-            <div className="space-y-1.5 text-xs">
-              <FieldRow field="Bank Name" required />
-              <FieldRow field="Branch Name" required />
-              <FieldRow field="Account Number" required note="Numeric" />
-              <FieldRow field="IFSC Code" required note="11 chars, auto-corrects O>0 at pos 5" />
+  // 4 — Registration Step 3: Contact & OTP
+  {
+    title: "Step 3: Contact & OTP",
+    subtitle: "Phone & email verification",
+    duration: 7,
+    render: () => (
+      <SlideLayout step={3} total={5} icon={<Phone className="h-6 w-6" />} color="green" title="Contact & OTP Verification" subtitle="Both phone and email verified via OTP">
+        <div className="grid grid-cols-2 gap-3 mt-3">
+          <div className="rounded-xl border-2 border-green-200 bg-green-50/50 p-3 animate-in fade-in slide-in-from-left-4 duration-500" style={{ animationDelay: "200ms", animationFillMode: "both" }}>
+            <div className="font-semibold text-sm text-green-800 mb-2 flex items-center gap-1.5">
+              <Phone className="h-3.5 w-3.5" /> WhatsApp OTP
             </div>
-            <div className="rounded bg-amber-50 border border-amber-200 p-2 text-[11px] text-amber-800 mt-2">
-              All PII fields encrypted at rest with pgp_sym_encrypt.
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-
-        {/* Step 5: Documents */}
-        <AccordionItem value="documents">
-          <AccordionTrigger className="text-sm py-3">
-            <span className="flex items-center gap-2">
-              <span className="h-5 w-5 rounded-full bg-teal-100 text-teal-700 text-xs flex items-center justify-center font-bold">5</span>
-              Document Upload
-            </span>
-          </AccordionTrigger>
-          <AccordionContent>
-            <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-4">
-              <li>Formats: PDF, JPG, PNG (max 10 MB)</li>
-              <li>Stored in Supabase Storage with RLS</li>
-              <li>Each upload triggers AI analysis automatically</li>
-              <li>Mandatory docs marked with *</li>
+            <ul className="text-[11px] text-green-700/80 space-y-1 list-disc pl-3">
+              <li>Via Exotel API</li>
+              <li>6-digit code</li>
+              <li>5 min expiry</li>
+              <li>Max 3 attempts</li>
+              <li>60s cooldown</li>
             </ul>
-            <div className="flex flex-wrap gap-1 mt-2">
-              {["GST Certificate", "PAN Card", "Cancelled Cheque", "Address Proof", "CIN Certificate"].map(doc => (
-                <span key={doc} className="text-[10px] bg-muted px-1.5 py-0.5 rounded">{doc}</span>
-              ))}
+          </div>
+          <div className="rounded-xl border-2 border-blue-200 bg-blue-50/50 p-3 animate-in fade-in slide-in-from-right-4 duration-500" style={{ animationDelay: "400ms", animationFillMode: "both" }}>
+            <div className="font-semibold text-sm text-blue-800 mb-2 flex items-center gap-1.5">
+              <FileText className="h-3.5 w-3.5" /> Email OTP
             </div>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
+            <ul className="text-[11px] text-blue-700/80 space-y-1 list-disc pl-3">
+              <li>Via Resend</li>
+              <li>Branded template</li>
+              <li>6-digit code</li>
+              <li>5 min expiry</li>
+              <li>Max 3 attempts</li>
+            </ul>
+          </div>
+        </div>
+      </SlideLayout>
+    ),
+  },
 
-      <div className="rounded bg-green-50 border border-green-200 p-2.5 text-xs text-green-800">
-        On submission, vendor gets status <strong>pending_review</strong> and a Vendor ID (<code className="bg-green-100 px-1 rounded">CI-YYYY-####</code>).
+  // 5 — Registration Step 4: Bank
+  {
+    title: "Step 4: Bank Details",
+    subtitle: "Financial information",
+    duration: 5,
+    render: () => (
+      <SlideLayout step={4} total={5} icon={<Landmark className="h-6 w-6" />} color="amber" title="Bank Details" subtitle="Account information for payments">
+        <div className="space-y-2 mt-3">
+          {[
+            { field: "Bank Name", note: "" },
+            { field: "Branch Name", note: "" },
+            { field: "Account Number", note: "Numeric" },
+            { field: "IFSC Code", note: "Auto-corrects O to 0" },
+          ].map((f, i) => (
+            <div key={i} className="flex items-center justify-between py-1.5 px-3 rounded bg-muted/50 animate-in fade-in slide-in-from-right-2 duration-300" style={{ animationDelay: `${i * 150}ms`, animationFillMode: "both" }}>
+              <span className="text-sm">{f.field}</span>
+              <div className="flex items-center gap-2">
+                {f.note && <span className="text-[10px] text-muted-foreground">{f.note}</span>}
+                <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-red-100 text-red-700">Required</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 rounded-lg bg-amber-50 border border-amber-200 p-2.5 text-[11px] text-amber-800 animate-in fade-in duration-500" style={{ animationDelay: "800ms", animationFillMode: "both" }}>
+          <Lock className="h-3 w-3 inline mr-1" /> All PII fields encrypted at rest with pgp_sym_encrypt.
+        </div>
+      </SlideLayout>
+    ),
+  },
+
+  // 6 — Registration Step 5: Documents
+  {
+    title: "Step 5: Documents",
+    subtitle: "Upload & AI analysis",
+    duration: 6,
+    render: () => (
+      <SlideLayout step={5} total={5} icon={<Upload className="h-6 w-6" />} color="teal" title="Document Upload" subtitle="Upload required documents per vendor category">
+        <AnimatedList items={[
+          "Formats: PDF, JPG, PNG (max 10 MB)",
+          "Stored in Supabase Storage with RLS",
+          "Each upload triggers AI analysis (Gemini 2.5 Pro)",
+          "Mandatory documents marked with *",
+        ]} />
+        <div className="flex flex-wrap gap-1.5 mt-3">
+          {["GST Certificate", "PAN Card", "Cancelled Cheque", "Address Proof", "CIN Certificate"].map((doc, i) => (
+            <span key={doc} className="text-[11px] bg-teal-50 text-teal-700 border border-teal-200 px-2 py-0.5 rounded-full animate-in fade-in duration-300" style={{ animationDelay: `${600 + i * 100}ms`, animationFillMode: "both" }}>
+              {doc}
+            </span>
+          ))}
+        </div>
+      </SlideLayout>
+    ),
+  },
+
+  // 7 — Verification APIs
+  {
+    title: "Verification APIs",
+    subtitle: "6 real-time checks",
+    duration: 8,
+    render: () => (
+      <div className="flex flex-col h-full px-6 pt-6 animate-in fade-in duration-500">
+        <h3 className="text-lg font-semibold mb-1">Real-time Verification APIs</h3>
+        <p className="text-xs text-muted-foreground mb-4">Powered by VerifiedU with retry & exponential backoff</p>
+        <div className="space-y-2 flex-1">
+          {[
+            { icon: <CreditCard className="h-4 w-4" />, name: "PAN", fn: "verify-pan", status: "working" as const, delay: 0 },
+            { icon: <Receipt className="h-4 w-4" />, name: "GST", fn: "verify-gst", status: "working" as const, delay: 150 },
+            { icon: <Landmark className="h-4 w-4" />, name: "Bank Account", fn: "verify-bank-account", status: "working" as const, delay: 300 },
+            { icon: <Wallet className="h-4 w-4" />, name: "UPI VPA", fn: "verify-upi", status: "working" as const, delay: 450 },
+            { icon: <Fingerprint className="h-4 w-4" />, name: "Aadhaar (DigiLocker)", fn: "verify-aadhaar", status: "multi" as const, delay: 600 },
+            { icon: <ScanSearch className="h-4 w-4" />, name: "Experian Credit", fn: "credit-report-experian", status: "inactive" as const, delay: 750 },
+          ].map((v, i) => (
+            <div key={i} className="flex items-center gap-3 py-2 px-3 rounded-lg border bg-card animate-in fade-in slide-in-from-left-3 duration-400" style={{ animationDelay: `${v.delay}ms`, animationFillMode: "both" }}>
+              <div className="text-primary">{v.icon}</div>
+              <div className="flex-1">
+                <span className="text-sm font-medium">{v.name}</span>
+                <span className="text-[10px] text-muted-foreground ml-2">{v.fn}</span>
+              </div>
+              <StatusDot status={v.status} />
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
-  );
+    ),
+  },
+
+  // 8 — AI Document Analysis
+  {
+    title: "AI Document Analysis",
+    subtitle: "Gemini 2.5 Pro",
+    duration: 7,
+    render: () => (
+      <div className="flex flex-col items-center justify-center h-full px-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="h-14 w-14 rounded-2xl bg-purple-100 flex items-center justify-center mb-4">
+          <Bot className="h-7 w-7 text-purple-600" />
+        </div>
+        <h3 className="text-lg font-semibold mb-1">AI-Powered Document Analysis</h3>
+        <p className="text-xs text-muted-foreground mb-6">Google Gemini 2.5 Pro via vision + tool calling</p>
+        <div className="w-full max-w-sm space-y-3">
+          {[
+            { label: "Field Extraction", desc: "Name, value, confidence score per field", icon: <FileText className="h-4 w-4 text-blue-600" />, delay: 300 },
+            { label: "Classification", desc: "Auto-detected document type with confidence %", icon: <Eye className="h-4 w-4 text-green-600" />, delay: 500 },
+            { label: "Tamper Detection", desc: "Tampering indicators list and score (0-1)", icon: <ShieldCheck className="h-4 w-4 text-red-600" />, delay: 700 },
+            { label: "PII Masking", desc: "PAN: AB***34F, Account: ****1234", icon: <Lock className="h-4 w-4 text-amber-600" />, delay: 900 },
+          ].map((item, i) => (
+            <div key={i} className="flex items-start gap-3 p-3 rounded-lg border animate-in fade-in slide-in-from-bottom-2 duration-400" style={{ animationDelay: `${item.delay}ms`, animationFillMode: "both" }}>
+              <div className="mt-0.5">{item.icon}</div>
+              <div>
+                <div className="text-sm font-medium">{item.label}</div>
+                <div className="text-[11px] text-muted-foreground">{item.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    ),
+  },
+
+  // 9 — Staff Workflow
+  {
+    title: "Staff Workflow",
+    subtitle: "Maker > Checker > Approver",
+    duration: 7,
+    render: () => (
+      <div className="flex flex-col items-center justify-center h-full px-6 animate-in fade-in duration-500">
+        <h3 className="text-lg font-semibold mb-1">Three-Tier Review</h3>
+        <p className="text-xs text-muted-foreground mb-6">Every vendor passes through three levels of review</p>
+        <div className="w-full max-w-sm space-y-3">
+          {[
+            { role: "Maker", desc: "Initial review. Runs verifications, checks documents.", color: "border-l-blue-500 bg-blue-50/30", delay: 200 },
+            { role: "Checker", desc: "Second-level cross-check. Reviews AI analysis results.", color: "border-l-purple-500 bg-purple-50/30", delay: 500 },
+            { role: "Approver", desc: "Final sign-off. Grants or rejects vendor onboarding.", color: "border-l-green-500 bg-green-50/30", delay: 800 },
+          ].map((r, i) => (
+            <div key={i}>
+              <div className={`p-4 rounded-lg border border-l-4 ${r.color} animate-in fade-in slide-in-from-right-4 duration-500`} style={{ animationDelay: `${r.delay}ms`, animationFillMode: "both" }}>
+                <div className="text-sm font-semibold mb-1">{r.role}</div>
+                <div className="text-xs text-muted-foreground">{r.desc}</div>
+              </div>
+              {i < 2 && (
+                <div className="flex justify-center py-1 animate-in fade-in duration-300" style={{ animationDelay: `${r.delay + 200}ms`, animationFillMode: "both" }}>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground rotate-90" />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    ),
+  },
+
+  // 10 — Security
+  {
+    title: "Security & Compliance",
+    subtitle: "Encryption, RLS, DPDP",
+    duration: 7,
+    render: () => (
+      <div className="flex flex-col items-center justify-center h-full px-6 animate-in fade-in duration-500">
+        <h3 className="text-lg font-semibold mb-1">Security & Compliance</h3>
+        <p className="text-xs text-muted-foreground mb-5">Enterprise-grade data protection</p>
+        <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
+          {[
+            { icon: <Lock className="h-5 w-5 text-red-600" />, label: "PII Encryption", desc: "pgp_sym_encrypt, Vault key", bg: "bg-red-50", delay: 200 },
+            { icon: <ShieldCheck className="h-5 w-5 text-purple-600" />, label: "Row-Level Security", desc: "RLS on all tables", bg: "bg-purple-50", delay: 400 },
+            { icon: <ClipboardCheck className="h-5 w-5 text-amber-600" />, label: "DPDP Compliance", desc: "Consent, data requests", bg: "bg-amber-50", delay: 600 },
+            { icon: <Eye className="h-5 w-5 text-green-600" />, label: "Audit Logging", desc: "PII access, workflow trail", bg: "bg-green-50", delay: 800 },
+          ].map((s, i) => (
+            <div key={i} className={`${s.bg} rounded-xl p-3 text-center animate-in fade-in zoom-in-95 duration-400`} style={{ animationDelay: `${s.delay}ms`, animationFillMode: "both" }}>
+              <div className="flex justify-center mb-2">{s.icon}</div>
+              <div className="text-xs font-semibold mb-0.5">{s.label}</div>
+              <div className="text-[10px] text-muted-foreground">{s.desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    ),
+  },
+
+  // 11 — End
+  {
+    title: "Ready to Go",
+    subtitle: "",
+    duration: 5,
+    render: () => (
+      <div className="flex flex-col items-center justify-center h-full text-center px-6 animate-in fade-in zoom-in-95 duration-700">
+        <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mb-5">
+          <CheckCircle2 className="h-8 w-8 text-green-600" />
+        </div>
+        <h2 className="text-xl font-bold mb-2">Ready to Onboard Vendors</h2>
+        <p className="text-sm text-muted-foreground max-w-xs">Sign in to access the dashboard, review queue, and start processing vendor applications.</p>
+      </div>
+    ),
+  },
+];
+
+/* ════════════════════════════════════════════════════
+   CHAPTER MAP (for step cards)
+   ════════════════════════════════════════════════════ */
+
+export interface ChapterInfo {
+  slideIndex: number;
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  color: string;
+}
+
+export const chapters: ChapterInfo[] = [
+  { slideIndex: 0, icon: <Building2 className="h-4 w-4" />, title: "Overview", description: "Platform introduction", color: "bg-primary/10 text-primary" },
+  { slideIndex: 1, icon: <ArrowRight className="h-4 w-4" />, title: "Status Lifecycle", description: "Draft to approved flow", color: "bg-slate-100 text-slate-600" },
+  { slideIndex: 2, icon: <ClipboardCheck className="h-4 w-4" />, title: "Registration", description: "5-step vendor form", color: "bg-purple-100 text-purple-600" },
+  { slideIndex: 7, icon: <ShieldCheck className="h-4 w-4" />, title: "Verifications", description: "6 real-time API checks", color: "bg-blue-100 text-blue-600" },
+  { slideIndex: 8, icon: <Bot className="h-4 w-4" />, title: "AI Analysis", description: "Document intelligence", color: "bg-purple-100 text-purple-600" },
+  { slideIndex: 9, icon: <Eye className="h-4 w-4" />, title: "Staff Workflow", description: "3-tier review process", color: "bg-amber-100 text-amber-600" },
+  { slideIndex: 10, icon: <Lock className="h-4 w-4" />, title: "Security", description: "Encryption & compliance", color: "bg-red-100 text-red-600" },
+];
+
+/* ════════════════════════════════════════════════════
+   IMPERATIVE HANDLE
+   ════════════════════════════════════════════════════ */
+
+export interface WalkthroughHandle {
+  goToSlide: (index: number) => void;
 }
 
 /* ════════════════════════════════════════════════════
-   VERIFICATION TAB
+   MAIN COMPONENT
    ════════════════════════════════════════════════════ */
-function VerificationTab() {
+
+export const ProcessWalkthrough = forwardRef<WalkthroughHandle>(function ProcessWalkthrough(_, ref) {
+  const [current, setCurrent] = useState(0);
+  const [playing, setPlaying] = useState(true);
+  const [progress, setProgress] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const TICK_MS = 50;
+
+  const slide = slides[current];
+  const totalSlides = slides.length;
+
+  const goTo = useCallback((idx: number) => {
+    setCurrent(idx);
+    setProgress(0);
+  }, []);
+
+  const next = useCallback(() => {
+    if (current < totalSlides - 1) {
+      goTo(current + 1);
+    } else {
+      setPlaying(false);
+    }
+  }, [current, totalSlides, goTo]);
+
+  const prev = useCallback(() => {
+    goTo(Math.max(0, current - 1));
+  }, [current, goTo]);
+
+  const restart = useCallback(() => {
+    goTo(0);
+    setPlaying(true);
+  }, [goTo]);
+
+  // Expose goToSlide for parent
+  useImperativeHandle(ref, () => ({
+    goToSlide: (idx: number) => {
+      goTo(idx);
+      setPlaying(true);
+    },
+  }), [goTo]);
+
+  // Auto-advance timer
+  useEffect(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+
+    if (playing) {
+      const durationMs = slide.duration * 1000;
+      intervalRef.current = setInterval(() => {
+        setProgress(prev => {
+          const next = prev + (TICK_MS / durationMs) * 100;
+          if (next >= 100) return 100;
+          return next;
+        });
+      }, TICK_MS);
+    }
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [playing, current, slide.duration]);
+
+  // When progress hits 100, go next
+  useEffect(() => {
+    if (progress >= 100) {
+      next();
+    }
+  }, [progress, next]);
+
   return (
-    <div className="space-y-4">
-      <div className="rounded bg-blue-50 border border-blue-200 p-2.5 text-xs text-blue-800">
-        All checks powered by <strong>VerifiedU</strong> (resources.earlywages.in). Includes retry with exponential backoff.
+    <div className="h-full flex flex-col bg-card border-l overflow-hidden">
+      {/* Slide content */}
+      <div className="flex-1 min-h-0 relative" key={current}>
+        {slide.render()}
       </div>
 
-      <Accordion type="single" collapsible className="w-full">
-        <VerificationItem
-          value="pan"
-          icon={<CreditCard className="h-3.5 w-3.5" />}
-          title="PAN Verification"
-          status="working"
-          fn="verify-pan"
-          endpoint="VerifyPAN"
-          input="pan_number, vendor_id"
-          returns={["Registered name", "Date of birth", "is_valid status"]}
-        />
-        <VerificationItem
-          value="gst"
-          icon={<Receipt className="h-3.5 w-3.5" />}
-          title="GST Verification"
-          status="working"
-          fn="verify-gst"
-          endpoint="VerifyGstin"
-          input="gstin, vendor_id"
-          returns={["Business name / legal name", "Trade name", "Registration date & status", "is_valid"]}
-        />
-        <VerificationItem
-          value="bank"
-          icon={<Landmark className="h-3.5 w-3.5" />}
-          title="Bank Account"
-          status="working"
-          fn="verify-bank-account"
-          endpoint="VerifyBankAccountNumber"
-          input="account_number, ifsc_code, vendor_id"
-          returns={["Account holder name", "Bank name & branch", "is_valid"]}
-        />
-        <VerificationItem
-          value="upi"
-          icon={<Wallet className="h-3.5 w-3.5" />}
-          title="UPI VPA"
-          status="working"
-          fn="verify-upi"
-          endpoint="VerifyVPA"
-          input="vpa, vendor_id"
-          returns={["VPA address", "Account holder name", "is_valid"]}
-        />
-        <VerificationItem
-          value="aadhaar"
-          icon={<Fingerprint className="h-3.5 w-3.5" />}
-          title="Aadhaar (DigiLocker)"
-          status="multi-step"
-          fn="verify-aadhaar + get-aadhaar-details"
-          endpoint="VerifyAadhaarViaDigilocker + GetAadhaarDetailsById"
-          input="vendor_id, surl, furl (step 1) / unique_request_number (step 2)"
-          returns={["Name, DOB, gender", "Address, photo", "Redirect-based flow"]}
-        />
-        <VerificationItem
-          value="experian"
-          icon={<ScanSearch className="h-3.5 w-3.5" />}
-          title="Experian Credit Report"
-          status="inactive"
-          fn="credit-report-experian"
-          endpoint="GetIndivisualCreditReport"
-          input="name, mobile, pan_number, rs_type"
-          returns={["Full credit report data", "Credit score and history"]}
-        />
-      </Accordion>
+      {/* Progress dots */}
+      <div className="flex items-center justify-center gap-1 px-4 py-2">
+        {slides.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => goTo(i)}
+            className="group relative"
+            title={slides[i].title}
+          >
+            <div className={`h-1.5 rounded-full transition-all duration-200 ${
+              i === current ? "w-6 bg-primary" : i < current ? "w-1.5 bg-primary/40" : "w-1.5 bg-muted-foreground/20"
+            }`} />
+          </button>
+        ))}
+      </div>
 
-      {/* Summary table */}
-      <div className="rounded-lg border overflow-hidden">
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="bg-muted/50">
-              <th className="text-left px-3 py-2 font-medium text-muted-foreground">Type</th>
-              <th className="text-left px-3 py-2 font-medium text-muted-foreground">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            <SummaryRow type="PAN" status="working" />
-            <SummaryRow type="GST" status="working" />
-            <SummaryRow type="Bank Account" status="working" />
-            <SummaryRow type="UPI" status="working" />
-            <SummaryRow type="Aadhaar" status="multi-step" />
-            <SummaryRow type="Experian" status="inactive" />
-          </tbody>
-        </table>
+      {/* Controls bar */}
+      <div className="border-t bg-muted/30 px-4 py-2.5 flex items-center gap-3">
+        <div className="flex items-center gap-1">
+          <button onClick={prev} disabled={current === 0} className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-muted disabled:opacity-30 transition-colors">
+            <SkipBack className="h-3.5 w-3.5" />
+          </button>
+          <button onClick={() => setPlaying(!playing)} className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors">
+            {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5 ml-0.5" />}
+          </button>
+          <button onClick={next} disabled={current === totalSlides - 1} className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-muted disabled:opacity-30 transition-colors">
+            <SkipForward className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="text-xs font-medium truncate">{slide.title}</div>
+          <div className="text-[10px] text-muted-foreground truncate">{slide.subtitle}</div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] text-muted-foreground font-mono">{current + 1}/{totalSlides}</span>
+          <button onClick={restart} className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-muted transition-colors" title="Restart">
+            <RotateCcw className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div className="h-0.5 bg-muted">
+        <div
+          className="h-full bg-primary transition-[width] ease-linear"
+          style={{ width: `${progress}%`, transitionDuration: `${TICK_MS}ms` }}
+        />
       </div>
     </div>
   );
-}
+});
 
 /* ════════════════════════════════════════════════════
-   DOCUMENTS TAB
-   ════════════════════════════════════════════════════ */
-function DocumentsTab() {
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-2">
-        <div className="rounded-lg border p-3">
-          <div className="flex items-center gap-1.5 mb-2">
-            <Upload className="h-3.5 w-3.5 text-blue-600" />
-            <span className="text-xs font-semibold">Upload Pipeline</span>
-          </div>
-          <ul className="text-[11px] text-muted-foreground space-y-0.5 list-disc pl-3">
-            <li>PDF, JPG, PNG (max 10 MB)</li>
-            <li>Supabase Storage with RLS</li>
-            <li>Versioning tracked</li>
-            <li>Expiry dates flagged</li>
-          </ul>
-        </div>
-        <div className="rounded-lg border p-3">
-          <div className="flex items-center gap-1.5 mb-2">
-            <Bot className="h-3.5 w-3.5 text-purple-600" />
-            <span className="text-xs font-semibold">AI Analysis</span>
-          </div>
-          <ul className="text-[11px] text-muted-foreground space-y-0.5 list-disc pl-3">
-            <li>Google Gemini 2.5 Pro</li>
-            <li>Auto-triggered on upload</li>
-            <li>Vision + tool calling</li>
-            <li>Runs async</li>
-          </ul>
-        </div>
-      </div>
-
-      {/* What AI extracts */}
-      <div className="rounded-lg border p-3">
-        <h4 className="text-xs font-semibold mb-2">AI Extraction Details</h4>
-        <div className="space-y-2 text-[11px]">
-          <div>
-            <span className="font-medium text-foreground">Field Extraction:</span>
-            <span className="text-muted-foreground"> Field name, value, and confidence score per field</span>
-          </div>
-          <div>
-            <span className="font-medium text-foreground">Classification:</span>
-            <span className="text-muted-foreground"> Auto-detected document type with confidence %</span>
-          </div>
-          <div>
-            <span className="font-medium text-foreground">Tamper Detection:</span>
-            <span className="text-muted-foreground"> Tampering indicators list and score (0-1)</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="rounded bg-amber-50 border border-amber-200 p-2 text-[11px] text-amber-800">
-        <strong>PII Masking:</strong> PAN: AB***34F, Account: ****1234, Mobile: ****5678
-      </div>
-
-      {/* Document status flow */}
-      <div className="rounded-lg border p-3">
-        <h4 className="text-xs font-semibold mb-2">Document Status Flow</h4>
-        <div className="flex flex-wrap items-center gap-1.5 text-xs">
-          <StatusBadge color="bg-slate-100 text-slate-600 border-slate-300">Uploaded</StatusBadge>
-          <ArrowRight className="h-3 w-3 text-muted-foreground" />
-          <StatusBadge color="bg-blue-50 text-blue-700 border-blue-300">Under Review</StatusBadge>
-          <ArrowRight className="h-3 w-3 text-muted-foreground" />
-          <StatusBadge color="bg-green-50 text-green-700 border-green-300">Approved</StatusBadge>
-        </div>
-        <div className="flex items-center gap-1.5 text-xs mt-1.5">
-          <StatusBadge color="bg-red-50 text-red-700 border-red-300">Rejected</StatusBadge>
-          <StatusBadge color="bg-orange-50 text-orange-700 border-orange-300">Expired</StatusBadge>
-        </div>
-      </div>
-
-      {/* DB tables */}
-      <div className="rounded-lg border overflow-hidden">
-        <table className="w-full text-[11px]">
-          <thead>
-            <tr className="bg-muted/50">
-              <th className="text-left px-2 py-1.5 font-medium text-muted-foreground">Table</th>
-              <th className="text-left px-2 py-1.5 font-medium text-muted-foreground">Purpose</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            <tr><td className="px-2 py-1.5 font-mono">vendor_documents</td><td className="px-2 py-1.5 text-muted-foreground">Metadata & review status</td></tr>
-            <tr><td className="px-2 py-1.5 font-mono">document_analyses</td><td className="px-2 py-1.5 text-muted-foreground">AI extraction results</td></tr>
-            <tr><td className="px-2 py-1.5 font-mono">document_types</td><td className="px-2 py-1.5 text-muted-foreground">Master document list</td></tr>
-            <tr><td className="px-2 py-1.5 font-mono">category_documents</td><td className="px-2 py-1.5 text-muted-foreground">Required docs per category</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-/* ════════════════════════════════════════════════════
-   WORKFLOW TAB
-   ════════════════════════════════════════════════════ */
-function WorkflowTab() {
-  return (
-    <div className="space-y-4">
-      {/* Roles */}
-      <div className="space-y-2">
-        <RoleCard
-          title="Maker"
-          color="border-blue-400"
-          description="Reviews initial submissions. Triggers API verifications. Can send back for corrections."
-          tags={["View queue", "Run verifications", "Review docs", "Send back"]}
-        />
-        <RoleCard
-          title="Checker"
-          color="border-purple-400"
-          description="Second-level review. Cross-checks verification results and AI analysis."
-          tags={["Cross-verify", "Review AI analysis", "Approve / send back"]}
-        />
-        <RoleCard
-          title="Approver"
-          color="border-green-400"
-          description="Final sign-off. Reviews complete verification package and grants approval."
-          tags={["Final review", "Approve vendor", "Reject with reason"]}
-        />
-      </div>
-
-      {/* Features */}
-      <div className="rounded-lg border p-3">
-        <h4 className="text-xs font-semibold mb-2">Staff Features</h4>
-        <div className="grid grid-cols-2 gap-2 text-[11px]">
-          <div>
-            <span className="font-medium">Referrals:</span>
-            <span className="text-muted-foreground"> Unique code per staff, shareable link</span>
-          </div>
-          <div>
-            <span className="font-medium">Invitations:</span>
-            <span className="text-muted-foreground"> Email with token, 7-day expiry</span>
-          </div>
-          <div>
-            <span className="font-medium">Verifications:</span>
-            <span className="text-muted-foreground"> One-click trigger, live status</span>
-          </div>
-          <div>
-            <span className="font-medium">Audit trail:</span>
-            <span className="text-muted-foreground"> Full workflow history, time-in-stage</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Staff pages */}
-      <div className="rounded-lg border overflow-hidden">
-        <table className="w-full text-[11px]">
-          <thead>
-            <tr className="bg-muted/50">
-              <th className="text-left px-2 py-1.5 font-medium text-muted-foreground">Page</th>
-              <th className="text-left px-2 py-1.5 font-medium text-muted-foreground">Route</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            <tr><td className="px-2 py-1.5">Dashboard</td><td className="px-2 py-1.5 font-mono text-muted-foreground">/staff/dashboard</td></tr>
-            <tr><td className="px-2 py-1.5">Review Queue</td><td className="px-2 py-1.5 font-mono text-muted-foreground">/staff/queue</td></tr>
-            <tr><td className="px-2 py-1.5">Vendor Detail</td><td className="px-2 py-1.5 font-mono text-muted-foreground">/staff/vendor/:id</td></tr>
-            <tr><td className="px-2 py-1.5">Invite Vendor</td><td className="px-2 py-1.5 font-mono text-muted-foreground">/staff/invite-vendor</td></tr>
-            <tr><td className="px-2 py-1.5">Fraud Alerts</td><td className="px-2 py-1.5 font-mono text-muted-foreground">/staff/fraud-alerts</td></tr>
-            <tr><td className="px-2 py-1.5">Approved Vendors</td><td className="px-2 py-1.5 font-mono text-muted-foreground">/staff/approved-vendors</td></tr>
-            <tr><td className="px-2 py-1.5">Reports</td><td className="px-2 py-1.5 font-mono text-muted-foreground">/staff/reports</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-/* ════════════════════════════════════════════════════
-   SECURITY TAB
-   ════════════════════════════════════════════════════ */
-function SecurityTab() {
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-2">
-        <div className="rounded-lg border p-3 border-l-4 border-l-red-400">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <Lock className="h-3.5 w-3.5 text-red-600" />
-            <span className="text-xs font-semibold">PII Encryption</span>
-          </div>
-          <ul className="text-[11px] text-muted-foreground space-y-0.5 list-disc pl-3">
-            <li>pgp_sym_encrypt on all sensitive fields</li>
-            <li>Key in Supabase Vault</li>
-            <li>Auto-encrypt triggers</li>
-            <li>Decrypted views for authorized access</li>
-          </ul>
-        </div>
-        <div className="rounded-lg border p-3 border-l-4 border-l-purple-400">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <ShieldCheck className="h-3.5 w-3.5 text-purple-600" />
-            <span className="text-xs font-semibold">Row-Level Security</span>
-          </div>
-          <ul className="text-[11px] text-muted-foreground space-y-0.5 list-disc pl-3">
-            <li>RLS on all tables</li>
-            <li>Role-based policies</li>
-            <li>Storage bucket isolation</li>
-            <li>Public: categories, doc types only</li>
-          </ul>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        <div className="rounded-lg border p-3 border-l-4 border-l-amber-400">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <ClipboardCheck className="h-3.5 w-3.5 text-amber-600" />
-            <span className="text-xs font-semibold">DPDP Compliance</span>
-          </div>
-          <ul className="text-[11px] text-muted-foreground space-y-0.5 list-disc pl-3">
-            <li>Consent tracking</li>
-            <li>Data export requests</li>
-            <li>Breach notifications</li>
-            <li>Admin audit page</li>
-          </ul>
-        </div>
-        <div className="rounded-lg border p-3 border-l-4 border-l-green-400">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <Eye className="h-3.5 w-3.5 text-green-600" />
-            <span className="text-xs font-semibold">Audit Logging</span>
-          </div>
-          <ul className="text-[11px] text-muted-foreground space-y-0.5 list-disc pl-3">
-            <li>PII access log</li>
-            <li>Workflow history</li>
-            <li>WhatsApp message log</li>
-            <li>Consent records</li>
-          </ul>
-        </div>
-      </div>
-
-      {/* Permissions table */}
-      <div className="rounded-lg border overflow-hidden">
-        <h4 className="text-xs font-semibold px-3 py-2 bg-muted/50">Role Permissions</h4>
-        <table className="w-full text-[11px]">
-          <thead>
-            <tr className="bg-muted/30">
-              <th className="text-left px-2 py-1.5 font-medium text-muted-foreground">Role</th>
-              <th className="text-center px-1 py-1.5 font-medium text-muted-foreground">View</th>
-              <th className="text-center px-1 py-1.5 font-medium text-muted-foreground">Verify</th>
-              <th className="text-center px-1 py-1.5 font-medium text-muted-foreground">Approve</th>
-              <th className="text-center px-1 py-1.5 font-medium text-muted-foreground">Admin</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            <PermRow role="Maker" view check={false} approve={false} admin={false} />
-            <PermRow role="Checker" view check approve={false} admin={false} />
-            <PermRow role="Approver" view check approve admin={false} />
-            <PermRow role="Admin" view check approve admin />
-          </tbody>
-        </table>
-      </div>
-
-      <div className="rounded bg-blue-50 border border-blue-200 p-2 text-[11px] text-blue-800">
-        <strong>Encrypted fields:</strong> PAN, GST, phone, email, bank account, IFSC, nominee contact, CIN
-      </div>
-    </div>
-  );
-}
-
-/* ════════════════════════════════════════════════════
-   REUSABLE SUB-COMPONENTS
+   HELPER COMPONENTS
    ════════════════════════════════════════════════════ */
 
-function StepCard({ icon, color, step, title, description }: {
-  icon: React.ReactNode; color: string; step: string; title: string; description: string;
+function SlideLayout({ step, total, icon, color, title, subtitle, children }: {
+  step: number; total: number; icon: React.ReactNode; color: string; title: string; subtitle: string; children: React.ReactNode;
 }) {
-  const bgMap: Record<string, string> = {
-    blue: "bg-blue-100 text-blue-700",
-    amber: "bg-amber-100 text-amber-700",
-    green: "bg-green-100 text-green-700",
+  const colorMap: Record<string, string> = {
+    purple: "bg-purple-100 text-purple-600",
+    blue: "bg-blue-100 text-blue-600",
+    green: "bg-green-100 text-green-600",
+    amber: "bg-amber-100 text-amber-600",
+    teal: "bg-teal-100 text-teal-600",
   };
+
   return (
-    <div className="flex items-start gap-3 rounded-lg border p-3">
-      <div className={`h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 ${bgMap[color]}`}>
-        {icon}
+    <div className="flex flex-col h-full px-6 pt-5 pb-3 animate-in fade-in slide-in-from-right-4 duration-500">
+      <div className="flex items-center gap-2 mb-4">
+        <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${colorMap[color]}`}>{icon}</div>
+        <div className="flex-1">
+          <div className="text-sm font-semibold">{title}</div>
+          <div className="text-[11px] text-muted-foreground">{subtitle}</div>
+        </div>
+        <span className="text-[10px] font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Step {step}/{total}</span>
       </div>
-      <div>
-        <div className="text-sm font-semibold">{title}</div>
-        <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+      <div className="flex gap-1 mb-4">
+        {Array.from({ length: total }, (_, i) => (
+          <div key={i} className={`h-1 flex-1 rounded-full transition-colors duration-300 ${i < step ? colorMap[color].split(" ")[0] : "bg-muted"}`} />
+        ))}
       </div>
+      <div className="flex-1">{children}</div>
     </div>
   );
 }
 
-function StatusBadge({ children, color }: { children: React.ReactNode; color: string }) {
+function AnimatedList({ items }: { items: string[] }) {
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${color}`}>
-      {children}
+    <div className="space-y-2 mt-2">
+      {items.map((item, i) => (
+        <div key={i} className="flex items-start gap-2 text-sm animate-in fade-in slide-in-from-left-3 duration-400" style={{ animationDelay: `${(i + 1) * 200}ms`, animationFillMode: "both" }}>
+          <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+          <span className="text-muted-foreground">{item}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function StatusDot({ status }: { status: "working" | "inactive" | "multi" }) {
+  if (status === "working") return (
+    <span className="flex items-center gap-1 text-[11px] text-green-600 font-medium">
+      <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /> Working
     </span>
   );
-}
-
-function TagGroup({ label, tags }: { label: string; tags: string[] }) {
-  return (
-    <div>
-      <span className="text-xs font-medium text-foreground">{label}: </span>
-      <span className="inline-flex flex-wrap gap-1 mt-0.5">
-        {tags.map(t => (
-          <span key={t} className="text-[10px] bg-muted px-1.5 py-0.5 rounded">{t}</span>
-        ))}
-      </span>
-    </div>
+  if (status === "inactive") return (
+    <span className="flex items-center gap-1 text-[11px] text-red-500 font-medium">
+      <XCircle className="h-3 w-3" /> Inactive
+    </span>
   );
-}
-
-function FieldRow({ field, required, note }: { field: string; required?: boolean; note?: string }) {
   return (
-    <div className="flex items-center justify-between py-1 border-b border-dashed last:border-0">
-      <span className="text-foreground">{field}</span>
-      <span className="flex items-center gap-1.5">
-        {note && <span className="text-muted-foreground text-[10px]">{note}</span>}
-        {required ? (
-          <Badge variant="destructive" className="text-[9px] px-1.5 py-0 h-4">Required</Badge>
-        ) : (
-          <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4">Optional</Badge>
-        )}
-      </span>
-    </div>
-  );
-}
-
-function VerificationItem({ value, icon, title, status, fn, endpoint, input, returns }: {
-  value: string; icon: React.ReactNode; title: string;
-  status: "working" | "inactive" | "multi-step";
-  fn: string; endpoint: string; input: string; returns: string[];
-}) {
-  const statusConfig = {
-    working: { label: "Working", variant: "default" as const, className: "bg-green-600 text-white border-green-600" },
-    inactive: { label: "Inactive", variant: "destructive" as const, className: "" },
-    "multi-step": { label: "Multi-step", variant: "secondary" as const, className: "bg-blue-100 text-blue-700 border-blue-200" },
-  };
-  const sc = statusConfig[status];
-
-  return (
-    <AccordionItem value={value}>
-      <AccordionTrigger className="text-sm py-3">
-        <span className="flex items-center gap-2 flex-1">
-          {icon}
-          <span>{title}</span>
-          <Badge variant={sc.variant} className={`text-[9px] px-1.5 py-0 h-4 ml-auto mr-2 ${sc.className}`}>
-            {sc.label}
-          </Badge>
-        </span>
-      </AccordionTrigger>
-      <AccordionContent>
-        <div className="space-y-1.5 text-[11px]">
-          <div><span className="font-medium">Function:</span> <code className="bg-muted px-1 rounded">{fn}</code></div>
-          <div><span className="font-medium">Endpoint:</span> <code className="bg-muted px-1 rounded">{endpoint}</code></div>
-          <div><span className="font-medium">Input:</span> <span className="text-muted-foreground">{input}</span></div>
-          <div>
-            <span className="font-medium">Returns:</span>
-            <ul className="list-disc pl-4 text-muted-foreground mt-0.5">
-              {returns.map((r, i) => <li key={i}>{r}</li>)}
-            </ul>
-          </div>
-        </div>
-      </AccordionContent>
-    </AccordionItem>
-  );
-}
-
-function SummaryRow({ type, status }: { type: string; status: "working" | "inactive" | "multi-step" }) {
-  return (
-    <tr>
-      <td className="px-3 py-1.5">{type}</td>
-      <td className="px-3 py-1.5">
-        {status === "working" && <span className="flex items-center gap-1 text-green-600"><CheckCircle2 className="h-3 w-3" /> Working</span>}
-        {status === "inactive" && <span className="flex items-center gap-1 text-red-600"><XCircle className="h-3 w-3" /> Inactive</span>}
-        {status === "multi-step" && <span className="flex items-center gap-1 text-blue-600"><AlertCircle className="h-3 w-3" /> Multi-step</span>}
-      </td>
-    </tr>
-  );
-}
-
-function RoleCard({ title, color, description, tags }: {
-  title: string; color: string; description: string; tags: string[];
-}) {
-  return (
-    <div className={`rounded-lg border p-3 border-t-4 ${color}`}>
-      <h4 className="text-xs font-semibold mb-1">{title}</h4>
-      <p className="text-[11px] text-muted-foreground mb-1.5">{description}</p>
-      <div className="flex flex-wrap gap-1">
-        {tags.map(t => (
-          <span key={t} className="text-[10px] bg-muted px-1.5 py-0.5 rounded">{t}</span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function PermRow({ role, view, check, approve, admin }: {
-  role: string; view: boolean; check: boolean; approve: boolean; admin: boolean;
-}) {
-  const Yes = () => <CheckCircle2 className="h-3.5 w-3.5 text-green-600 mx-auto" />;
-  const No = () => <XCircle className="h-3.5 w-3.5 text-red-400 mx-auto" />;
-  return (
-    <tr>
-      <td className="px-2 py-1.5 font-medium">{role}</td>
-      <td className="text-center px-1 py-1.5">{view ? <Yes /> : <No />}</td>
-      <td className="text-center px-1 py-1.5">{check ? <Yes /> : <No />}</td>
-      <td className="text-center px-1 py-1.5">{approve ? <Yes /> : <No />}</td>
-      <td className="text-center px-1 py-1.5">{admin ? <Yes /> : <No />}</td>
-    </tr>
+    <span className="flex items-center gap-1 text-[11px] text-blue-600 font-medium">
+      <AlertCircle className="h-3 w-3" /> Multi-step
+    </span>
   );
 }
