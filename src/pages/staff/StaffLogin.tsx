@@ -11,7 +11,7 @@ export default function StaffLogin() {
   return (
     <MobileLayout showHeader={false}>
       <div className="flex-1 flex min-h-0">
-        {/* Left: Login + Step Cards */}
+        {/* Left: Login */}
         <div className="flex-1 flex flex-col items-center justify-center p-6 overflow-y-auto">
           <Card className="w-full max-w-md">
             <CardHeader className="text-center">
@@ -31,31 +31,33 @@ export default function StaffLogin() {
           <p className="mt-6 text-center text-sm text-muted-foreground max-w-xs">
             Contact your administrator if you need access.
           </p>
+        </div>
+
+        {/* Right: Walkthrough + Step Cards (hidden on mobile) */}
+        <div className="hidden lg:flex flex-col items-center justify-center gap-4 w-[520px] xl:w-[580px] flex-shrink-0 p-6 overflow-y-auto">
+          {/* 16:9 video container */}
+          <div className="w-full rounded-xl overflow-hidden border shadow-lg aspect-video">
+            <ProcessWalkthrough ref={walkthroughRef} />
+          </div>
 
           {/* Step Cards */}
-          <div className="w-full max-w-md mt-8">
-            <h3 className="text-sm font-semibold text-muted-foreground mb-3 text-center">Onboarding Process</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+          <div className="w-full">
+            <h3 className="text-xs font-semibold text-muted-foreground mb-2 text-center">Jump to Section</h3>
+            <div className="grid grid-cols-4 gap-1.5">
               {chapters.map((ch, i) => (
                 <button
                   key={i}
                   onClick={() => walkthroughRef.current?.goToSlide(ch.slideIndex)}
-                  className="group flex flex-col items-center gap-1.5 p-3 rounded-xl border bg-card hover:shadow-md hover:border-primary/30 transition-all text-center"
+                  className="group flex flex-col items-center gap-1 p-2 rounded-lg border bg-card hover:shadow-md hover:border-primary/30 transition-all text-center"
                 >
-                  <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${ch.color} group-hover:scale-110 transition-transform`}>
+                  <div className={`h-6 w-6 rounded-md flex items-center justify-center ${ch.color} group-hover:scale-110 transition-transform`}>
                     {ch.icon}
                   </div>
-                  <span className="text-xs font-medium leading-tight">{ch.title}</span>
-                  <span className="text-[10px] text-muted-foreground leading-tight">{ch.description}</span>
+                  <span className="text-[10px] font-medium leading-tight">{ch.title}</span>
                 </button>
               ))}
             </div>
           </div>
-        </div>
-
-        {/* Right: Video Walkthrough (hidden on mobile) */}
-        <div className="hidden lg:block w-[480px] xl:w-[540px] flex-shrink-0">
-          <ProcessWalkthrough ref={walkthroughRef} />
         </div>
       </div>
     </MobileLayout>
