@@ -49,6 +49,12 @@ export default function StaffLogin() {
           <div className="absolute bottom-16 left-10 w-52 h-52 rounded-full bg-indigo-300/15 blur-3xl pointer-events-none" />
           <div className="absolute top-1/2 left-1/3 w-32 h-32 rounded-full bg-amber-200/10 blur-2xl pointer-events-none" />
 
+          {/* Title */}
+          <div className="relative z-10 text-center">
+            <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Vendor Empanelment Platform</h2>
+            <p className="text-sm text-slate-500 mt-1">See how the onboarding process works</p>
+          </div>
+
           {/* Framed video container */}
           <div className="w-full max-w-3xl relative z-10">
             <div className="rounded-2xl overflow-hidden border-2 border-white/60 shadow-2xl ring-1 ring-black/5 bg-card aspect-video">
