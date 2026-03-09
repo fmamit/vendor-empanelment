@@ -483,19 +483,8 @@ export const ProcessWalkthrough = forwardRef<WalkthroughHandle>(function Process
         </div>
       </div>
 
-      {/* Progress dots */}
-      <div className="flex items-center justify-center gap-1 px-3 py-1">
-        {slides.map((_, i) => (
-          <button key={i} onClick={() => goTo(i)} title={slides[i].title}>
-            <div className={`h-1 rounded-full transition-all duration-200 ${
-              i === current ? "w-5 bg-primary" : i < current ? "w-1 bg-primary/40" : "w-1 bg-muted-foreground/20"
-            }`} />
-          </button>
-        ))}
-      </div>
-
-      {/* Controls bar */}
-      <div className="border-t bg-muted/30 px-3 py-1.5 flex items-center gap-2">
+      {/* Minimal controls — no visible loader/progress */}
+      <div className="border-t bg-muted/20 px-3 py-1 flex items-center gap-2">
         <div className="flex items-center gap-0.5">
           <button onClick={prev} disabled={current === 0} className="h-6 w-6 rounded-full flex items-center justify-center hover:bg-muted disabled:opacity-30 transition-colors">
             <SkipBack className="h-3 w-3" />
@@ -510,7 +499,6 @@ export const ProcessWalkthrough = forwardRef<WalkthroughHandle>(function Process
 
         <div className="flex-1 min-w-0">
           <div className="text-[11px] font-medium truncate">{slide.title}</div>
-          <div className="text-[9px] text-muted-foreground truncate">{slide.subtitle}</div>
         </div>
 
         <div className="flex items-center gap-1.5">
@@ -519,14 +507,6 @@ export const ProcessWalkthrough = forwardRef<WalkthroughHandle>(function Process
             <RotateCcw className="h-3 w-3" />
           </button>
         </div>
-      </div>
-
-      {/* Progress bar */}
-      <div className="h-0.5 bg-muted">
-        <div
-          className="h-full bg-primary transition-[width] ease-linear"
-          style={{ width: `${progress}%`, transitionDuration: `${TICK_MS}ms` }}
-        />
       </div>
     </div>
   );
