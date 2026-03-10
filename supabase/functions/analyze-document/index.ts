@@ -187,12 +187,30 @@ For each extracted field, provide:
 
 Be thorough and extract ALL visible fields from the document.`;
 
-    // Map common MIME types to Anthropic's supported media types
-    const supportedMediaType = (mimeType === "image/jpeg" || mimeType === "image/jpg") ? "image/jpeg"
-      : mimeType === "image/png" ? "image/png"
-      : mimeType === "image/gif" ? "image/gif"
-      : mimeType === "image/webp" ? "image/webp"
-      : "image/png"; // fallback
+    // Build the file content block — PDFs use "document" type, images use "image" type
+    const isPdf = mimeType === "application/pdf";
+    const fileContentBlock = isPdf
+      ? {
+          type: "document",
+          source: {
+            type: "base64",
+            media_type: "application/pdf",
+            data: fileBase64,
+          },
+        }
+      : {
+          type: "image",
+          source: {
+            type: "base64",
+            media_type:
+              mimeType === "image/jpeg" || mimeType === "image/jpg" ? "image/jpeg"
+              : mimeType === "image/png" ? "image/png"
+              : mimeType === "image/gif" ? "image/gif"
+              : mimeType === "image/webp" ? "image/webp"
+              : "image/png",
+            data: fileBase64,
+          },
+        };
 
     const aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -209,14 +227,7 @@ Be thorough and extract ALL visible fields from the document.`;
           {
             role: "user",
             content: [
-              {
-                type: "image",
-                source: {
-                  type: "base64",
-                  media_type: supportedMediaType,
-                  data: fileBase64,
-                },
-              },
+              fileContentBlock,
               {
                 type: "text",
                 text: `Analyze this document. The file name is: ${doc.file_name}. Extract all key fields, detect the document type, and assess tampering risk.`,
