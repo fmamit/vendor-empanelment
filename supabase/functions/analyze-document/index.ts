@@ -166,10 +166,10 @@ serve(async (req) => {
       );
     }
 
-    // Call Lovable AI Gateway with vision + tool calling
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    // Call Anthropic Claude Haiku for document analysis
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) {
+      throw new Error("ANTHROPIC_API_KEY is not configured");
     }
 
     const systemPrompt = `You are a document analysis AI for an Indian vendor onboarding platform. You analyze uploaded documents (GST Certificates, PAN Cards, Cancelled Cheques, Trade Licenses, Certificates of Incorporation, etc.) and extract key information.
@@ -187,90 +187,96 @@ For each extracted field, provide:
 
 Be thorough and extract ALL visible fields from the document.`;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // Map common MIME types to Anthropic's supported media types
+    const supportedMediaType = (mimeType === "image/jpeg" || mimeType === "image/jpg") ? "image/jpeg"
+      : mimeType === "image/png" ? "image/png"
+      : mimeType === "image/gif" ? "image/gif"
+      : mimeType === "image/webp" ? "image/webp"
+      : "image/png"; // fallback
+
+    const aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 4096,
+        system: systemPrompt,
         messages: [
-          { role: "system", content: systemPrompt },
           {
             role: "user",
             content: [
               {
-                type: "text",
-                text: `Analyze this document. The file name is: ${doc.file_name}. Extract all key fields, detect the document type, and assess tampering risk.`,
+                type: "image",
+                source: {
+                  type: "base64",
+                  media_type: supportedMediaType,
+                  data: fileBase64,
+                },
               },
               {
-                type: "image_url",
-                image_url: {
-                  url: `data:${mimeType};base64,${fileBase64}`,
-                },
+                type: "text",
+                text: `Analyze this document. The file name is: ${doc.file_name}. Extract all key fields, detect the document type, and assess tampering risk.`,
               },
             ],
           },
         ],
         tools: [
           {
-            type: "function",
-            function: {
-              name: "document_analysis_result",
-              description: "Return the structured analysis results for the document",
-              parameters: {
-                type: "object",
-                properties: {
-                  document_type: {
-                    type: "string",
-                    description: "Detected document type (e.g., 'GST Certificate', 'PAN Card', 'Cancelled Cheque', 'Trade License', 'Certificate of Incorporation')",
-                  },
-                  classification_confidence: {
-                    type: "integer",
-                    description: "Confidence in document type detection (0-100)",
-                  },
-                  extracted_fields: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        field_name: { type: "string" },
-                        value: { type: "string" },
-                        confidence: { type: "integer" },
-                      },
-                      required: ["field_name", "value", "confidence"],
-                      additionalProperties: false,
+            name: "document_analysis_result",
+            description: "Return the structured analysis results for the document",
+            input_schema: {
+              type: "object",
+              properties: {
+                document_type: {
+                  type: "string",
+                  description: "Detected document type (e.g., 'GST Certificate', 'PAN Card', 'Cancelled Cheque', 'Trade License', 'Certificate of Incorporation')",
+                },
+                classification_confidence: {
+                  type: "integer",
+                  description: "Confidence in document type detection (0-100)",
+                },
+                extracted_fields: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      field_name: { type: "string" },
+                      value: { type: "string" },
+                      confidence: { type: "integer" },
                     },
-                  },
-                  overall_confidence: {
-                    type: "integer",
-                    description: "Overall confidence in the extraction quality (0-100)",
-                  },
-                  tampering_score: {
-                    type: "integer",
-                    description: "Risk of tampering (0-100, 0=clean, 100=definitely tampered)",
-                  },
-                  tampering_indicators: {
-                    type: "array",
-                    items: { type: "string" },
-                    description: "List of specific tampering indicators found, if any",
+                    required: ["field_name", "value", "confidence"],
                   },
                 },
-                required: [
-                  "document_type",
-                  "classification_confidence",
-                  "extracted_fields",
-                  "overall_confidence",
-                  "tampering_score",
-                  "tampering_indicators",
-                ],
-                additionalProperties: false,
+                overall_confidence: {
+                  type: "integer",
+                  description: "Overall confidence in the extraction quality (0-100)",
+                },
+                tampering_score: {
+                  type: "integer",
+                  description: "Risk of tampering (0-100, 0=clean, 100=definitely tampered)",
+                },
+                tampering_indicators: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "List of specific tampering indicators found, if any",
+                },
               },
+              required: [
+                "document_type",
+                "classification_confidence",
+                "extracted_fields",
+                "overall_confidence",
+                "tampering_score",
+                "tampering_indicators",
+              ],
             },
           },
         ],
-        tool_choice: { type: "function", function: { name: "document_analysis_result" } },
+        tool_choice: { type: "tool", name: "document_analysis_result" },
       }),
     });
 
@@ -300,15 +306,15 @@ Be thorough and extract ALL visible fields from the document.`;
     }
 
     const aiData = await aiResponse.json();
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+    const toolUseBlock = aiData.content?.find((block: any) => block.type === "tool_use");
 
-    if (!toolCall || !toolCall.function?.arguments) {
+    if (!toolUseBlock || !toolUseBlock.input) {
       await supabase
         .from("document_analyses")
-        .update({ 
-          analysis_status: "failed", 
+        .update({
+          analysis_status: "failed",
           error_message: "AI did not return structured results",
-          updated_at: new Date().toISOString() 
+          updated_at: new Date().toISOString()
         })
         .eq("id", analysisId);
 
@@ -318,14 +324,7 @@ Be thorough and extract ALL visible fields from the document.`;
       );
     }
 
-    let analysisResult;
-    try {
-      analysisResult = typeof toolCall.function.arguments === "string"
-        ? JSON.parse(toolCall.function.arguments)
-        : toolCall.function.arguments;
-    } catch {
-      throw new Error("Failed to parse AI response");
-    }
+    const analysisResult = toolUseBlock.input;
 
     // Mask PII in extracted fields before storing
     const maskedExtractedData = (analysisResult.extracted_fields || []).map(
@@ -350,7 +349,7 @@ Be thorough and extract ALL visible fields from the document.`;
         confidence_score: analysisResult.overall_confidence,
         tampering_indicators: analysisResult.tampering_indicators || [],
         tampering_score: analysisResult.tampering_score,
-        ai_model_version: "gemini-2.5-pro",
+        ai_model_version: "claude-haiku-4.5",
         analyzed_at: now,
         updated_at: now,
         error_message: null,
