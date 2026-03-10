@@ -31,6 +31,10 @@ import {
 } from "@/components/ui/sidebar";
 import capitalIndiaLogo from "@/assets/capital-india-logo.webp";
 
+const EMAIL_NAME_MAP: Record<string, string> = {
+  "a@in-sync.co.in": "Amit Sengupta",
+};
+
 const mainItems = [
   { title: "Dashboard", url: "/staff/dashboard", icon: LayoutDashboard },
   { title: "Vendor Queue", url: "/staff/queue", icon: ClipboardList },
@@ -88,7 +92,7 @@ export function StaffSidebar() {
         {!collapsed && (
           <div className="text-center mt-1">
             <p className="text-sm font-semibold text-white truncate max-w-[160px]">
-              {profile?.full_name || "Staff User"}
+              {EMAIL_NAME_MAP[user?.email || ""] || profile?.full_name || "Staff User"}
             </p>
             {profile?.department && (
               <p className="text-xs text-white/70 truncate max-w-[160px]">
