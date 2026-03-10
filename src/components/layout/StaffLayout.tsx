@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { StaffSidebar } from "./StaffSidebar";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { Loader2 } from "lucide-react";
 
 interface StaffLayoutProps {
@@ -35,9 +36,12 @@ export function StaffLayout({ children, title }: StaffLayoutProps) {
       <div className="min-h-screen flex w-full">
         <StaffSidebar />
         <SidebarInset>
-          <header className="h-14 flex items-center border-b px-4 shrink-0">
-            <SidebarTrigger className="mr-3" />
-            {title && <h1 className="font-semibold text-lg truncate">{title}</h1>}
+          <header className="h-14 flex items-center justify-between border-b px-4 shrink-0">
+            <div className="flex items-center">
+              <SidebarTrigger className="mr-3" />
+              {title && <h1 className="font-semibold text-lg truncate">{title}</h1>}
+            </div>
+            <NotificationBell />
           </header>
           <main className="flex-1 overflow-auto">
             {children}

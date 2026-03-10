@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import capitalIndiaLogo from "@/assets/capital-india-logo.webp";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 interface MobileLayoutProps {
   children: ReactNode;
@@ -12,17 +13,20 @@ export function MobileLayout({ children, showHeader = true, title }: MobileLayou
     <div className="min-h-screen bg-background flex flex-col safe-area-inset">
       {showHeader && (
         <header className="sticky top-0 z-50 bg-primary px-4 py-3 shadow-md">
-          <div className="flex items-center gap-3">
-            <img 
-              src={capitalIndiaLogo} 
-              alt="Capital India" 
-              className="h-10 w-auto rounded bg-white p-1"
-            />
-            {title && (
-              <h1 className="text-lg font-semibold text-primary-foreground">
-                {title}
-              </h1>
-            )}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <img
+                src={capitalIndiaLogo}
+                alt="Capital India"
+                className="h-10 w-auto rounded bg-white p-1"
+              />
+              {title && (
+                <h1 className="text-lg font-semibold text-primary-foreground">
+                  {title}
+                </h1>
+              )}
+            </div>
+            <NotificationBell variant="dark" />
           </div>
         </header>
       )}
