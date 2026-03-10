@@ -164,12 +164,26 @@ export function useUpdateVendorStatus() {
           .maybeSingle();
 
         if (vendorUser?.user_id) {
+          const notificationType = newStatus === "approved" ? "approval" : newStatus === "rejected" ? "rejection" : "sent_back";
+
           await supabase.from("notifications").insert({
             recipient_id: vendorUser.user_id,
             title: notificationTitle,
             message: notificationMessage,
-            notification_type: newStatus === "approved" ? "approval" : newStatus === "rejected" ? "rejection" : "sent_back",
+            notification_type: notificationType,
             related_vendor_id: vendorId,
+          });
+
+          // Send email notification
+          supabase.functions.invoke("send-notification-email", {
+            body: {
+              recipient_id: vendorUser.user_id,
+              title: notificationTitle,
+              message: notificationMessage,
+              notification_type: notificationType,
+            },
+          }).catch(() => {
+            // Email failure is non-blocking
           });
         }
       }
