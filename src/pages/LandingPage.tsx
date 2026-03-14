@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { ProcessWalkthrough } from "@/components/staff/ProcessWalkthrough";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -218,19 +219,15 @@ export default function LandingPage() {
               </motion.div>
             </motion.div>
 
-            {/* Walkthrough embed */}
+            {/* Walkthrough player */}
             <motion.div
               initial={{ opacity: 0, x: 40 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
               className="mt-12 lg:mt-0 lg:flex-1 w-full"
             >
-              <div className="rounded-xl overflow-hidden shadow-2xl border border-white/20 bg-white/5 backdrop-blur-sm">
-                <iframe
-                  src="/walkthrough.html"
-                  title="Vendor Onboarding Walkthrough"
-                  className="w-full h-[400px] sm:h-[480px] lg:h-[520px] border-0"
-                />
+              <div className="rounded-2xl overflow-hidden border-2 border-white/60 shadow-2xl ring-1 ring-black/5 bg-card aspect-video">
+                <ProcessWalkthrough />
               </div>
             </motion.div>
           </div>
