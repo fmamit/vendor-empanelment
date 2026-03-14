@@ -77,13 +77,19 @@ export function VendorPhoneLogin() {
         throw new Error(data?.error || "Invalid OTP");
       }
 
-      // OTP verified — now sign in via Supabase Auth
-      const { error: authError } = await supabase.auth.signInWithOtp({
-        phone: `+91${phone}`,
-      });
+      // OTP verified — establish session using the magic link token
+      if (data.tokenHash) {
+        const { error: verifyErr } = await supabase.auth.verifyOtp({
+          token_hash: data.tokenHash,
+          type: "magiclink",
+        });
 
-      if (authError) {
-        console.warn("Auth sign-in note:", authError.message);
+        if (verifyErr) {
+          console.error("Session creation failed:", verifyErr.message);
+          toast.error("Login failed. Please try again.");
+          setLoading(false);
+          return;
+        }
       }
 
       await refreshAuth();

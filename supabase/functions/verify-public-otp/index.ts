@@ -73,12 +73,97 @@ Deno.serve(async (req) => {
         .update({ verified_at: new Date().toISOString() })
         .eq("id", otpRecord.id);
 
+      const identifier = otpRecord.identifier;
+      const isPhone = otpRecord.identifier_type === "phone";
+
+      // ── 1. Find or create auth user ──
+      // Use a deterministic email so we can generate a magic link session
+      const phoneDigits = identifier.replace(/\D/g, "").slice(-10);
+      const generatedEmail = isPhone ? `vendor.${phoneDigits}@app.vendor.local` : identifier;
+
+      let authUserId: string | null = null;
+
+      // Try to find existing user by email
+      const { data: { users } } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+      let existingUser = users?.find((u: any) => u.email === generatedEmail);
+
+      // Also check by phone for phone-based logins
+      if (!existingUser && isPhone) {
+        existingUser = users?.find((u: any) => u.phone === identifier);
+      }
+
+      if (existingUser) {
+        authUserId = existingUser.id;
+        // Ensure the email is set (for magic link generation)
+        if (isPhone && !existingUser.email) {
+          await supabase.auth.admin.updateUser(existingUser.id, {
+            email: generatedEmail,
+            email_confirm: true,
+          });
+        }
+      } else {
+        // Create new auth user
+        const { data: newUser, error: createErr } = await supabase.auth.admin.createUser({
+          email: generatedEmail,
+          email_confirm: true,
+          ...(isPhone ? { phone: identifier, phone_confirm: true } : {}),
+        });
+        if (!createErr && newUser?.user) {
+          authUserId = newUser.user.id;
+        } else {
+          console.error("Failed to create auth user:", createErr);
+        }
+      }
+
+      // ── 2. Link auth user to vendor via vendor_users ──
+      if (authUserId) {
+        const { data: vendor } = await supabase
+          .from("vendors")
+          .select("id")
+          .or(`primary_mobile.eq.${phoneDigits},primary_mobile.eq.${identifier},primary_email.eq.${identifier}`)
+          .limit(1)
+          .maybeSingle();
+
+        if (vendor) {
+          const { data: existingLink } = await supabase
+            .from("vendor_users")
+            .select("id")
+            .eq("user_id", authUserId)
+            .eq("vendor_id", vendor.id)
+            .maybeSingle();
+
+          if (!existingLink) {
+            await supabase.from("vendor_users").insert({
+              user_id: authUserId,
+              vendor_id: vendor.id,
+            });
+          }
+        }
+      }
+
+      // ── 3. Generate magic link token for client-side session ──
+      let tokenHash: string | null = null;
+      if (authUserId) {
+        const { data: linkData, error: linkErr } = await supabase.auth.admin.generateLink({
+          type: "magiclink",
+          email: generatedEmail,
+        });
+
+        if (!linkErr && linkData?.properties?.hashed_token) {
+          tokenHash = linkData.properties.hashed_token;
+        } else {
+          console.error("Failed to generate magic link:", linkErr);
+        }
+      }
+
       return new Response(
         JSON.stringify({
           success: true,
           verified: true,
           identifier: otpRecord.identifier,
           identifierType: otpRecord.identifier_type,
+          tokenHash,
+          email: authUserId ? generatedEmail : null,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
