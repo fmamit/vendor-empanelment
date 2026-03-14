@@ -160,62 +160,80 @@ export default function LandingPage() {
           <div className="absolute top-20 left-10 w-72 h-72 bg-white rounded-full blur-3xl" />
           <div className="absolute bottom-10 right-10 w-96 h-96 bg-accent rounded-full blur-3xl" />
         </div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 lg:py-36">
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            className="max-w-3xl"
-          >
-            <motion.p
-              variants={fadeUp}
-              custom={0}
-              className="text-accent font-semibold text-lg mb-4 tracking-wide"
-            >
-              VENDOR MANAGEMENT PLATFORM
-            </motion.p>
-            <motion.h1
-              variants={fadeUp}
-              custom={1}
-              className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6"
-            >
-              Onboard vendors in days,
-              <br />
-              <span className="text-accent">not weeks.</span>
-            </motion.h1>
-            <motion.p
-              variants={fadeUp}
-              custom={2}
-              className="text-xl sm:text-2xl text-white/80 mb-10 max-w-2xl leading-relaxed"
-            >
-              AI-powered verification, real-time fraud detection, and
-              compliance-first workflows — from registration to approval in one
-              seamless platform.
-            </motion.p>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 lg:py-32">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:gap-12">
             <motion.div
-              variants={fadeUp}
-              custom={3}
-              className="flex flex-col sm:flex-row gap-4"
+              initial="hidden"
+              animate="visible"
+              className="max-w-xl lg:flex-1"
             >
-              <Button
-                size="lg"
-                className="bg-accent hover:bg-accent/90 text-white h-14 px-8 text-lg"
-                onClick={() => navigate("/register")}
+              <motion.p
+                variants={fadeUp}
+                custom={0}
+                className="text-accent font-semibold text-lg mb-4 tracking-wide"
               >
-                Register as Vendor
-                <ArrowRight className="h-5 w-5 ml-2" />
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-white/30 text-white hover:bg-white/10 h-14 px-8 text-lg"
-                onClick={() => {
-                  document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" });
-                }}
+                VENDOR MANAGEMENT PLATFORM
+              </motion.p>
+              <motion.h1
+                variants={fadeUp}
+                custom={1}
+                className="text-4xl sm:text-5xl lg:text-5xl font-bold leading-tight mb-6"
               >
-                See How It Works
-              </Button>
+                Onboard vendors in days,
+                <br />
+                <span className="text-accent">not weeks.</span>
+              </motion.h1>
+              <motion.p
+                variants={fadeUp}
+                custom={2}
+                className="text-xl sm:text-2xl text-white/80 mb-10 max-w-2xl leading-relaxed"
+              >
+                AI-powered verification, real-time fraud detection, and
+                compliance-first workflows — from registration to approval in one
+                seamless platform.
+              </motion.p>
+              <motion.div
+                variants={fadeUp}
+                custom={3}
+                className="flex flex-col sm:flex-row gap-4"
+              >
+                <Button
+                  size="lg"
+                  className="bg-accent hover:bg-accent/90 text-white h-14 px-8 text-lg"
+                  onClick={() => navigate("/register")}
+                >
+                  Register as Vendor
+                  <ArrowRight className="h-5 w-5 ml-2" />
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-white/30 text-white hover:bg-white/10 h-14 px-8 text-lg"
+                  onClick={() => {
+                    document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" });
+                  }}
+                >
+                  See How It Works
+                </Button>
+              </motion.div>
             </motion.div>
-          </motion.div>
+
+            {/* Walkthrough embed */}
+            <motion.div
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="mt-12 lg:mt-0 lg:flex-1 w-full"
+            >
+              <div className="rounded-xl overflow-hidden shadow-2xl border border-white/20 bg-white/5 backdrop-blur-sm">
+                <iframe
+                  src="/walkthrough.html"
+                  title="Vendor Onboarding Walkthrough"
+                  className="w-full h-[400px] sm:h-[480px] lg:h-[520px] border-0"
+                />
+              </div>
+            </motion.div>
+          </div>
         </div>
       </section>
 
