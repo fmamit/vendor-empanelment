@@ -40,7 +40,7 @@ interface Slide {
 const slides: Slide[] = [
   // 0 — Title
   {
-    title: "Vendor Onboarding",
+    title: "Vendor Verification",
     subtitle: "Vendor Management",
     duration: 5,
     render: () => (
@@ -48,7 +48,7 @@ const slides: Slide[] = [
         <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
           <Building2 className="h-5 w-5 text-primary" />
         </div>
-        <h2 className="text-lg font-bold text-foreground mb-1">Vendor Onboarding Platform</h2>
+        <h2 className="text-lg font-bold text-foreground mb-1">Vendor Verification Portal</h2>
         <p className="text-muted-foreground text-xs max-w-xs">End-to-end registration, verification, and approval workflow</p>
         <div className="flex gap-6 mt-5">
           {[

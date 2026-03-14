@@ -152,7 +152,7 @@ function applyBranding(tenant: TenantConfig) {
   }
 
   // Update page title
-  document.title = `${tenant.short_name} Vendor Portal`;
+  document.title = `${tenant.short_name} Vendor Verification Portal`;
 }
 
 /** Hardcoded defaults for pre-migration or fallback */

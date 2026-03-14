@@ -21,7 +21,7 @@ export function MobileLayout({ children, showHeader = true, title }: MobileLayou
             <div className="flex items-center gap-3">
               <img
                 src={logo}
-                alt={tenant?.short_name || "Vendor Portal"}
+                alt={tenant?.short_name || "Vendor Verification Portal"}
                 className="h-10 w-auto rounded bg-white p-1"
               />
               {title && (

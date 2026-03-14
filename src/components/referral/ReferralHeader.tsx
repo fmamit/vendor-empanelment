@@ -15,7 +15,7 @@ export function ReferralHeader({ currentStep = 0 }: ReferralHeaderProps) {
       <div className="flex items-center gap-3 px-4 py-2">
         <img
           src={logo}
-          alt={tenant?.short_name || "Vendor Portal"}
+          alt={tenant?.short_name || "Vendor Verification Portal"}
           className="h-8 object-contain shrink-0"
         />
         <h1 className="text-sm font-semibold text-primary whitespace-nowrap">

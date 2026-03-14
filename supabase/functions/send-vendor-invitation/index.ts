@@ -141,13 +141,13 @@ Deno.serve(async (req) => {
         Authorization: `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
-        from: "Vendor Portal <noreply@in-sync.co.in>",
+        from: "Vendor Verification Portal <noreply@in-sync.co.in>",
         to: [contact_email],
         subject: `Vendor Registration Invitation`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #0066B3;">
-              <h1 style="color: #0066B3; margin: 0;">Vendor Portal</h1>
+              <h1 style="color: #0066B3; margin: 0;">Vendor Verification Portal</h1>
               <p style="color: #666; margin: 5px 0 0;">Vendor Onboarding</p>
             </div>
             <div style="padding: 30px 0;">

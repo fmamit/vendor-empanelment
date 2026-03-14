@@ -127,7 +127,7 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const { tenant } = useTenant();
   const logo = useTenantLogo();
-  const orgName = tenant?.short_name || "Vendor Portal";
+  const orgName = tenant?.short_name || "In-Sync";
   const dpoEmail = tenant?.dpo_email || "dpo@company.com";
 
   return (
@@ -138,7 +138,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-3">
             <img src={logo} alt={orgName} className="h-10 w-auto" />
             <span className="hidden sm:block text-lg font-bold text-primary">
-              {orgName} Vendor Portal
+              {orgName} Vendor Verification Portal
             </span>
           </div>
           <div className="flex items-center gap-3">
@@ -424,7 +424,7 @@ export default function LandingPage() {
             >
               <Card className="border-accent/30 h-full">
                 <CardContent className="p-8">
-                  <h3 className="text-xl font-bold text-accent mb-6">With {orgName} Vendor Portal</h3>
+                  <h3 className="text-xl font-bold text-accent mb-6">With {orgName} Vendor Verification Portal</h3>
                   <ul className="space-y-4">
                     {[
                       "1-2 day onboarding with real-time verification",
@@ -513,7 +513,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-3">
             <img src={logo} alt={orgName} className="h-8 w-auto" />
-            <span>{orgName} Vendor Portal</span>
+            <span>{orgName} Vendor Verification Portal</span>
           </div>
           <div className="flex items-center gap-4">
             <a href="/privacy-policy" className="hover:underline">

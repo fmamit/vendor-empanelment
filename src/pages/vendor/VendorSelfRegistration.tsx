@@ -317,7 +317,7 @@ function SelfRegisterHeader({ currentStep, onBack }: { currentStep: number; onBa
         )}
         <img
           src={logo}
-          alt={tenant?.short_name || "Vendor Portal"}
+          alt={tenant?.short_name || "Vendor Verification Portal"}
           className="h-8 object-contain shrink-0"
         />
         <h1 className="text-sm font-semibold text-primary whitespace-nowrap">

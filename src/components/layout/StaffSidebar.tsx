@@ -88,7 +88,7 @@ export function StaffSidebar() {
         <div className="bg-white rounded-xl p-2 shadow-sm shrink-0">
           <img
             src={logo}
-            alt={tenant?.short_name || "Vendor Portal"}
+            alt={tenant?.short_name || "Vendor Verification Portal"}
             className="w-[120px] rounded-lg object-contain"
           />
         </div>
