@@ -13,11 +13,13 @@ export function ReferralHeader({ currentStep = 0 }: ReferralHeaderProps) {
   return (
     <header className="sticky top-0 z-50 bg-card border-b border-border shadow-sm">
       <div className="flex items-center gap-3 px-4 py-2">
-        <img
-          src={logo}
-          alt={tenant?.short_name || "Vendor Verification Portal"}
-          className="h-8 object-contain shrink-0"
-        />
+        <a href="/">
+          <img
+            src={logo}
+            alt={tenant?.short_name || "Vendor Verification Portal"}
+            className="h-8 object-contain shrink-0"
+          />
+        </a>
         <h1 className="text-sm font-semibold text-primary whitespace-nowrap">
           Vendor Registration
         </h1>

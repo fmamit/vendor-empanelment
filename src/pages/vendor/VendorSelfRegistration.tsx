@@ -315,11 +315,13 @@ function SelfRegisterHeader({ currentStep, onBack }: { currentStep: number; onBa
             <ChevronLeft className="h-5 w-5 text-muted-foreground" />
           </button>
         )}
-        <img
-          src={logo}
-          alt={tenant?.short_name || "Vendor Verification Portal"}
-          className="h-8 object-contain shrink-0"
-        />
+        <a href="/">
+          <img
+            src={logo}
+            alt={tenant?.short_name || "Vendor Verification Portal"}
+            className="h-8 object-contain shrink-0"
+          />
+        </a>
         <h1 className="text-sm font-semibold text-primary whitespace-nowrap">
           Vendor Registration
         </h1>

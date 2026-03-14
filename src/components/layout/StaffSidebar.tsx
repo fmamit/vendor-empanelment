@@ -85,13 +85,13 @@ export function StaffSidebar() {
     <Sidebar collapsible="icon">
       {/* Logo & User Identity Header */}
       <div className="flex flex-col items-center gap-2 px-2 py-5 border-b border-border/50">
-        <div className="bg-white rounded-xl p-2 shadow-sm shrink-0">
+        <a href="/" className="bg-white rounded-xl p-2 shadow-sm shrink-0 block">
           <img
             src={logo}
             alt={tenant?.short_name || "Vendor Verification Portal"}
             className="w-[120px] rounded-lg object-contain"
           />
-        </div>
+        </a>
         {!collapsed && (
           <div className="text-center mt-1">
             <p className="text-sm font-semibold text-white truncate max-w-[160px]">

@@ -19,11 +19,13 @@ export function MobileLayout({ children, showHeader = true, title }: MobileLayou
         <header className="sticky top-0 z-50 bg-primary px-4 py-3 shadow-md">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <img
-                src={logo}
-                alt={tenant?.short_name || "Vendor Verification Portal"}
-                className="h-10 w-auto rounded bg-white p-1"
-              />
+              <a href="/">
+                <img
+                  src={logo}
+                  alt={tenant?.short_name || "Vendor Verification Portal"}
+                  className="h-10 w-auto rounded bg-white p-1"
+                />
+              </a>
               {title && (
                 <h1 className="text-lg font-semibold text-primary-foreground">
                   {title}
