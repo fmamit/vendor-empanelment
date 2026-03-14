@@ -1,4 +1,5 @@
-import capitalIndiaLogo from "@/assets/capital-india-logo.webp";
+import { useTenantLogo } from "@/hooks/useTenantLogo";
+import { useTenant } from "@/contexts/TenantContext";
 import { ReferralStepper } from "./ReferralStepper";
 
 interface ReferralHeaderProps {
@@ -6,12 +7,15 @@ interface ReferralHeaderProps {
 }
 
 export function ReferralHeader({ currentStep = 0 }: ReferralHeaderProps) {
+  const logo = useTenantLogo();
+  const { tenant } = useTenant();
+
   return (
     <header className="sticky top-0 z-50 bg-card border-b border-border shadow-sm">
       <div className="flex items-center gap-3 px-4 py-2">
         <img
-          src={capitalIndiaLogo}
-          alt="Capital India"
+          src={logo}
+          alt={tenant?.short_name || "Vendor Portal"}
           className="h-8 object-contain shrink-0"
         />
         <h1 className="text-sm font-semibold text-primary whitespace-nowrap">

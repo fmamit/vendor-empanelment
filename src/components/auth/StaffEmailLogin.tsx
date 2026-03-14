@@ -62,7 +62,7 @@ export function StaffEmailLogin() {
           <Input
             id="email"
             type="email"
-            placeholder="you@capitalindia.com"
+            placeholder="you@company.com"
             {...register("email")}
             className="h-14 text-lg pl-12"
           />

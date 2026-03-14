@@ -146,7 +146,7 @@ export function useUpdateVendorStatus() {
 
       if (newStatus === "approved") {
         notificationTitle = "Vendor Approved";
-        notificationMessage = `Your vendor registration has been approved. Welcome to Capital India!`;
+        notificationMessage = `Your vendor registration has been approved. Welcome!`;
       } else if (newStatus === "rejected") {
         notificationTitle = "Vendor Registration Rejected";
         notificationMessage = `Your vendor registration was rejected. Reason: ${comments || "Not specified"}`;

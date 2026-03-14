@@ -49,7 +49,7 @@ serve(async (req) => {
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     const response = await retryWithBackoff(() =>
-      fetch(`${VERIFIEDU_BASE_URL}/GetAadhaarDetailsById`, {
+      fetch(`${VERIFIEDU_BASE_URL}/api/verifiedu/GetAadhaarDetailsById`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

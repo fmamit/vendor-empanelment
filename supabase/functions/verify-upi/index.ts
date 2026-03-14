@@ -60,7 +60,7 @@ serve(async (req) => {
     });
 
     const response = await retryWithBackoff(() =>
-      fetch(`${VERIFIEDU_BASE_URL}/VerifyVPA`, {
+      fetch(`${VERIFIEDU_BASE_URL}/api/verifiedu/VerifyVPA`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

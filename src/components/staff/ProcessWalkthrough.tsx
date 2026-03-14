@@ -41,7 +41,7 @@ const slides: Slide[] = [
   // 0 — Title
   {
     title: "Vendor Onboarding",
-    subtitle: "Capital India",
+    subtitle: "Vendor Management",
     duration: 5,
     render: () => (
       <div className="flex flex-col items-center justify-center h-full text-center px-5 animate-in fade-in slide-in-from-bottom-4 duration-700">

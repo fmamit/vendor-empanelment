@@ -39,16 +39,28 @@ function sanitizeString(value: string, maxLength: number): string {
   return value.trim().substring(0, maxLength);
 }
 
+function isValidUUID(value: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(value);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { referral_code, formData, documents, tenant_id } = await req.json();
+    const { consent_version, formData, documents, session_id, tenant_id } = await req.json();
 
-    if (!referral_code || !formData) {
+    if (!formData || !session_id) {
       return new Response(JSON.stringify({ error: "Invalid request" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!isValidUUID(session_id)) {
+      return new Response(JSON.stringify({ error: "Invalid session" }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -124,18 +136,15 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: refCode, error: refErr } = await supabase
-      .from("staff_referral_codes")
-      .select("user_id, is_active")
-      .eq("referral_code", referral_code)
-      .eq("is_active", true)
-      .single();
-
-    if (refErr || !refCode) {
-      return new Response(JSON.stringify({ error: "Invalid referral code" }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // Resolve tenant_id — use provided value or fall back to default tenant
+    let resolvedTenantId = tenant_id;
+    if (!resolvedTenantId) {
+      const { data: defaultTenant } = await supabase
+        .from("tenants")
+        .select("id")
+        .eq("slug", "capital-india")
+        .single();
+      resolvedTenantId = defaultTenant?.id;
     }
 
     const { data: vendor, error: vendorErr } = await supabase
@@ -155,8 +164,9 @@ serve(async (req) => {
         bank_ifsc: bank_ifsc || null,
         salutation: salutation || null,
         constitution_type: constitution_type || null,
-        referred_by: refCode.user_id,
-        tenant_id: tenant_id || null,
+        consent_version: consent_version || null,
+        referred_by: null,
+        tenant_id: resolvedTenantId,
         current_status: "pending_review",
         submitted_at: new Date().toISOString(),
       })

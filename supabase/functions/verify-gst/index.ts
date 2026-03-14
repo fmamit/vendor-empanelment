@@ -61,7 +61,7 @@ serve(async (req) => {
     });
 
     const response = await retryWithBackoff(() =>
-      fetch(`${VERIFIEDU_BASE_URL}/VerifyGstin`, {
+      fetch(`${VERIFIEDU_BASE_URL}/api/verifiedu/VerifyGstin`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -220,7 +220,7 @@ export default function VendorDashboard() {
       <MobileLayout title="Dashboard">
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
           <Building2 className="h-16 w-16 text-muted-foreground mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Welcome to Capital India</h2>
+          <h2 className="text-xl font-semibold mb-2">Welcome</h2>
           <p className="text-muted-foreground mb-6">
             Complete your vendor registration to get started
           </p>

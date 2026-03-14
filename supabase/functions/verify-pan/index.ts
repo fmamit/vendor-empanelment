@@ -78,7 +78,7 @@ serve(async (req) => {
 
     // Call VerifiedU PAN API with retry logic
     const response = await retryWithBackoff(() =>
-      fetch(`${VERIFIEDU_BASE_URL}/VerifyPAN`, {
+      fetch(`${VERIFIEDU_BASE_URL}/api/verifiedu/VerifyPAN`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -3,13 +3,16 @@ import { MobileLayout } from "@/components/layout/MobileLayout";
 import { StaffEmailLogin } from "@/components/auth/StaffEmailLogin";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ProcessWalkthrough, chapters, type WalkthroughHandle } from "@/components/staff/ProcessWalkthrough";
-import capitalIndiaLogo from "@/assets/capital-india-logo.webp";
+import { useTenant } from "@/contexts/TenantContext";
+import { useTenantLogo } from "@/hooks/useTenantLogo";
 
 // Inline SVG pattern for the background — a subtle connected-nodes / circuit motif
 const bgPattern = `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%234f6d9a' fill-opacity='0.06'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`;
 
 export default function StaffLogin() {
   const walkthroughRef = useRef<WalkthroughHandle>(null);
+  const { tenant } = useTenant();
+  const logo = useTenantLogo();
 
   return (
     <MobileLayout showHeader={false}>
@@ -19,11 +22,11 @@ export default function StaffLogin() {
           <Card className="w-full max-w-md">
             <CardHeader className="text-center">
               <div className="mx-auto mb-4">
-                <img src={capitalIndiaLogo} alt="Capital India" className="h-[6rem] w-auto rounded-lg bg-white p-2 shadow-sm" />
+                <img src={logo} alt={tenant?.short_name || "Vendor Portal"} className="h-[6rem] w-auto rounded-lg bg-white p-2 shadow-sm" />
               </div>
               <CardTitle className="text-2xl">Staff Login</CardTitle>
               <CardDescription>
-                Sign in with your Capital India email
+                Sign in with your {tenant?.short_name || "organization"} email
               </CardDescription>
             </CardHeader>
             <CardContent>

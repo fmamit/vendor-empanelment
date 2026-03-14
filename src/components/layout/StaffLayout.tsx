@@ -1,6 +1,7 @@
 import { ReactNode, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useTenant } from "@/contexts/TenantContext";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { StaffSidebar } from "./StaffSidebar";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
@@ -13,6 +14,7 @@ interface StaffLayoutProps {
 
 export function StaffLayout({ children, title }: StaffLayoutProps) {
   const { user, userType, loading } = useAuth();
+  const { tenant } = useTenant();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -47,7 +49,7 @@ export function StaffLayout({ children, title }: StaffLayoutProps) {
             {children}
           </main>
           <footer className="border-t border-border px-4 py-2 text-xs text-muted-foreground flex items-center justify-between">
-            <span>DPO Contact: dpo@capitalindia.com</span>
+            <span>DPO Contact: {tenant?.dpo_email || "dpo@company.com"}</span>
             <a href="/privacy-policy" target="_blank" className="hover:underline">Privacy Policy</a>
           </footer>
         </SidebarInset>

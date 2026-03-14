@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
-import capitalIndiaLogo from "@/assets/capital-india-logo.webp";
+import { useTenant } from "@/contexts/TenantContext";
+import { useTenantLogo } from "@/hooks/useTenantLogo";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 interface MobileLayoutProps {
@@ -9,6 +10,9 @@ interface MobileLayoutProps {
 }
 
 export function MobileLayout({ children, showHeader = true, title }: MobileLayoutProps) {
+  const { tenant } = useTenant();
+  const logo = useTenantLogo();
+
   return (
     <div className="min-h-screen bg-background flex flex-col safe-area-inset">
       {showHeader && (
@@ -16,8 +20,8 @@ export function MobileLayout({ children, showHeader = true, title }: MobileLayou
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <img
-                src={capitalIndiaLogo}
-                alt="Capital India"
+                src={logo}
+                alt={tenant?.short_name || "Vendor Portal"}
                 className="h-10 w-auto rounded bg-white p-1"
               />
               {title && (
@@ -30,16 +34,20 @@ export function MobileLayout({ children, showHeader = true, title }: MobileLayou
           </div>
         </header>
       )}
-      
+
       <main className="flex-1 flex flex-col">
         {children}
       </main>
-      
+
       <footer className="border-t border-border bg-card px-4 py-3 text-center">
         <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground">
           <a href="/privacy-policy" className="hover:underline">Privacy Policy</a>
-          <span>•</span>
-          <span>DPO: dpo@capitalindia.com</span>
+          {tenant?.dpo_email && (
+            <>
+              <span>•</span>
+              <span>DPO: {tenant.dpo_email}</span>
+            </>
+          )}
         </div>
       </footer>
     </div>

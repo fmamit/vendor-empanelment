@@ -80,7 +80,7 @@ serve(async (req) => {
 
     // Call VerifiedU Bank API with retry logic
     const response = await retryWithBackoff(() =>
-      fetch(`${VERIFIEDU_BASE_URL}/VerifyBankAccountNumber`, {
+      fetch(`${VERIFIEDU_BASE_URL}/api/verifiedu/VerifyBankAccountNumber`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

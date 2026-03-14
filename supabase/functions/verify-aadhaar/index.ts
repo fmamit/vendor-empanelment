@@ -59,7 +59,7 @@ serve(async (req) => {
     });
 
     const response = await retryWithBackoff(() =>
-      fetch(`${VERIFIEDU_BASE_URL}/VerifyAadhaarViaDigilocker`, {
+      fetch(`${VERIFIEDU_BASE_URL}/api/verifiedu/VerifyAadhaarViaDigilocker`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

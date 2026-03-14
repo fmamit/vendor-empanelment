@@ -23,7 +23,7 @@ export default function VendorLogin() {
         </Card>
 
         <p className="mt-6 text-center text-sm text-muted-foreground max-w-xs">
-          New vendor? Contact Capital India to receive your registration link.
+          New vendor? <a href="/register" className="text-primary hover:underline">Register here</a> or contact us to receive your registration link.
         </p>
       </div>
     </MobileLayout>

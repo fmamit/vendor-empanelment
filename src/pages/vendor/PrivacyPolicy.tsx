@@ -1,8 +1,13 @@
 import { MobileLayout } from "@/components/layout/MobileLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { ShieldCheck } from "lucide-react";
+import { useTenant } from "@/contexts/TenantContext";
 
 export default function PrivacyPolicy() {
+  const { tenant } = useTenant();
+  const orgName = tenant?.name || "the organization";
+  const shortName = tenant?.short_name || "we";
+  const dpoEmail = tenant?.dpo_email || "dpo@company.com";
   return (
     <MobileLayout title="Privacy Policy" showHeader={true}>
       <div className="flex-1 overflow-auto p-4 space-y-4 pb-8">
@@ -14,7 +19,7 @@ export default function PrivacyPolicy() {
 
         <Card><CardContent className="p-4 space-y-2">
           <h2 className="font-semibold">1. Who We Are</h2>
-          <p className="text-sm text-muted-foreground">Capital India Corp Limited ("Capital India", "we", "us") is the Data Fiduciary for personal data collected through this Vendor Onboarding Portal.</p>
+          <p className="text-sm text-muted-foreground">{orgName} ("{shortName}", "we", "us") is the Data Fiduciary for personal data collected through this Vendor Onboarding Portal.</p>
         </CardContent></Card>
 
         <Card><CardContent className="p-4 space-y-2">
@@ -70,7 +75,7 @@ export default function PrivacyPolicy() {
           <h2 className="font-semibold">9. Contact Us</h2>
           <p className="text-sm text-muted-foreground">
             <strong>Data Protection Officer:</strong><br />
-            Email: dpo@capitalindia.com<br />
+            Email: {dpoEmail}<br />
             Phone: +91-11-XXXX-XXXX<br /><br />
             If your concern is not addressed within 90 days, you may approach the Data Protection Board of India.
           </p>

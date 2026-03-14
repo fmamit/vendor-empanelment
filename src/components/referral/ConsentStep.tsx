@@ -1,7 +1,7 @@
-import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ShieldCheck, ExternalLink } from "lucide-react";
+import { useTenant } from "@/contexts/TenantContext";
 
 interface ConsentStepProps {
   consented: boolean;
@@ -11,6 +11,10 @@ interface ConsentStepProps {
 const CONSENT_VERSION = "1.0";
 
 export function ConsentStep({ consented, onConsentChange }: ConsentStepProps) {
+  const { tenant } = useTenant();
+  const orgName = tenant?.short_name || "the organization";
+  const dpoEmail = tenant?.dpo_email || "dpo@company.com";
+
   return (
     <div className="p-8 space-y-6">
       <div className="flex items-center gap-3 text-primary">
@@ -37,7 +41,7 @@ export function ConsentStep({ consented, onConsentChange }: ConsentStepProps) {
           <section>
             <h3 className="font-semibold text-lg mb-1">Why we collect it</h3>
             <p className="text-muted-foreground">
-              Your data is collected solely for the purpose of vendor onboarding, identity verification, and maintaining an ongoing business relationship with Capital India.
+              Your data is collected solely for the purpose of vendor onboarding, identity verification, and maintaining an ongoing business relationship with {orgName}.
             </p>
           </section>
 
@@ -63,7 +67,7 @@ export function ConsentStep({ consented, onConsentChange }: ConsentStepProps) {
             <h3 className="font-semibold text-lg mb-1">Data Protection Officer</h3>
             <p className="text-muted-foreground">
               For any data-related queries, contact our Data Protection Officer at{" "}
-              <span className="font-medium text-primary">dpo@capitalindia.com</span>
+              <span className="font-medium text-primary">{dpoEmail}</span>
             </p>
           </section>
 

@@ -20,7 +20,7 @@ export function BreachNotificationPanel() {
     description: "",
     impact: "",
     remedial_steps: "",
-    contact_info: "dpo@capitalindia.com",
+    contact_info: "dpo@company.com",
   });
 
   const { data: notifications, isLoading } = useQuery({
@@ -49,7 +49,7 @@ export function BreachNotificationPanel() {
       queryClient.invalidateQueries({ queryKey: ["breach-notifications"] });
       toast.success("Breach notification recorded");
       setShowForm(false);
-      setForm({ title: "", description: "", impact: "", remedial_steps: "", contact_info: "dpo@capitalindia.com" });
+      setForm({ title: "", description: "", impact: "", remedial_steps: "", contact_info: "dpo@company.com" });
     },
     onError: (e: Error) => toast.error(e.message),
   });

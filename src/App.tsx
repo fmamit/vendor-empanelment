@@ -3,10 +3,11 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { TenantProvider } from "@/contexts/TenantContext";
 import { AuthProvider } from "@/hooks/useAuth";
 
 // Pages
-
+import LandingPage from "./pages/LandingPage";
 import NotFound from "./pages/NotFound";
 
 // Vendor Pages
@@ -15,6 +16,7 @@ import VendorDashboard from "./pages/vendor/VendorDashboard";
 import VendorRegistration from "./pages/vendor/VendorRegistration";
 import VendorDocuments from "./pages/vendor/VendorDocuments";
 import VendorReferralRegistration from "./pages/vendor/VendorReferralRegistration";
+import VendorSelfRegistration from "./pages/vendor/VendorSelfRegistration";
 import PrivacyPolicy from "./pages/vendor/PrivacyPolicy";
 
 // Staff Pages
@@ -36,15 +38,17 @@ import DpdpAuditDashboard from "./pages/admin/DpdpAuditDashboard";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
+  <TenantProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
           <Routes>
             {/* Public Routes */}
-            <Route path="/" element={<StaffLogin />} />
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/register" element={<VendorSelfRegistration />} />
             <Route path="/register/ref/:token" element={<VendorReferralRegistration />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             
@@ -75,8 +79,9 @@ const App = () => (
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  </TenantProvider>
 );
 
 export default App;

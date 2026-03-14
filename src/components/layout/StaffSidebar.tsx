@@ -29,7 +29,8 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
-import capitalIndiaLogo from "@/assets/capital-india-logo.webp";
+import { useTenant } from "@/contexts/TenantContext";
+import { useTenantLogo } from "@/hooks/useTenantLogo";
 
 const EMAIL_NAME_MAP: Record<string, string> = {
   "a@in-sync.co.in": "Amit Sengupta",
@@ -53,6 +54,8 @@ const adminItems = [
 export function StaffSidebar() {
   const { signOut, user } = useAuth();
   const { isAdmin } = useUserRoles();
+  const { tenant } = useTenant();
+  const logo = useTenantLogo();
   const navigate = useNavigate();
   const location = useLocation();
   const { state } = useSidebar();
@@ -84,8 +87,8 @@ export function StaffSidebar() {
       <div className="flex flex-col items-center gap-2 px-2 py-5 border-b border-border/50">
         <div className="bg-white rounded-xl p-2 shadow-sm shrink-0">
           <img
-            src={capitalIndiaLogo}
-            alt="Capital India"
+            src={logo}
+            alt={tenant?.short_name || "Vendor Portal"}
             className="w-[120px] rounded-lg object-contain"
           />
         </div>
