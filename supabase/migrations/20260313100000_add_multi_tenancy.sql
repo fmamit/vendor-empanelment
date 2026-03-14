@@ -1,7 +1,7 @@
 -- ============================================================================
 -- Multi-Tenancy Migration
 -- Adds tenant isolation to the vendor management platform.
--- Seeds Capital India Finance Limited as the first (default) tenant.
+-- Seeds In-Sync as the first (default) tenant.
 -- ============================================================================
 
 BEGIN;
@@ -43,17 +43,17 @@ CREATE TRIGGER update_tenants_timestamp
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 
 -- ============================================================================
--- 2. SEED CAPITAL INDIA AS FIRST TENANT
+-- 2. SEED IN-SYNC AS FIRST TENANT
 -- ============================================================================
 
 INSERT INTO public.tenants (id, slug, name, short_name, vendor_code_prefix, dpo_email, primary_color, accent_color)
 VALUES (
   'a0000000-0000-0000-0000-000000000001',
-  'capital-india',
-  'Capital India Finance Limited',
-  'Capital India',
-  'CI',
-  'dpo@capitalindia.com',
+  'in-sync',
+  'In-Sync',
+  'In-Sync',
+  'IS',
+  'dpo@in-sync.co.in',
   '204 100% 35%',
   '92 47% 50%'
 );
@@ -185,7 +185,7 @@ DO $$ BEGIN
 END $$;
 
 -- ============================================================================
--- 4. BACKFILL ALL ROWS WITH CAPITAL INDIA TENANT_ID
+-- 4. BACKFILL ALL ROWS WITH IN-SYNC TENANT_ID
 -- ============================================================================
 
 UPDATE public.profiles SET tenant_id = 'a0000000-0000-0000-0000-000000000001' WHERE tenant_id IS NULL;

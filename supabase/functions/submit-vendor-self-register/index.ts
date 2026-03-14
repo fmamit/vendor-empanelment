@@ -142,7 +142,7 @@ serve(async (req) => {
       const { data: defaultTenant } = await supabase
         .from("tenants")
         .select("id")
-        .eq("slug", "capital-india")
+        .eq("slug", "in-sync")
         .single();
       resolvedTenantId = defaultTenant?.id;
     }

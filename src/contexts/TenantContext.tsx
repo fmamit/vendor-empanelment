@@ -28,15 +28,15 @@ const TenantContext = createContext<TenantContextType | undefined>(undefined);
  * Resolves tenant slug from the current hostname.
  * Strategies:
  * 1. Exact domain match against tenants.slug (for custom domains)
- * 2. First subdomain segment as slug (e.g., capital-india.vendorportal.com)
- * 3. Falls back to "capital-india" for localhost/dev environments
+ * 2. First subdomain segment as slug (e.g., insync.vendorportal.com)
+ * 3. Falls back to "in-sync" for localhost/dev environments
  */
 function resolveSlugFromHostname(): string {
   const hostname = window.location.hostname;
 
   // localhost / dev — use default tenant
   if (hostname === "localhost" || hostname === "127.0.0.1" || hostname.endsWith(".local")) {
-    return "capital-india";
+    return "in-sync";
   }
 
   // If it looks like a direct domain (e.g., civ.in-sync.co.in), use the first segment
@@ -54,7 +54,7 @@ function resolveSlugFromHostname(): string {
     }
   }
 
-  return "capital-india";
+  return "in-sync";
 }
 
 export function TenantProvider({ children }: { children: ReactNode }) {
@@ -87,7 +87,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
           const { data: fallback } = await supabase
             .from("tenants")
             .select("id, slug, name, short_name, logo_url, primary_color, accent_color, vendor_code_prefix, dpo_email, privacy_policy_url, support_email, support_phone")
-            .eq("slug", "capital-india")
+            .eq("slug", "in-sync")
             .eq("is_active", true)
             .maybeSingle();
 
@@ -159,14 +159,14 @@ function applyBranding(tenant: TenantConfig) {
 function getDefaultTenant(): TenantConfig {
   return {
     id: "a0000000-0000-0000-0000-000000000001",
-    slug: "capital-india",
-    name: "Capital India Finance Limited",
-    short_name: "Capital India",
+    slug: "in-sync",
+    name: "In-Sync",
+    short_name: "In-Sync",
     logo_url: null,
     primary_color: "204 100% 35%",
     accent_color: "92 47% 50%",
-    vendor_code_prefix: "CI",
-    dpo_email: "dpo@capitalindia.com",
+    vendor_code_prefix: "IS",
+    dpo_email: "dpo@in-sync.co.in",
     privacy_policy_url: null,
     support_email: null,
     support_phone: null,

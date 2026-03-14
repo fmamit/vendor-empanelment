@@ -2,8 +2,8 @@ import { useEffect, useRef } from "react";
 import { CheckCircle2, ShieldCheck } from "lucide-react";
 
 const BRAND_COLORS = [
-  "#0066B3", // Capital India Blue
-  "#7AB648", // Capital India Green
+  "#0066B3", // In-Sync Blue
+  "#7AB648", // In-Sync Green
   "#FFD700", // Gold
   "#00B4D8", // Teal
   "#4CAF50", // Green accent

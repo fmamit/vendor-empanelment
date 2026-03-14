@@ -121,13 +121,13 @@ Deno.serve(async (req) => {
         Authorization: `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
-        from: "Capital India <noreply@in-sync.co.in>",
+        from: "In-Sync <noreply@in-sync.co.in>",
         to: [recipientEmail],
-        subject: `${subjectPrefix}: ${title} - Capital India`,
+        subject: `${subjectPrefix}: ${title} - In-Sync`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid ${accentColor};">
-              <h1 style="color: #0066B3; margin: 0;">Capital India</h1>
+              <h1 style="color: #0066B3; margin: 0;">In-Sync</h1>
               <p style="color: #666; margin: 5px 0 0;">Vendor Onboarding Portal</p>
             </div>
             <div style="padding: 30px 0;">
@@ -144,7 +144,7 @@ Deno.serve(async (req) => {
               <p style="color: #666; font-size: 14px;">If you have any questions, please contact your account manager or write to us.</p>
             </div>
             <div style="border-top: 1px solid #eee; padding-top: 15px; text-align: center; color: #999; font-size: 12px;">
-              <p>Capital India Finance Limited</p>
+              <p>In-Sync</p>
               <p>This is an automated notification. Please do not reply to this email.</p>
             </div>
           </div>
