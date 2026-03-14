@@ -37,24 +37,24 @@ const fadeUp = {
 
 const FLOW_STEPS = [
   {
+    icon: Building2,
+    title: "Register Your Organization",
+    desc: "Sign up your company and configure your verification workflows",
+  },
+  {
     icon: Send,
-    title: "Invite or Self-Register",
-    desc: "Staff sends a link or vendor registers directly on the portal",
+    title: "Invite Your Vendors",
+    desc: "Send invitation links to vendors — they register via your branded portal",
   },
   {
     icon: UserPlus,
-    title: "Sign Up & Consent",
-    desc: "Vendor provides DPDP consent and creates their profile",
-  },
-  {
-    icon: Building2,
-    title: "Company & Bank Details",
-    desc: "Business information, GST, PAN, and banking details captured",
+    title: "Vendors Sign Up & Consent",
+    desc: "Vendors provide DPDP consent and submit their company profile",
   },
   {
     icon: FileText,
-    title: "Upload Documents",
-    desc: "GST certificate, PAN card, cancelled cheque, and more",
+    title: "Documents Uploaded",
+    desc: "GST certificate, PAN card, cancelled cheque, and more — all collected",
   },
   {
     icon: Brain,
@@ -117,8 +117,8 @@ const FEATURES = [
 ];
 
 const STATS = [
-  { value: "< 2 days", label: "Onboarding Time" },
-  { value: "6", label: "Verification APIs" },
+  { value: "< 2 days", label: "Vendor Verification Time" },
+  { value: "6", label: "Government API Checks" },
   { value: "80%", label: "Less Manual Work" },
   { value: "100%", label: "DPDP Compliant" },
 ];
@@ -143,13 +143,10 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center gap-3">
             <Button variant="ghost" onClick={() => navigate("/staff/login")}>
-              Staff Login
-            </Button>
-            <Button variant="outline" onClick={() => navigate("/vendor/login")}>
-              Vendor Login
+              Login
             </Button>
             <Button onClick={() => navigate("/register")}>
-              Register <ArrowRight className="h-4 w-4 ml-1" />
+              Register Your Organization <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           </div>
         </div>
@@ -173,25 +170,25 @@ export default function LandingPage() {
                 custom={0}
                 className="text-accent font-semibold text-lg mb-4 tracking-wide"
               >
-                VENDOR MANAGEMENT PLATFORM
+                VENDOR VERIFICATION PLATFORM
               </motion.p>
               <motion.h1
                 variants={fadeUp}
                 custom={1}
                 className="text-4xl sm:text-5xl lg:text-5xl font-bold leading-tight mb-6"
               >
-                Onboard vendors in days,
+                Verify your vendors
                 <br />
-                <span className="text-accent">not weeks.</span>
+                <span className="text-accent">before they cost you.</span>
               </motion.h1>
               <motion.p
                 variants={fadeUp}
                 custom={2}
                 className="text-xl sm:text-2xl text-white/80 mb-10 max-w-2xl leading-relaxed"
               >
-                AI-powered verification, real-time fraud detection, and
-                compliance-first workflows — from registration to approval in one
-                seamless platform.
+                AI-powered document analysis, real-time government API checks,
+                and fraud detection — verify every vendor before they enter
+                your supply chain.
               </motion.p>
               <motion.div
                 variants={fadeUp}
@@ -203,7 +200,7 @@ export default function LandingPage() {
                   className="bg-accent hover:bg-accent/90 text-white h-14 px-8 text-lg"
                   onClick={() => navigate("/register")}
                 >
-                  Register as Vendor
+                  Register Your Organization
                   <ArrowRight className="h-5 w-5 ml-2" />
                 </Button>
                 <Button
@@ -224,9 +221,9 @@ export default function LandingPage() {
               initial={{ opacity: 0, x: 40 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
-              className="mt-12 lg:mt-0 lg:flex-1 w-full"
+              className="mt-12 lg:mt-0 lg:flex-[1.2] w-full"
             >
-              <div className="rounded-2xl overflow-hidden border-2 border-white/60 shadow-2xl ring-1 ring-black/5 bg-card aspect-video">
+              <div className="rounded-2xl overflow-hidden shadow-2xl bg-card aspect-video ring-4 ring-white/20 border-4 border-white/40">
                 <ProcessWalkthrough />
               </div>
             </motion.div>
@@ -268,8 +265,8 @@ export default function LandingPage() {
               How It Works
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              From first contact to approved vendor — a streamlined, fully
-              verified process in 8 clear steps.
+              From organization sign-up to verified vendor — a streamlined
+              process in 8 clear steps.
             </p>
           </motion.div>
 
@@ -398,10 +395,10 @@ export default function LandingPage() {
                   <h3 className="text-xl font-bold text-destructive mb-6">Without This Platform</h3>
                   <ul className="space-y-4">
                     {[
-                      "7-10 day onboarding cycle",
+                      "7-10 days to verify a single vendor",
                       "Manual document review by 3+ people",
-                      "Excel spreadsheets for tracking",
-                      "No fraud detection until audit",
+                      "Excel spreadsheets for vendor tracking",
+                      "No fraud detection until audit season",
                       "Paper-based compliance trail",
                       "Duplicate vendors discovered too late",
                     ].map((item) => (
@@ -427,10 +424,10 @@ export default function LandingPage() {
                   <h3 className="text-xl font-bold text-accent mb-6">With {orgName} Vendor Verification Portal</h3>
                   <ul className="space-y-4">
                     {[
-                      "1-2 day onboarding with real-time verification",
+                      "Verify vendors in 1-2 days with real-time API checks",
                       "AI reads and validates every document automatically",
-                      "Live dashboard with full pipeline visibility",
-                      "Fraud flagged before vendor is even approved",
+                      "Live dashboard — see every vendor's verification status",
+                      "Fraud flagged before a vendor enters your supply chain",
                       "Digital audit trail — DPDP compliant from day one",
                       "Duplicates caught instantly across 6 parameters",
                     ].map((item) => (
@@ -456,11 +453,11 @@ export default function LandingPage() {
             viewport={{ once: true }}
           >
             <h2 className="text-3xl sm:text-4xl font-bold mb-6">
-              Ready to get started?
+              Ready to verify your vendors?
             </h2>
             <p className="text-xl text-white/80 mb-10 max-w-2xl mx-auto">
-              Register as a vendor in minutes. Our team will verify your details
-              and get you approved quickly.
+              Register your organization in minutes. Start inviting vendors
+              and let AI handle the verification.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Button
@@ -468,7 +465,7 @@ export default function LandingPage() {
                 className="bg-accent hover:bg-accent/90 text-white h-14 px-10 text-lg"
                 onClick={() => navigate("/register")}
               >
-                Register as Vendor
+                Register Your Organization
                 <ArrowRight className="h-5 w-5 ml-2" />
               </Button>
               <Button
@@ -477,7 +474,7 @@ export default function LandingPage() {
                 className="border-white/30 text-white hover:bg-white/10 h-14 px-10 text-lg"
                 onClick={() => navigate("/staff/login")}
               >
-                Staff Login
+                Login
               </Button>
             </div>
           </motion.div>

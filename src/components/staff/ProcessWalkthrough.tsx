@@ -48,8 +48,8 @@ const slides: Slide[] = [
         <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
           <Building2 className="h-5 w-5 text-primary" />
         </div>
-        <h2 className="text-lg font-bold text-foreground mb-1">Vendor Verification Portal</h2>
-        <p className="text-muted-foreground text-xs max-w-xs">End-to-end registration, verification, and approval workflow</p>
+        <h2 className="text-2xl font-bold text-foreground mb-1">Vendor Verification Portal</h2>
+        <p className="text-muted-foreground text-sm max-w-sm">End-to-end registration, verification, and approval workflow</p>
         <div className="flex gap-6 mt-5">
           {[
             { icon: <Building2 className="h-4 w-4" />, label: "Register", color: "text-blue-600 bg-blue-50" },
@@ -58,7 +58,7 @@ const slides: Slide[] = [
           ].map((s, i) => (
             <div key={i} className="flex flex-col items-center gap-1.5 animate-in fade-in duration-500" style={{ animationDelay: `${(i + 1) * 300}ms`, animationFillMode: "both" }}>
               <div className={`h-9 w-9 rounded-full flex items-center justify-center ${s.color}`}>{s.icon}</div>
-              <span className="text-[10px] font-medium">{s.label}</span>
+              <span className="text-xs font-medium">{s.label}</span>
             </div>
           ))}
         </div>
@@ -73,7 +73,7 @@ const slides: Slide[] = [
     duration: 7,
     render: () => (
       <div className="flex flex-col items-center justify-center h-full px-5 animate-in fade-in slide-in-from-bottom-4 duration-700">
-        <h3 className="text-sm font-semibold mb-3">Vendor Status Lifecycle</h3>
+        <h3 className="text-lg font-semibold mb-3">Vendor Status Lifecycle</h3>
         <div className="space-y-1.5 w-full max-w-xs">
           {[
             { label: "Draft", color: "bg-slate-100 border-slate-300 text-slate-700", delay: 0 },
@@ -83,15 +83,15 @@ const slides: Slide[] = [
             { label: "Approved", color: "bg-green-50 border-green-300 text-green-700", delay: 800 },
           ].map((s, i) => (
             <div key={i} className="flex items-center gap-2 animate-in fade-in slide-in-from-left-4 duration-500" style={{ animationDelay: `${s.delay}ms`, animationFillMode: "both" }}>
-              <div className="h-6 w-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold flex-shrink-0">{i + 1}</div>
+              <div className="h-6 w-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold flex-shrink-0">{i + 1}</div>
               <div className={`flex-1 px-3 py-1.5 rounded-md border font-medium text-xs ${s.color}`}>{s.label}</div>
               {i < 4 && <ArrowRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />}
             </div>
           ))}
         </div>
         <div className="flex gap-2 mt-3">
-          <span className="text-[10px] px-1.5 py-0.5 rounded border bg-orange-50 border-orange-300 text-orange-700 animate-in fade-in duration-500" style={{ animationDelay: "1200ms", animationFillMode: "both" }}>Sent Back (at any stage)</span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded border bg-red-50 border-red-300 text-red-700 animate-in fade-in duration-500" style={{ animationDelay: "1400ms", animationFillMode: "both" }}>Deactivated (admin)</span>
+          <span className="text-xs px-1.5 py-0.5 rounded border bg-orange-50 border-orange-300 text-orange-700 animate-in fade-in duration-500" style={{ animationDelay: "1200ms", animationFillMode: "both" }}>Sent Back (at any stage)</span>
+          <span className="text-xs px-1.5 py-0.5 rounded border bg-red-50 border-red-300 text-red-700 animate-in fade-in duration-500" style={{ animationDelay: "1400ms", animationFillMode: "both" }}>Deactivated (admin)</span>
         </div>
       </div>
     ),
@@ -132,8 +132,8 @@ const slides: Slide[] = [
             <div key={i} className="flex items-center justify-between py-1.5 px-3 rounded bg-muted/50 animate-in fade-in slide-in-from-right-2 duration-300" style={{ animationDelay: `${i * 150}ms`, animationFillMode: "both" }}>
               <span className="text-sm">{f.field}</span>
               <div className="flex items-center gap-2">
-                {f.note && <span className="text-[10px] text-muted-foreground">{f.note}</span>}
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${f.req ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-500"}`}>
+                {f.note && <span className="text-xs text-muted-foreground">{f.note}</span>}
+                <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${f.req ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-500"}`}>
                   {f.req ? "Required" : "Optional"}
                 </span>
               </div>
@@ -156,7 +156,7 @@ const slides: Slide[] = [
             <div className="font-semibold text-xs text-green-800 mb-1 flex items-center gap-1">
               <Phone className="h-3 w-3" /> WhatsApp OTP
             </div>
-            <ul className="text-[10px] text-green-700/80 space-y-0.5 list-disc pl-3">
+            <ul className="text-xs text-green-700/80 space-y-0.5 list-disc pl-3">
               <li>Via Exotel API</li>
               <li>6-digit, 5min expiry</li>
               <li>Max 3 attempts</li>
@@ -167,7 +167,7 @@ const slides: Slide[] = [
             <div className="font-semibold text-xs text-blue-800 mb-1 flex items-center gap-1">
               <FileText className="h-3 w-3" /> Email OTP
             </div>
-            <ul className="text-[10px] text-blue-700/80 space-y-0.5 list-disc pl-3">
+            <ul className="text-xs text-blue-700/80 space-y-0.5 list-disc pl-3">
               <li>Via Resend</li>
               <li>Branded template</li>
               <li>6-digit, 5min expiry</li>
@@ -196,13 +196,13 @@ const slides: Slide[] = [
             <div key={i} className="flex items-center justify-between py-1.5 px-3 rounded bg-muted/50 animate-in fade-in slide-in-from-right-2 duration-300" style={{ animationDelay: `${i * 150}ms`, animationFillMode: "both" }}>
               <span className="text-sm">{f.field}</span>
               <div className="flex items-center gap-2">
-                {f.note && <span className="text-[10px] text-muted-foreground">{f.note}</span>}
-                <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-red-100 text-red-700">Required</span>
+                {f.note && <span className="text-xs text-muted-foreground">{f.note}</span>}
+                <span className="text-xs px-1.5 py-0.5 rounded font-medium bg-red-100 text-red-700">Required</span>
               </div>
             </div>
           ))}
         </div>
-        <div className="mt-2 rounded-md bg-amber-50 border border-amber-200 p-1.5 text-[10px] text-amber-800 animate-in fade-in duration-500" style={{ animationDelay: "800ms", animationFillMode: "both" }}>
+        <div className="mt-2 rounded-md bg-amber-50 border border-amber-200 p-1.5 text-xs text-amber-800 animate-in fade-in duration-500" style={{ animationDelay: "800ms", animationFillMode: "both" }}>
           <Lock className="h-2.5 w-2.5 inline mr-0.5" /> All PII encrypted at rest with pgp_sym_encrypt.
         </div>
       </SlideLayout>
@@ -224,7 +224,7 @@ const slides: Slide[] = [
         ]} />
         <div className="flex flex-wrap gap-1.5 mt-3">
           {["GST Certificate", "PAN Card", "Cancelled Cheque", "Address Proof", "CIN Certificate"].map((doc, i) => (
-            <span key={doc} className="text-[11px] bg-teal-50 text-teal-700 border border-teal-200 px-2 py-0.5 rounded-full animate-in fade-in duration-300" style={{ animationDelay: `${600 + i * 100}ms`, animationFillMode: "both" }}>
+            <span key={doc} className="text-sm bg-teal-50 text-teal-700 border border-teal-200 px-2 py-0.5 rounded-full animate-in fade-in duration-300" style={{ animationDelay: `${600 + i * 100}ms`, animationFillMode: "both" }}>
               {doc}
             </span>
           ))}
@@ -240,8 +240,8 @@ const slides: Slide[] = [
     duration: 8,
     render: () => (
       <div className="flex flex-col h-full px-5 pt-4 animate-in fade-in duration-500">
-        <h3 className="text-sm font-semibold mb-0.5">Real-time Verification APIs</h3>
-        <p className="text-[11px] text-muted-foreground mb-3">Powered by VerifiedU with retry & exponential backoff</p>
+        <h3 className="text-lg font-semibold mb-0.5">Real-time Verification APIs</h3>
+        <p className="text-sm text-muted-foreground mb-3">Powered by VerifiedU with retry & exponential backoff</p>
         <div className="space-y-1.5 flex-1">
           {[
             { icon: <CreditCard className="h-3.5 w-3.5" />, name: "PAN", fn: "verify-pan", status: "working" as const, delay: 0 },
@@ -255,7 +255,7 @@ const slides: Slide[] = [
               <div className="text-primary">{v.icon}</div>
               <div className="flex-1 min-w-0">
                 <span className="text-xs font-medium">{v.name}</span>
-                <span className="text-[9px] text-muted-foreground ml-1.5">{v.fn}</span>
+                <span className="text-xs text-muted-foreground ml-1.5">{v.fn}</span>
               </div>
               <StatusDot status={v.status} />
             </div>
@@ -275,8 +275,8 @@ const slides: Slide[] = [
         <div className="h-10 w-10 rounded-xl bg-purple-100 flex items-center justify-center mb-2">
           <Bot className="h-5 w-5 text-purple-600" />
         </div>
-        <h3 className="text-sm font-semibold mb-0.5">AI-Powered Document Analysis</h3>
-        <p className="text-[11px] text-muted-foreground mb-4">Claude Haiku via vision + tool calling</p>
+        <h3 className="text-lg font-semibold mb-0.5">AI-Powered Document Analysis</h3>
+        <p className="text-sm text-muted-foreground mb-4">Claude Haiku via vision + tool calling</p>
         <div className="w-full max-w-xs space-y-1.5">
           {[
             { label: "Field Extraction", desc: "Name, value, confidence score per field", icon: <FileText className="h-3.5 w-3.5 text-blue-600" />, delay: 300 },
@@ -288,7 +288,7 @@ const slides: Slide[] = [
               <div className="mt-0.5">{item.icon}</div>
               <div>
                 <div className="text-xs font-medium">{item.label}</div>
-                <div className="text-[10px] text-muted-foreground">{item.desc}</div>
+                <div className="text-xs text-muted-foreground">{item.desc}</div>
               </div>
             </div>
           ))}
@@ -304,8 +304,8 @@ const slides: Slide[] = [
     duration: 7,
     render: () => (
       <div className="flex flex-col items-center justify-center h-full px-5 animate-in fade-in duration-500">
-        <h3 className="text-sm font-semibold mb-0.5">Three-Tier Review</h3>
-        <p className="text-[11px] text-muted-foreground mb-4">Every vendor passes through three levels of review</p>
+        <h3 className="text-lg font-semibold mb-0.5">Three-Tier Review</h3>
+        <p className="text-sm text-muted-foreground mb-4">Every vendor passes through three levels of review</p>
         <div className="w-full max-w-xs space-y-1.5">
           {[
             { role: "Maker", desc: "Initial review. Runs verifications, checks documents.", color: "border-l-blue-500 bg-blue-50/30", delay: 200 },
@@ -315,7 +315,7 @@ const slides: Slide[] = [
             <div key={i}>
               <div className={`p-2.5 rounded-md border border-l-4 ${r.color} animate-in fade-in slide-in-from-right-4 duration-500`} style={{ animationDelay: `${r.delay}ms`, animationFillMode: "both" }}>
                 <div className="text-xs font-semibold mb-0.5">{r.role}</div>
-                <div className="text-[11px] text-muted-foreground">{r.desc}</div>
+                <div className="text-sm text-muted-foreground">{r.desc}</div>
               </div>
               {i < 2 && (
                 <div className="flex justify-center py-0.5 animate-in fade-in duration-300" style={{ animationDelay: `${r.delay + 200}ms`, animationFillMode: "both" }}>
@@ -336,8 +336,8 @@ const slides: Slide[] = [
     duration: 7,
     render: () => (
       <div className="flex flex-col items-center justify-center h-full px-5 animate-in fade-in duration-500">
-        <h3 className="text-sm font-semibold mb-0.5">Security & Compliance</h3>
-        <p className="text-[11px] text-muted-foreground mb-3">Enterprise-grade data protection</p>
+        <h3 className="text-lg font-semibold mb-0.5">Security & Compliance</h3>
+        <p className="text-sm text-muted-foreground mb-3">Enterprise-grade data protection</p>
         <div className="grid grid-cols-2 gap-2 w-full max-w-xs">
           {[
             { icon: <Lock className="h-4 w-4 text-red-600" />, label: "PII Encryption", desc: "pgp_sym_encrypt, Vault key", bg: "bg-red-50", delay: 200 },
@@ -347,8 +347,8 @@ const slides: Slide[] = [
           ].map((s, i) => (
             <div key={i} className={`${s.bg} rounded-lg p-2.5 text-center animate-in fade-in zoom-in-95 duration-400`} style={{ animationDelay: `${s.delay}ms`, animationFillMode: "both" }}>
               <div className="flex justify-center mb-1">{s.icon}</div>
-              <div className="text-[11px] font-semibold mb-0.5">{s.label}</div>
-              <div className="text-[9px] text-muted-foreground">{s.desc}</div>
+              <div className="text-sm font-semibold mb-0.5">{s.label}</div>
+              <div className="text-xs text-muted-foreground">{s.desc}</div>
             </div>
           ))}
         </div>
@@ -366,8 +366,8 @@ const slides: Slide[] = [
         <div className="h-11 w-11 rounded-full bg-green-100 flex items-center justify-center mb-3">
           <CheckCircle2 className="h-6 w-6 text-green-600" />
         </div>
-        <h2 className="text-base font-bold mb-1">Ready to Onboard Vendors</h2>
-        <p className="text-xs text-muted-foreground max-w-xs">Sign in to access the dashboard, review queue, and start processing vendor applications.</p>
+        <h2 className="text-2xl font-bold mb-1">Ready to Verify Vendors</h2>
+        <p className="text-sm text-muted-foreground max-w-sm">Sign in to access the dashboard, review queue, and start processing vendor applications.</p>
       </div>
     ),
   },
@@ -426,7 +426,8 @@ export const ProcessWalkthrough = forwardRef<WalkthroughHandle>(function Process
     if (current < totalSlides - 1) {
       goTo(current + 1);
     } else {
-      setPlaying(false);
+      // Loop back to the beginning
+      goTo(0);
     }
   }, [current, totalSlides, goTo]);
 
@@ -498,11 +499,11 @@ export const ProcessWalkthrough = forwardRef<WalkthroughHandle>(function Process
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="text-[11px] font-medium truncate">{slide.title}</div>
+          <div className="text-sm font-medium truncate">{slide.title}</div>
         </div>
 
         <div className="flex items-center gap-1.5">
-          <span className="text-[10px] text-muted-foreground font-mono">{current + 1}/{totalSlides}</span>
+          <span className="text-xs text-muted-foreground font-mono">{current + 1}/{totalSlides}</span>
           <button onClick={restart} className="h-6 w-6 rounded-full flex items-center justify-center hover:bg-muted transition-colors" title="Restart">
             <RotateCcw className="h-3 w-3" />
           </button>
@@ -530,12 +531,12 @@ function SlideLayout({ step, total, icon, color, title, subtitle, children }: {
   return (
     <div className="flex flex-col h-full px-5 pt-3 pb-2 animate-in fade-in slide-in-from-right-4 duration-500">
       <div className="flex items-center gap-2 mb-2">
-        <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${colorMap[color]}`}>{icon}</div>
+        <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${colorMap[color]}`}>{icon}</div>
         <div className="flex-1">
-          <div className="text-xs font-semibold">{title}</div>
-          <div className="text-[10px] text-muted-foreground">{subtitle}</div>
+          <div className="text-base font-semibold">{title}</div>
+          <div className="text-sm text-muted-foreground">{subtitle}</div>
         </div>
-        <span className="text-[9px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">Step {step}/{total}</span>
+        <span className="text-xs font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">Step {step}/{total}</span>
       </div>
       <div className="flex gap-0.5 mb-3">
         {Array.from({ length: total }, (_, i) => (
@@ -562,17 +563,17 @@ function AnimatedList({ items }: { items: string[] }) {
 
 function StatusDot({ status }: { status: "working" | "inactive" | "multi" }) {
   if (status === "working") return (
-    <span className="flex items-center gap-1 text-[11px] text-green-600 font-medium">
+    <span className="flex items-center gap-1 text-sm text-green-600 font-medium">
       <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /> Working
     </span>
   );
   if (status === "inactive") return (
-    <span className="flex items-center gap-1 text-[11px] text-red-500 font-medium">
+    <span className="flex items-center gap-1 text-sm text-red-500 font-medium">
       <XCircle className="h-3 w-3" /> Inactive
     </span>
   );
   return (
-    <span className="flex items-center gap-1 text-[11px] text-blue-600 font-medium">
+    <span className="flex items-center gap-1 text-sm text-blue-600 font-medium">
       <AlertCircle className="h-3 w-3" /> Multi-step
     </span>
   );
