@@ -2,16 +2,17 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { StaffLayout } from "@/components/layout/StaffLayout";
 import { useUserRoles } from "@/hooks/useUserRoles";
-import { useFraudAlerts, FraudAlert } from "@/hooks/useFraudAlerts";
+import { useFraudAlerts, useDismissFraudAlert, useConfirmFraudAlert, FraudAlert, AlertFilter } from "@/hooks/useFraudAlerts";
+import { Database } from "@/integrations/supabase/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FraudAlertCard } from "@/components/fraud/FraudAlertCard";
 import { FraudAlertDetail } from "@/components/fraud/FraudAlertDetail";
-import { 
-  ShieldAlert, 
-  AlertTriangle, 
-  Clock, 
+import {
+  ShieldAlert,
+  AlertTriangle,
+  Clock,
   CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -23,15 +24,30 @@ export default function FraudAlertsDashboard() {
   const [selectedAlert, setSelectedAlert] = useState<FraudAlert | null>(null);
 
   const { alerts, stats, isLoading } = useFraudAlerts({
-    status: activeTab === 'all' ? undefined : [activeTab as any],
+    status: activeTab === 'all' ? undefined : [activeTab as Database["public"]["Enums"]["fraud_alert_status"]],
   });
 
+  const dismissMutation = useDismissFraudAlert();
+  const confirmMutation = useConfirmFraudAlert();
+
   const handleDismiss = (alertId: string, reason: string) => {
-    toast.success("Alert dismissed successfully");
+    dismissMutation.mutate({ alertId, reason }, {
+      onSuccess: () => {
+        toast.success("Alert dismissed successfully");
+        setSelectedAlert(null);
+      },
+      onError: () => toast.error("Failed to dismiss alert"),
+    });
   };
 
   const handleConfirm = (alertId: string) => {
-    toast.success("Fraud confirmed - vendor flagged for review");
+    confirmMutation.mutate(alertId, {
+      onSuccess: () => {
+        toast.success("Fraud confirmed - vendor flagged for review");
+        setSelectedAlert(null);
+      },
+      onError: () => toast.error("Failed to confirm fraud"),
+    });
   };
 
   const handleViewVendor = (vendorId: string) => {
@@ -93,7 +109,13 @@ export default function FraudAlertsDashboard() {
 
         {/* Alerts List */}
         <div className="p-4 space-y-3 max-w-2xl">
-          {alerts.length === 0 ? (
+          {isLoading ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <p className="text-sm text-muted-foreground">Loading alerts...</p>
+              </CardContent>
+            </Card>
+          ) : alerts.length === 0 ? (
             <Card>
               <CardContent className="p-8 text-center">
                 <CheckCircle2 className="h-12 w-12 text-success mx-auto mb-3" />

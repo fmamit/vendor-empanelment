@@ -185,11 +185,19 @@ export function useUploadDocument() {
         .limit(1)
         .maybeSingle();
 
+      // Get vendor's tenant_id
+      const { data: vendorRecord } = await supabase
+        .from("vendors")
+        .select("tenant_id")
+        .eq("id", vendorId)
+        .maybeSingle();
+
       // Create document record
       const { error: dbError } = await supabase
         .from("vendor_documents")
         .insert({
           vendor_id: vendorId,
+          tenant_id: vendorRecord?.tenant_id,
           document_type_id: documentTypeId,
           file_url: urlData.publicUrl,
           file_name: file.name,

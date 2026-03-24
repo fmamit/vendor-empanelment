@@ -46,6 +46,38 @@ export function useVerifyPan() {
   });
 }
 
+export function useVerifyAadhaarInit() {
+  return useMutation({
+    mutationFn: async ({ vendorId }: { vendorId: string }) => {
+      const response = await fetch(`${FUNCTIONS_BASE}/verify-aadhaar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vendor_id: vendorId }),
+      });
+
+      const data = await safeParseJson(response);
+      if (!data.success) throw new Error(data.error || "Aadhaar verification initialization failed");
+      return data.data as { client_id: string; token: string; verification_id: string };
+    },
+  });
+}
+
+export function useSaveAadhaarDetails() {
+  return useMutation({
+    mutationFn: async ({ verificationId, aadhaarData }: { verificationId: string; aadhaarData: any }) => {
+      const response = await fetch(`${FUNCTIONS_BASE}/get-aadhaar-details`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ verification_id: verificationId, aadhaar_data: aadhaarData }),
+      });
+
+      const data = await safeParseJson(response);
+      if (!data.success) throw new Error(data.error || "Failed to save Aadhaar details");
+      return data;
+    },
+  });
+}
+
 export function useVerifyBankAccount() {
   return useMutation({
     mutationFn: async ({

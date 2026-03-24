@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { identifier, identifierType } = await req.json();
+    const { identifier, identifierType, tenant_id } = await req.json();
 
     if (!identifier || !identifierType) {
       return new Response(
@@ -79,12 +79,24 @@ Deno.serve(async (req) => {
     // Generate OTP and store
     const otpCode = generateOtp();
 
+    // Resolve tenant: use provided tenant_id, or fall back to default tenant
+    let resolvedTenantId = tenant_id || null;
+    if (!resolvedTenantId) {
+      const { data: defaultTenant } = await supabase
+        .from("tenants")
+        .select("id")
+        .limit(1)
+        .single();
+      resolvedTenantId = defaultTenant?.id || null;
+    }
+
     const { data: otpRecord, error: insertError } = await supabase
       .from("public_otp_verifications")
       .insert({
         identifier: normalizedIdentifier,
         identifier_type: identifierType,
         otp_code: otpCode,
+        tenant_id: resolvedTenantId,
       })
       .select("session_id")
       .single();

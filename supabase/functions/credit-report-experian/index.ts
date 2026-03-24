@@ -6,15 +6,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const VERIFIEDU_BASE_URL = "https://resources.earlywages.in";
-const VERIFIEDU_TOKEN = "VgBFAFIASQBGAEkARQBEAFUAVABFAFMAVABJAE4ARwBKAFUATgBPAE8ATgAtADEANAAtAEoAYQBuAC0AMgAwADIANgA=";
-const VERIFIEDU_COMPANY_ID = "VUTJ";
+const SUREPASS_BASE_URL = Deno.env.get("SUREPASS_BASE_URL") || "https://sandbox.surepass.app";
+const SUREPASS_TOKEN = Deno.env.get("SUREPASS_TOKEN") || "";
 
 async function retryWithBackoff(fn: () => Promise<Response>, maxRetries = 2) {
   for (let i = 0; i <= maxRetries; i++) {
     try {
       const response = await fn();
-      if (response.ok || response.status === 200) return response;
+      if (response.ok || response.status === 200 || response.status === 422) return response;
       if (response.status >= 500 && i < maxRetries) {
         await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
         continue;
@@ -37,7 +36,7 @@ serve(async (req) => {
   }
 
   try {
-    const { name, mobile, pan_number, rs_type, vendor_id } = await req.json();
+    const { name, mobile, pan_number, vendor_id } = await req.json();
 
     if (!name || !mobile || !pan_number) {
       return new Response(
@@ -48,29 +47,30 @@ serve(async (req) => {
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
+    const { data: vendor } = await supabase.from("vendors").select("tenant_id").eq("id", vendor_id).maybeSingle();
+
     const verificationId = crypto.randomUUID();
     await supabase.from("vendor_verifications").insert({
       id: verificationId,
       vendor_id,
+      tenant_id: vendor?.tenant_id,
       verification_type: "credit_report_experian",
-      verification_source: "verifiedu",
+      verification_source: "surepass",
       status: "in_progress",
-      request_data: { name, mobile, pan_number, rs_type: rs_type || "Y" },
+      request_data: { name, mobile, pan_number },
     });
 
     const response = await retryWithBackoff(() =>
-      fetch(`${VERIFIEDU_BASE_URL}/api/verifiedu/GetIndivisualCreditReport`, {
+      fetch(`${SUREPASS_BASE_URL}/api/v1/credit-report/fetch-report`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          token: VERIFIEDU_TOKEN,
-          companyid: VERIFIEDU_COMPANY_ID,
+          "Authorization": `Bearer ${SUREPASS_TOKEN}`,
         },
         body: JSON.stringify({
           name,
           mobile,
-          panNumber: pan_number.toUpperCase(),
-          rsType: rs_type || "Y",
+          pan_number: pan_number.toUpperCase(),
         }),
       })
     );

@@ -31,8 +31,7 @@ interface StaffUser {
 }
 
 const ROLE_OPTIONS = [
-  { value: "maker", label: "Maker", description: "Initial review and verification" },
-  { value: "checker", label: "Checker", description: "Second-level verification" },
+  { value: "maker", label: "Reviewer", description: "Reviews vendor applications and documents" },
   { value: "approver", label: "Approver", description: "Final approval authority" },
   { value: "admin", label: "Admin", description: "Full system access" },
 ];

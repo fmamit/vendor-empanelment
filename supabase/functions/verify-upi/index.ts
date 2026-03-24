@@ -6,15 +6,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const VERIFIEDU_BASE_URL = "https://resources.earlywages.in";
-const VERIFIEDU_TOKEN = "VgBFAFIASQBGAEkARQBEAFUAVABFAFMAVABJAE4ARwBKAFUATgBPAE8ATgAtADEANAAtAEoAYQBuAC0AMgAwADIANgA=";
-const VERIFIEDU_COMPANY_ID = "VUTJ";
+const SUREPASS_BASE_URL = Deno.env.get("SUREPASS_BASE_URL") || "https://sandbox.surepass.app";
+const SUREPASS_TOKEN = Deno.env.get("SUREPASS_TOKEN") || "";
 
 async function retryWithBackoff(fn: () => Promise<Response>, maxRetries = 2) {
   for (let i = 0; i <= maxRetries; i++) {
     try {
       const response = await fn();
-      if (response.ok || response.status === 200) return response;
+      if (response.ok || response.status === 200 || response.status === 422) return response;
       if (response.status >= 500 && i < maxRetries) {
         await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
         continue;
@@ -39,7 +38,6 @@ serve(async (req) => {
   try {
     const { vpa, vendor_id } = await req.json();
 
-    // Validate UPI VPA format: user@provider
     if (!vpa || !/^[\w.\-]+@[\w.\-]+$/.test(vpa)) {
       return new Response(
         JSON.stringify({ success: false, error: "Invalid UPI VPA format. Expected format: user@provider" }),
@@ -49,25 +47,27 @@ serve(async (req) => {
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
+    const { data: vendor } = await supabase.from("vendors").select("tenant_id").eq("id", vendor_id).maybeSingle();
+
     const verificationId = crypto.randomUUID();
     await supabase.from("vendor_verifications").insert({
       id: verificationId,
       vendor_id,
+      tenant_id: vendor?.tenant_id,
       verification_type: "upi",
-      verification_source: "verifiedu",
+      verification_source: "surepass",
       status: "in_progress",
       request_data: { vpa },
     });
 
     const response = await retryWithBackoff(() =>
-      fetch(`${VERIFIEDU_BASE_URL}/api/verifiedu/VerifyVPA`, {
+      fetch(`${SUREPASS_BASE_URL}/api/v1/bank-verification/upi-verification`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          token: VERIFIEDU_TOKEN,
-          companyid: VERIFIEDU_COMPANY_ID,
+          "Authorization": `Bearer ${SUREPASS_TOKEN}`,
         },
-        body: JSON.stringify({ vpa }),
+        body: JSON.stringify({ id_number: vpa }),
       })
     );
 
@@ -86,32 +86,38 @@ serve(async (req) => {
       );
     }
 
-    if (!responseData.success || !responseData.data) {
-      await supabase.from("vendor_verifications").update({
-        status: "error",
-        response_data: responseData,
-      }).eq("id", verificationId);
+    const isValid = responseData.success && responseData.data;
+    const verificationStatus = isValid ? "success" : "failed";
+
+    await supabase.from("vendor_verifications").update({
+      status: verificationStatus,
+      response_data: responseData.data || responseData,
+      verified_at: new Date().toISOString(),
+    }).eq("id", verificationId);
+
+    if (!isValid) {
       return new Response(
-        JSON.stringify({ success: false, error: responseData.message || "Verification service unavailable" }),
+        JSON.stringify({
+          success: true,
+          data: {
+            vpa,
+            name: null,
+            is_valid: false,
+            status: "failed",
+          },
+        }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    const verificationStatus = responseData.data.is_valid ? "success" : "failed";
-    await supabase.from("vendor_verifications").update({
-      status: verificationStatus,
-      response_data: responseData.data,
-      verified_at: new Date().toISOString(),
-    }).eq("id", verificationId);
 
     return new Response(
       JSON.stringify({
         success: true,
         data: {
-          vpa: responseData.data.vpa,
+          vpa: responseData.data.vpa || vpa,
           name: responseData.data.name || responseData.data.account_holder_name,
-          is_valid: responseData.data.is_valid,
-          status: verificationStatus,
+          is_valid: true,
+          status: "success",
         },
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }

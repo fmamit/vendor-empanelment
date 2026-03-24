@@ -12,7 +12,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   Eye,
-  Loader2
+  Loader2,
 } from "lucide-react";
 import { AlertSeverityBadge } from "./AlertSeverityBadge";
 import { TamperingIndicator } from "./TamperingIndicator";
@@ -39,27 +39,17 @@ export function FraudAlertDetail({
 }: FraudAlertDetailProps) {
   const [dismissReason, setDismissReason] = useState("");
   const [showDismissForm, setShowDismissForm] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleDismiss = async () => {
+  const handleDismiss = () => {
     if (!dismissReason.trim() || !onDismiss) return;
-    setIsSubmitting(true);
-    // Simulate API call
-    await new Promise(r => setTimeout(r, 500));
     onDismiss(alert.id, dismissReason);
-    setIsSubmitting(false);
     setShowDismissForm(false);
     setDismissReason("");
-    onOpenChange(false);
   };
 
-  const handleConfirm = async () => {
+  const handleConfirm = () => {
     if (!onConfirm) return;
-    setIsSubmitting(true);
-    await new Promise(r => setTimeout(r, 500));
     onConfirm(alert.id);
-    setIsSubmitting(false);
-    onOpenChange(false);
   };
 
   const isDuplicateType = ['duplicate_gst', 'duplicate_pan', 'duplicate_bank', 'similar_name'].includes(alert.alert_type);
@@ -217,10 +207,10 @@ export function FraudAlertDetail({
                 <Button 
                   size="sm" 
                   onClick={handleDismiss}
-                  disabled={!dismissReason.trim() || isSubmitting}
+                  disabled={!dismissReason.trim()}
                   className="flex-1"
                 >
-                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm Dismiss"}
+                  Confirm Dismiss
                 </Button>
               </div>
             </div>
@@ -242,16 +232,9 @@ export function FraudAlertDetail({
               variant="destructive"
               className="flex-1"
               onClick={handleConfirm}
-              disabled={isSubmitting}
             >
-              {isSubmitting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
-                  <AlertTriangle className="h-4 w-4 mr-1.5" />
-                  Confirm Fraud
-                </>
-              )}
+              <AlertTriangle className="h-4 w-4 mr-1.5" />
+              Confirm Fraud
             </Button>
           </DialogFooter>
         )}

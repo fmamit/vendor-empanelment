@@ -29,12 +29,19 @@ export function useReferralCode() {
       return;
     }
 
+    // Get user's tenant_id
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("tenant_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
     // Generate a new code via the DB function and insert
     const { data: codeData } = await supabase.rpc("generate_referral_code");
     if (codeData) {
       const { data: inserted, error: insertErr } = await supabase
         .from("staff_referral_codes")
-        .insert({ user_id: user.id, referral_code: codeData })
+        .insert({ user_id: user.id, referral_code: codeData, tenant_id: profile?.tenant_id })
         .select("referral_code")
         .single();
 

@@ -138,6 +138,38 @@ serve(async (req) => {
       });
     }
 
+    // ── Resolve tenant from the referring staff user ──
+    let resolvedTenantId = tenant_id || null;
+    if (!resolvedTenantId) {
+      const { data: staffProfile } = await supabase
+        .from("profiles")
+        .select("tenant_id")
+        .eq("user_id", refCode.user_id)
+        .maybeSingle();
+      resolvedTenantId = staffProfile?.tenant_id || null;
+    }
+
+    // ── Check subscription limit before accepting vendor ──
+    if (resolvedTenantId) {
+      const { data: usageResult, error: usageErr } = await supabase
+        .rpc("increment_vendor_usage", { _tenant_id: resolvedTenantId });
+
+      if (usageErr) {
+        console.error("Usage check failed:", usageErr);
+        // Don't block if the function doesn't exist yet (migration pending)
+      } else if (usageResult === -2) {
+        return new Response(
+          JSON.stringify({
+            error: "This organization has reached its vendor verification limit. Please contact the organization to resolve this.",
+          }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+    }
+
     const { data: vendor, error: vendorErr } = await supabase
       .from("vendors")
       .insert({
@@ -156,7 +188,7 @@ serve(async (req) => {
         salutation: salutation || null,
         constitution_type: constitution_type || null,
         referred_by: refCode.user_id,
-        tenant_id: tenant_id || null,
+        tenant_id: resolvedTenantId,
         current_status: "pending_review",
         submitted_at: new Date().toISOString(),
       })

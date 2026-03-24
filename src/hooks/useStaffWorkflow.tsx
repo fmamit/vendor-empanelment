@@ -99,10 +99,10 @@ export function useUpdateVendorStatus() {
       newStatus: Vendor["current_status"];
       comments?: string;
     }) => {
-      // Get current status
+      // Get current status and tenant_id
       const { data: vendor, error: fetchError } = await supabase
         .from("vendors")
-        .select("current_status")
+        .select("current_status, tenant_id")
         .eq("id", vendorId)
         .single();
 
@@ -131,6 +131,7 @@ export function useUpdateVendorStatus() {
         .from("workflow_history")
         .insert({
           vendor_id: vendorId,
+          tenant_id: vendor.tenant_id,
           from_status: vendor.current_status,
           to_status: newStatus,
           action: newStatus === "rejected" ? "rejected" : (newStatus as string) === "sent_back" ? "returned" : newStatus === "approved" ? "approved" : "forwarded",
@@ -168,6 +169,7 @@ export function useUpdateVendorStatus() {
 
           await supabase.from("notifications").insert({
             recipient_id: vendorUser.user_id,
+            tenant_id: vendor.tenant_id,
             title: notificationTitle,
             message: notificationMessage,
             notification_type: notificationType,

@@ -8,6 +8,8 @@ import {
   useVendorVerifications,
   useVerifyPan,
   useVerifyBankAccount,
+  useVerifyAadhaarInit,
+  useSaveAadhaarDetails,
 } from "@/hooks/useVendorVerification";
 import { toast } from "@/hooks/use-toast";
 import { VerificationBadge } from "@/components/fraud/VerificationBadge";
@@ -28,8 +30,11 @@ export function VerificationPanel({
   const { data: verifications, isLoading: verificationsLoading, refetch } = useVendorVerifications(vendorId);
   const verifyPan = useVerifyPan();
   const verifyBankAccount = useVerifyBankAccount();
+  const verifyAadhaarInit = useVerifyAadhaarInit();
+  const saveAadhaarDetails = useSaveAadhaarDetails();
 
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
+  const [aadhaarLoading, setAadhaarLoading] = useState(false);
 
   // Build verification status map
   const verificationStatusMap = verifications?.reduce((acc, v) => {
@@ -40,6 +45,54 @@ export function VerificationPanel({
     };
     return acc;
   }, {} as Record<string, any>) || {};
+
+  const handleVerifyAadhaar = async () => {
+    setAadhaarLoading(true);
+    try {
+      // Step 1: Initialize Surepass Digilocker session
+      const initData = await verifyAadhaarInit.mutateAsync({ vendorId });
+
+      // Step 2: Load Digiboost SDK and open popup
+      await new Promise<void>((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/gh/surepassio/surepass-digiboost-web-sdk@latest/index.min.js";
+        script.onload = () => {
+          (window as any).DigiboostSdk({
+            gateway: "sandbox",
+            token: initData.token,
+            selector: "#digilocker-trigger",
+            onSuccess: async (data: any) => {
+              try {
+                // Step 3: Save Aadhaar data to backend
+                await saveAadhaarDetails.mutateAsync({
+                  verificationId: initData.verification_id,
+                  aadhaarData: data,
+                });
+                toast({ title: "Success", description: "Aadhaar verified successfully" });
+                refetch();
+                resolve();
+              } catch (err) {
+                reject(err);
+              }
+            },
+            onFailure: (error: any) => {
+              reject(new Error(error?.message || "Digilocker verification was cancelled or failed"));
+            },
+          });
+        };
+        script.onerror = () => reject(new Error("Failed to load Digilocker SDK"));
+        document.body.appendChild(script);
+      });
+    } catch (error) {
+      toast({
+        title: "Verification Failed",
+        description: error instanceof Error ? error.message : "Aadhaar verification failed",
+        variant: "destructive",
+      });
+    } finally {
+      setAadhaarLoading(false);
+    }
+  };
 
   const handleVerifyPan = async () => {
     if (!panNumber) {
@@ -225,6 +278,53 @@ export function VerificationPanel({
               )}
             </Button>
           )}
+        </div>
+
+        {/* Aadhaar Verification via Digilocker */}
+        <div className="border rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">Aadhaar (DigiLocker)</span>
+              {verificationStatusMap.aadhaar && getStatusIcon(verificationStatusMap.aadhaar.status)}
+            </div>
+            {verificationStatusMap.aadhaar && (
+              <Badge className={cn("text-xs", getStatusBadgeVariant(verificationStatusMap.aadhaar.status))}>
+                {verificationStatusMap.aadhaar.status}
+              </Badge>
+            )}
+          </div>
+
+          {verificationStatusMap.aadhaar?.data && (
+            <div className="text-sm text-muted-foreground mb-3 space-y-1">
+              {verificationStatusMap.aadhaar.data.name && (
+                <p>Name: <span className="text-foreground font-medium">{verificationStatusMap.aadhaar.data.name}</span></p>
+              )}
+              {verificationStatusMap.aadhaar.data.dob && (
+                <p>DOB: <span className="text-foreground font-medium">{verificationStatusMap.aadhaar.data.dob}</span></p>
+              )}
+              {verificationStatusMap.aadhaar.data.gender && (
+                <p>Gender: <span className="text-foreground font-medium">{verificationStatusMap.aadhaar.data.gender}</span></p>
+              )}
+            </div>
+          )}
+
+          <div id="digilocker-trigger" />
+          <Button
+            onClick={handleVerifyAadhaar}
+            disabled={aadhaarLoading}
+            variant={verificationStatusMap.aadhaar ? "outline" : "default"}
+            size="sm"
+            className="w-full"
+          >
+            {aadhaarLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Verifying...
+              </>
+            ) : (
+              "Verify Aadhaar"
+            )}
+          </Button>
         </div>
 
       </CardContent>

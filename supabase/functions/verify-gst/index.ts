@@ -6,15 +6,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const VERIFIEDU_BASE_URL = "https://resources.earlywages.in";
-const VERIFIEDU_TOKEN = "VgBFAFIASQBGAEkARQBEAFUAVABFAFMAVABJAE4ARwBKAFUATgBPAE8ATgAtADEANAAtAEoAYQBuAC0AMgAwADIANgA=";
-const VERIFIEDU_COMPANY_ID = "VUTJ";
+const SUREPASS_BASE_URL = Deno.env.get("SUREPASS_BASE_URL") || "https://sandbox.surepass.app";
+const SUREPASS_TOKEN = Deno.env.get("SUREPASS_TOKEN") || "";
 
 async function retryWithBackoff(fn: () => Promise<Response>, maxRetries = 2) {
   for (let i = 0; i <= maxRetries; i++) {
     try {
       const response = await fn();
-      if (response.ok || response.status === 200) return response;
+      if (response.ok || response.status === 200 || response.status === 422) return response;
       if (response.status >= 500 && i < maxRetries) {
         await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
         continue;
@@ -39,7 +38,6 @@ serve(async (req) => {
   try {
     const { gstin, vendor_id } = await req.json();
 
-    // Validate GSTIN format: 15 chars - 2 digits, 10 PAN chars, 1 entity, 1 Z, 1 check
     const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
     if (!gstin || !gstRegex.test(gstin.toUpperCase())) {
       return new Response(
@@ -50,25 +48,27 @@ serve(async (req) => {
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
+    const { data: vendor } = await supabase.from("vendors").select("tenant_id").eq("id", vendor_id).maybeSingle();
+
     const verificationId = crypto.randomUUID();
     await supabase.from("vendor_verifications").insert({
       id: verificationId,
       vendor_id,
+      tenant_id: vendor?.tenant_id,
       verification_type: "gst",
-      verification_source: "verifiedu",
+      verification_source: "surepass",
       status: "in_progress",
       request_data: { gstin: gstin.toUpperCase() },
     });
 
     const response = await retryWithBackoff(() =>
-      fetch(`${VERIFIEDU_BASE_URL}/api/verifiedu/VerifyGstin`, {
+      fetch(`${SUREPASS_BASE_URL}/api/v1/corporate/gstin`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          token: VERIFIEDU_TOKEN,
-          companyid: VERIFIEDU_COMPANY_ID,
+          "Authorization": `Bearer ${SUREPASS_TOKEN}`,
         },
-        body: JSON.stringify({ gstin: gstin.toUpperCase() }),
+        body: JSON.stringify({ id_number: gstin.toUpperCase() }),
       })
     );
 
@@ -87,34 +87,42 @@ serve(async (req) => {
       );
     }
 
-    if (!responseData.success || !responseData.data) {
-      await supabase.from("vendor_verifications").update({
-        status: "error",
-        response_data: responseData,
-      }).eq("id", verificationId);
+    const isValid = responseData.success && responseData.data;
+    const verificationStatus = isValid ? "success" : "failed";
+
+    await supabase.from("vendor_verifications").update({
+      status: verificationStatus,
+      response_data: responseData.data || responseData,
+      verified_at: new Date().toISOString(),
+    }).eq("id", verificationId);
+
+    if (!isValid) {
       return new Response(
-        JSON.stringify({ success: false, error: responseData.message || "Verification service unavailable" }),
+        JSON.stringify({
+          success: true,
+          data: {
+            gstin: gstin.toUpperCase(),
+            business_name: null,
+            trade_name: null,
+            status: null,
+            registration_date: null,
+            is_valid: false,
+          },
+        }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    const verificationStatus = responseData.data.is_valid ? "success" : "failed";
-    await supabase.from("vendor_verifications").update({
-      status: verificationStatus,
-      response_data: responseData.data,
-      verified_at: new Date().toISOString(),
-    }).eq("id", verificationId);
 
     return new Response(
       JSON.stringify({
         success: true,
         data: {
-          gstin: responseData.data.gstin,
+          gstin: responseData.data.gstin || responseData.data.gstin_number,
           business_name: responseData.data.business_name || responseData.data.legal_name,
           trade_name: responseData.data.trade_name,
-          status: responseData.data.status,
-          registration_date: responseData.data.registration_date,
-          is_valid: responseData.data.is_valid,
+          status: responseData.data.gstin_status || responseData.data.status,
+          registration_date: responseData.data.date_of_registration || responseData.data.registration_date,
+          is_valid: true,
         },
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }

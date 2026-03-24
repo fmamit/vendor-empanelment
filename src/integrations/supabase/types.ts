@@ -253,6 +253,69 @@ export type Database = {
           },
         ]
       }
+      fraud_alerts: {
+        Row: {
+          id: string
+          vendor_id: string
+          alert_type: Database["public"]["Enums"]["fraud_alert_type"]
+          severity: Database["public"]["Enums"]["fraud_alert_severity"]
+          title: string
+          description: string
+          details: Json
+          status: Database["public"]["Enums"]["fraud_alert_status"]
+          created_at: string
+          reviewed_by: string | null
+          reviewed_at: string | null
+          dismiss_reason: string | null
+          tenant_id: string
+        }
+        Insert: {
+          id?: string
+          vendor_id: string
+          alert_type: Database["public"]["Enums"]["fraud_alert_type"]
+          severity?: Database["public"]["Enums"]["fraud_alert_severity"]
+          title: string
+          description: string
+          details?: Json
+          status?: Database["public"]["Enums"]["fraud_alert_status"]
+          created_at?: string
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          dismiss_reason?: string | null
+          tenant_id: string
+        }
+        Update: {
+          id?: string
+          vendor_id?: string
+          alert_type?: Database["public"]["Enums"]["fraud_alert_type"]
+          severity?: Database["public"]["Enums"]["fraud_alert_severity"]
+          title?: string
+          description?: string
+          details?: Json
+          status?: Database["public"]["Enums"]["fraud_alert_status"]
+          created_at?: string
+          reviewed_by?: string | null
+          reviewed_at?: string | null
+          dismiss_reason?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fraud_alerts_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fraud_alerts_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors_decrypted"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_types: {
         Row: {
           accepted_formats: string[] | null
@@ -1385,6 +1448,9 @@ export type Database = {
     }
     Enums: {
       app_role: "maker" | "checker" | "approver" | "admin" | "platform_admin"
+      fraud_alert_type: "duplicate_gst" | "duplicate_pan" | "duplicate_bank" | "similar_name" | "tampering" | "verification_failed"
+      fraud_alert_severity: "critical" | "high" | "medium" | "low"
+      fraud_alert_status: "pending" | "reviewed" | "dismissed" | "confirmed"
       document_status:
         | "uploaded"
         | "under_review"
@@ -1536,6 +1602,9 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["maker", "checker", "approver", "admin", "platform_admin"],
+      fraud_alert_type: ["duplicate_gst", "duplicate_pan", "duplicate_bank", "similar_name", "tampering", "verification_failed"],
+      fraud_alert_severity: ["critical", "high", "medium", "low"],
+      fraud_alert_status: ["pending", "reviewed", "dismissed", "confirmed"],
       document_status: [
         "uploaded",
         "under_review",

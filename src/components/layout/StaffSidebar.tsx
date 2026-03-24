@@ -7,15 +7,13 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   LayoutDashboard,
   ClipboardList,
-  ShieldAlert,
   ShieldCheck,
   Users,
-  CheckCircle2,
+  List,
   Settings,
   LogOut,
   UserCircle,
-  UserPlus,
-  BarChart3,
+  CreditCard,
 } from "lucide-react";
 import {
   Sidebar,
@@ -38,15 +36,13 @@ const EMAIL_NAME_MAP: Record<string, string> = {
 
 const mainItems = [
   { title: "Dashboard", url: "/staff/dashboard", icon: LayoutDashboard },
-  { title: "Vendor Queue", url: "/staff/queue", icon: ClipboardList },
-  { title: "Approved Vendors", url: "/staff/approved-vendors", icon: CheckCircle2 },
-  { title: "Invite Vendor", url: "/staff/invite-vendor", icon: UserPlus },
-  { title: "Fraud Alerts", url: "/staff/fraud-alerts", icon: ShieldAlert },
-  { title: "Reports", url: "/staff/reports", icon: BarChart3 },
+  { title: "Approval Queue", url: "/staff/queue", icon: ClipboardList },
+  { title: "Vendor List", url: "/staff/vendors", icon: List },
 ];
 
 const adminItems = [
   { title: "User Management", url: "/admin/users", icon: Users },
+  { title: "Billing", url: "/admin/billing", icon: CreditCard },
   { title: "System Settings", url: "/admin/settings", icon: Settings },
   { title: "DPDP Audit", url: "/admin/dpdp-audit", icon: ShieldCheck },
 ];

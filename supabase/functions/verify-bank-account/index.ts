@@ -6,27 +6,22 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const VERIFIEDU_BASE_URL = "https://resources.earlywages.in";
-const VERIFIEDU_TOKEN = "VgBFAFIASQBGAEkARQBEAFUAVABFAFMAVABJAE4ARwBKAFUATgBPAE8ATgAtADEANAAtAEoAYQBuAC0AMgAwADIANgA=";
-const VERIFIEDU_COMPANY_ID = "VUTJ";
+const SUREPASS_BASE_URL = Deno.env.get("SUREPASS_BASE_URL") || "https://sandbox.surepass.app";
+const SUREPASS_TOKEN = Deno.env.get("SUREPASS_TOKEN") || "";
 
 async function retryWithBackoff(fn: () => Promise<Response>, maxRetries = 2) {
   for (let i = 0; i <= maxRetries; i++) {
     try {
       const response = await fn();
-      if (response.ok || response.status === 200) {
-        return response;
-      }
+      if (response.ok || response.status === 200 || response.status === 422) return response;
       if (response.status >= 500 && i < maxRetries) {
-        const delay = Math.pow(2, i) * 1000;
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
         continue;
       }
       return response;
     } catch (error) {
       if (i < maxRetries) {
-        const delay = Math.pow(2, i) * 1000;
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
         continue;
       }
       throw error;
@@ -45,14 +40,8 @@ serve(async (req) => {
 
     if (!account_number || !ifsc_code) {
       return new Response(
-        JSON.stringify({
-          success: false,
-          error: "Account number and IFSC code are required",
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        JSON.stringify({ success: false, error: "Account number and IFSC code are required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -62,117 +51,94 @@ serve(async (req) => {
       sanitizedIfsc = sanitizedIfsc.substring(0, 4) + '0' + sanitizedIfsc.substring(5);
     }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    // Log verification initiation
+    const { data: vendor } = await supabase.from("vendors").select("tenant_id").eq("id", vendor_id).maybeSingle();
+
     const verificationId = crypto.randomUUID();
     await supabase.from("vendor_verifications").insert({
       id: verificationId,
       vendor_id,
+      tenant_id: vendor?.tenant_id,
       verification_type: "bank_account",
-      verification_source: "verifiedu",
+      verification_source: "surepass",
       status: "in_progress",
       request_data: { account_number, ifsc_code: sanitizedIfsc },
     });
 
-    // Call VerifiedU Bank API with retry logic
     const response = await retryWithBackoff(() =>
-      fetch(`${VERIFIEDU_BASE_URL}/api/verifiedu/VerifyBankAccountNumber`, {
+      fetch(`${SUREPASS_BASE_URL}/api/v1/bank-verification/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          token: VERIFIEDU_TOKEN,
-          companyid: VERIFIEDU_COMPANY_ID,
+          "Authorization": `Bearer ${SUREPASS_TOKEN}`,
         },
         body: JSON.stringify({
-          account_number: account_number.trim(),
-          account_ifsc: sanitizedIfsc,
+          id_number: account_number.trim(),
+          ifsc: sanitizedIfsc,
         }),
       })
     );
 
     const responseText = await response.text();
-    let responseData;
+    let responseData: any;
     try {
       responseData = JSON.parse(responseText);
     } catch {
-      console.error("Failed to parse bank verification response:", responseText);
-      await supabase
-        .from("vendor_verifications")
-        .update({ status: "error", remarks: "Invalid response from verification service" })
-        .eq("id", verificationId);
+      await supabase.from("vendor_verifications").update({
+        status: "error",
+        response_data: { raw: responseText, http_status: response.status },
+      }).eq("id", verificationId);
       return new Response(
-        JSON.stringify({ success: false, error: "Verification service returned an invalid response. Please try again." }),
+        JSON.stringify({ success: false, error: "Verification service returned an invalid response." }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Check for API errors vs verification failures
-    if (!responseData.success || responseData.data === null) {
-      // API error
-      await supabase
-        .from("vendor_verifications")
-        .update({
-          status: "error",
-          response_data: responseData,
-        })
-        .eq("id", verificationId);
+    // Surepass: success=true + account_exists=true means valid
+    const isValid = responseData.success && responseData.data?.account_exists;
+    const verificationStatus = isValid ? "success" : "failed";
 
+    await supabase.from("vendor_verifications").update({
+      status: verificationStatus,
+      response_data: responseData.data || responseData,
+      verified_at: new Date().toISOString(),
+    }).eq("id", verificationId);
+
+    if (!isValid) {
       return new Response(
         JSON.stringify({
-          success: false,
-          error: responseData.message || "Verification service unavailable",
+          success: true,
+          data: {
+            account_holder_name: responseData.data?.full_name || null,
+            bank_name: responseData.data?.ifsc_details?.bank_name || null,
+            branch_name: responseData.data?.ifsc_details?.branch_name || null,
+            is_valid: false,
+            status: "failed",
+          },
         }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    // Genuine result
-    const verificationStatus = responseData.data.is_valid ? "success" : "failed";
-
-    await supabase
-      .from("vendor_verifications")
-      .update({
-        status: verificationStatus,
-        response_data: responseData.data,
-        verified_at: new Date().toISOString(),
-      })
-      .eq("id", verificationId);
 
     return new Response(
       JSON.stringify({
         success: true,
         data: {
-          id: responseData.data.id,
-          account_holder_name: responseData.data.account_holder_name,
-          bank_name: responseData.data.bank_name,
-          branch_name: responseData.data.branch_name,
-          is_valid: responseData.data.is_valid,
-          status: verificationStatus,
+          account_holder_name: responseData.data.full_name,
+          bank_name: responseData.data.ifsc_details?.bank_name || null,
+          branch_name: responseData.data.ifsc_details?.branch_name || null,
+          is_valid: true,
+          status: "success",
         },
       }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Bank account verification error:", error);
     return new Response(
-      JSON.stringify({
-        success: false,
-        error: error instanceof Error ? error.message : "Verification failed",
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      JSON.stringify({ success: false, error: error instanceof Error ? error.message : "Verification failed" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

@@ -59,7 +59,6 @@ function isPiiField(fieldName: string): boolean {
 const STATUS_LABELS: Record<string, string> = {
   draft: "Draft",
   pending_review: "Pending Review",
-  in_verification: "In Verification",
   pending_approval: "Pending Approval",
   sent_back: "Sent Back",
   approved: "Approved",
@@ -78,10 +77,11 @@ export default function VendorReviewDetail() {
   const { vendorId } = useParams();
   const navigate = useNavigate();
   const { isAdmin, isMaker, isChecker, isApprover } = useUserRoles();
-  
+  const isReviewer = isMaker || isChecker;
+
   const { data: vendor, isLoading: vendorLoading } = useVendorDetails(vendorId || null);
   const { data: documents, isLoading: docsLoading } = useVendorDocumentsForReview(vendorId || null);
-  
+
   const updateVendorStatus = useUpdateVendorStatus();
   const updateDocumentStatus = useUpdateDocumentStatus();
 
@@ -121,25 +121,22 @@ export default function VendorReviewDetail() {
     );
   }
 
-  const canForward = 
-    (isMaker && vendor.current_status === "pending_review") ||
-    (isChecker && vendor.current_status === "in_verification") ||
+  const canForward =
+    (isReviewer && vendor.current_status === "pending_review") ||
     isAdmin;
 
-  const canApprove = 
+  const canApprove =
     (isApprover && vendor.current_status === "pending_approval") ||
     isAdmin;
 
   const canReject = canForward || canApprove;
 
-  const canSendBack = 
-    (isMaker && vendor.current_status === "pending_review") ||
-    (isChecker && vendor.current_status === "in_verification") ||
+  const canSendBack =
+    (isReviewer && vendor.current_status === "pending_review") ||
     isAdmin;
 
   const getNextStatus = () => {
-    if (vendor.current_status === "pending_review") return "in_verification";
-    if (vendor.current_status === "in_verification") return "pending_approval";
+    if (vendor.current_status === "pending_review") return "pending_approval";
     if (vendor.current_status === "pending_approval") return "approved";
     return null;
   };
@@ -246,7 +243,7 @@ export default function VendorReviewDetail() {
             )}
             {(vendor as any).constitution_type && (
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Constitution Type</span>
+                <span className="text-muted-foreground">Business Type</span>
                 <span className="font-medium">{(vendor as any).constitution_type}</span>
               </div>
             )}

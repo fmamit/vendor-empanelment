@@ -185,6 +185,7 @@ serve(async (req) => {
     if (documents && Array.isArray(documents) && documents.length > 0) {
       const docRows = documents.map((doc: any) => ({
         vendor_id: vendor.id,
+        tenant_id: resolvedTenantId,
         document_type_id: doc.document_type_id,
         file_name: doc.file_name,
         file_url: doc.file_path,

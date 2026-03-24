@@ -15,7 +15,6 @@ import {
   CreditCard,
   Fingerprint,
   Receipt,
-  Wallet,
   ScanSearch,
   Bot,
   Upload,
@@ -125,7 +124,7 @@ const slides: Slide[] = [
           {[
             { field: "Company Name", req: true },
             { field: "Trade Name", req: false },
-            { field: "Constitution Type", req: true },
+            { field: "Business Type", req: true },
             { field: "GST Number", req: false, note: "15-char GSTIN" },
             { field: "PAN Number", req: false, note: "10-char format" },
           ].map((f, i) => (
@@ -241,15 +240,14 @@ const slides: Slide[] = [
     render: () => (
       <div className="flex flex-col h-full px-5 pt-4 animate-in fade-in duration-500">
         <h3 className="text-lg font-semibold mb-0.5">Real-time Verification APIs</h3>
-        <p className="text-sm text-muted-foreground mb-3">Powered by VerifiedU with retry & exponential backoff</p>
+        <p className="text-sm text-muted-foreground mb-3">Powered by Surepass with retry & exponential backoff</p>
         <div className="space-y-1.5 flex-1">
           {[
             { icon: <CreditCard className="h-3.5 w-3.5" />, name: "PAN", fn: "verify-pan", status: "working" as const, delay: 0 },
             { icon: <Receipt className="h-3.5 w-3.5" />, name: "GST", fn: "verify-gst", status: "working" as const, delay: 150 },
             { icon: <Landmark className="h-3.5 w-3.5" />, name: "Bank Account", fn: "verify-bank-account", status: "working" as const, delay: 300 },
-            { icon: <Wallet className="h-3.5 w-3.5" />, name: "UPI VPA", fn: "verify-upi", status: "working" as const, delay: 450 },
-            { icon: <Fingerprint className="h-3.5 w-3.5" />, name: "Aadhaar (DigiLocker)", fn: "verify-aadhaar", status: "multi" as const, delay: 600 },
-            { icon: <ScanSearch className="h-3.5 w-3.5" />, name: "Experian Credit", fn: "credit-report-experian", status: "inactive" as const, delay: 750 },
+            { icon: <Fingerprint className="h-3.5 w-3.5" />, name: "Aadhaar (DigiLocker)", fn: "verify-aadhaar", status: "multi" as const, delay: 450 },
+            { icon: <ScanSearch className="h-3.5 w-3.5" />, name: "Experian Credit", fn: "credit-report-experian", status: "inactive" as const, delay: 600 },
           ].map((v, i) => (
             <div key={i} className="flex items-center gap-2 py-1.5 px-2.5 rounded-md border bg-card animate-in fade-in slide-in-from-left-3 duration-400" style={{ animationDelay: `${v.delay}ms`, animationFillMode: "both" }}>
               <div className="text-primary">{v.icon}</div>
@@ -300,17 +298,16 @@ const slides: Slide[] = [
   // 9 — Staff Workflow
   {
     title: "Staff Workflow",
-    subtitle: "Maker > Checker > Approver",
+    subtitle: "Reviewer > Approver",
     duration: 7,
     render: () => (
       <div className="flex flex-col items-center justify-center h-full px-5 animate-in fade-in duration-500">
-        <h3 className="text-lg font-semibold mb-0.5">Three-Tier Review</h3>
-        <p className="text-sm text-muted-foreground mb-4">Every vendor passes through three levels of review</p>
+        <h3 className="text-lg font-semibold mb-0.5">Two-Stage Review</h3>
+        <p className="text-sm text-muted-foreground mb-4">Every vendor passes through two levels of review</p>
         <div className="w-full max-w-xs space-y-1.5">
           {[
-            { role: "Maker", desc: "Initial review. Runs verifications, checks documents.", color: "border-l-blue-500 bg-blue-50/30", delay: 200 },
-            { role: "Checker", desc: "Second-level cross-check. Reviews AI analysis results.", color: "border-l-purple-500 bg-purple-50/30", delay: 500 },
-            { role: "Approver", desc: "Final sign-off. Grants or rejects vendor onboarding.", color: "border-l-green-500 bg-green-50/30", delay: 800 },
+            { role: "Reviewer", desc: "Reviews documents, runs verifications, checks AI analysis.", color: "border-l-blue-500 bg-blue-50/30", delay: 200 },
+            { role: "Approver", desc: "Final sign-off. Grants or rejects vendor onboarding.", color: "border-l-green-500 bg-green-50/30", delay: 500 },
           ].map((r, i) => (
             <div key={i}>
               <div className={`p-2.5 rounded-md border border-l-4 ${r.color} animate-in fade-in slide-in-from-right-4 duration-500`} style={{ animationDelay: `${r.delay}ms`, animationFillMode: "both" }}>

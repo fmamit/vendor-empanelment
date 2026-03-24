@@ -51,10 +51,10 @@ export function CompanyDetailsStep({ formData, categoryName, categories, onChang
         </div>
 
         <div>
-          <Label className="text-base font-semibold">Constitution Type *</Label>
+          <Label className="text-base font-semibold">Business Type *</Label>
           <Select value={formData.constitution_type} onValueChange={(val) => onChange("constitution_type", val)}>
             <SelectTrigger className="h-14 mt-2 text-base">
-              <SelectValue placeholder="Select constitution type" />
+              <SelectValue placeholder="Select business type" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="Proprietorship">Proprietorship</SelectItem>

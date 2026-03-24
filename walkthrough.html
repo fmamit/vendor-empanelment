@@ -484,7 +484,7 @@
     <div class="card">
       <h3>External APIs</h3>
       <div class="tag-list">
-        <span class="tag">VerifiedU (KYC)</span>
+        <span class="tag">Surepass (KYC)</span>
         <span class="tag">Exotel (WhatsApp)</span>
         <span class="tag">Resend (Email)</span>
         <span class="tag">Google Gemini 2.5 Pro (AI)</span>
@@ -655,11 +655,11 @@
      ════════════════════════════════════════════════════════════ -->
 <div class="section" id="sec-verification">
   <h2 class="section-title">Verification APIs</h2>
-  <p class="section-subtitle">Six real-time verification checks via VerifiedU. All results stored in <code>vendor_verifications</code>.</p>
+  <p class="section-subtitle">Six real-time verification checks via Surepass. All results stored in <code>vendor_verifications</code>.</p>
 
   <div class="callout callout-info mb-4">
     <span>&#8505;&#65039;</span>
-    <div><strong>Provider:</strong> All verification APIs are powered by <strong>VerifiedU</strong> (<code>resources.earlywages.in</code>). Each request includes a <code>token</code> and <code>companyid</code> header. Retry logic with exponential backoff (up to 2 retries) is built in.</div>
+    <div><strong>Provider:</strong> All verification APIs are powered by <strong>Surepass</strong>. Each request includes an <code>Authorization: Bearer</code> header. Retry logic with exponential backoff (up to 2 retries) is built in.</div>
   </div>
 
   <!-- PAN -->
@@ -667,7 +667,7 @@
     <h3><span class="icon-circle blue">P</span> PAN Verification <span class="badge badge-success">Working</span></h3>
     <div class="grid-2">
       <div>
-        <strong>Endpoint:</strong> <code>POST /api/verifiedu/VerifyPAN</code><br>
+        <strong>Endpoint:</strong> <code>POST /api/v1/pan/pan</code><br>
         <strong>Edge Function:</strong> <code>verify-pan</code><br>
         <strong>Input:</strong> <code>pan_number</code>, <code>vendor_id</code><br>
         <strong>Validation:</strong> 10-char alphanumeric PAN format
@@ -700,7 +700,7 @@
     <h3><span class="icon-circle green">G</span> GST Verification <span class="badge badge-success">Working</span></h3>
     <div class="grid-2">
       <div>
-        <strong>Endpoint:</strong> <code>POST /api/verifiedu/VerifyGstin</code><br>
+        <strong>Endpoint:</strong> <code>POST /api/v1/corporate/gstin</code><br>
         <strong>Edge Function:</strong> <code>verify-gst</code><br>
         <strong>Input:</strong> <code>gstin</code>, <code>vendor_id</code><br>
         <strong>Validation:</strong> 15-char GSTIN regex
@@ -736,7 +736,7 @@
     <h3><span class="icon-circle amber">B</span> Bank Account Verification <span class="badge badge-success">Working</span></h3>
     <div class="grid-2">
       <div>
-        <strong>Endpoint:</strong> <code>POST /api/verifiedu/VerifyBankAccountNumber</code><br>
+        <strong>Endpoint:</strong> <code>POST /api/v1/bank-verification</code><br>
         <strong>Edge Function:</strong> <code>verify-bank-account</code><br>
         <strong>Input:</strong> <code>account_number</code>, <code>ifsc_code</code>, <code>vendor_id</code><br>
         <strong>Note:</strong> IFSC auto-corrects position-5 'O' &rarr; '0'
@@ -758,7 +758,7 @@
     <h3><span class="icon-circle purple">U</span> UPI VPA Verification <span class="badge badge-success">Working</span></h3>
     <div class="grid-2">
       <div>
-        <strong>Endpoint:</strong> <code>POST /api/verifiedu/VerifyVPA</code><br>
+        <strong>Endpoint:</strong> <code>POST /api/v1/upi-verification</code><br>
         <strong>Edge Function:</strong> <code>verify-upi</code><br>
         <strong>Input:</strong> <code>vpa</code>, <code>vendor_id</code><br>
         <strong>Validation:</strong> Format <code>user@provider</code>
@@ -783,18 +783,18 @@
       <div class="card" style="flex:1;min-width:280px;border:2px solid #99f6e4;">
         <h3>Step 1 &mdash; Initiate</h3>
         <p><strong>Function:</strong> <code>verify-aadhaar</code></p>
-        <p><strong>Endpoint:</strong> <code>VerifyAadhaarViaDigilocker</code></p>
-        <p class="mt-2"><strong>Input:</strong> <code>vendor_id</code>, <code>surl</code> (success URL), <code>furl</code> (failure URL)</p>
-        <p class="mt-2"><strong>Returns:</strong> <code>redirect_url</code> and <code>unique_request_number</code></p>
-        <p class="mt-2">The user is redirected to DigiLocker to authenticate.</p>
+        <p><strong>Endpoint:</strong> <code>POST /api/v1/digilocker/initialize</code></p>
+        <p class="mt-2"><strong>Input:</strong> <code>vendor_id</code></p>
+        <p class="mt-2"><strong>Returns:</strong> <code>client_id</code>, <code>token</code>, and <code>verification_id</code></p>
+        <p class="mt-2">Initializes the Surepass Digilocker SDK for the user.</p>
       </div>
       <div class="card" style="flex:1;min-width:280px;border:2px solid #99f6e4;">
-        <h3>Step 2 &mdash; Retrieve</h3>
+        <h3>Step 2 &mdash; Store Details</h3>
         <p><strong>Function:</strong> <code>get-aadhaar-details</code></p>
-        <p><strong>Endpoint:</strong> <code>GetAadhaarDetailsById</code></p>
-        <p class="mt-2"><strong>Input:</strong> <code>unique_request_number</code></p>
-        <p class="mt-2"><strong>Returns:</strong> Name, DOB, gender, address, photo</p>
-        <p class="mt-2">Called after user completes DigiLocker auth and is redirected back.</p>
+        <p><strong>Endpoint:</strong> Stores Aadhaar data from SDK callback</p>
+        <p class="mt-2"><strong>Input:</strong> <code>verification_id</code>, <code>aadhaar_data</code></p>
+        <p class="mt-2"><strong>Returns:</strong> Success confirmation</p>
+        <p class="mt-2">Called after user completes DigiLocker auth via the SDK.</p>
       </div>
     </div>
   </div>
@@ -804,10 +804,10 @@
     <h3><span class="icon-circle red">E</span> Experian Credit Report <span class="badge badge-error">Inactive</span></h3>
     <div class="grid-2">
       <div>
-        <strong>Endpoint:</strong> <code>POST /api/verifiedu/GetIndivisualCreditReport</code><br>
+        <strong>Endpoint:</strong> <code>POST /api/v1/credit-report/fetch-report</code><br>
         <strong>Edge Function:</strong> <code>credit-report-experian</code><br>
-        <strong>Input:</strong> <code>name</code>, <code>mobile</code>, <code>pan_number</code>, <code>rs_type</code> (optional, default "Y")<br>
-        <strong>Status:</strong> Service currently returns <em>"Service is inactive"</em>
+        <strong>Input:</strong> <code>name</code>, <code>mobile</code>, <code>pan_number</code><br>
+        <strong>Status:</strong> Pending activation on Surepass
       </div>
       <div>
         <strong>Expected Returns:</strong>
@@ -819,7 +819,7 @@
     </div>
     <div class="callout callout-error mt-2">
       <span>&#10060;</span>
-      <div><strong>Current Issue:</strong> The VerifiedU <code>GetIndivisualCreditReport</code> endpoint returns <code>"Service is inactive. Cannot proceed."</code> Awaiting reactivation from VerifiedU support for company ID <code>VUTJ</code>.</div>
+      <div><strong>Current Issue:</strong> Credit report service is pending activation on Surepass.</div>
     </div>
   </div>
 
@@ -828,14 +828,14 @@
   <h3 style="font-size:1.1rem;font-weight:600;" class="mb-2">Verification Status Summary</h3>
   <div class="card">
     <table>
-      <thead><tr><th>Type</th><th>Edge Function</th><th>VerifiedU Endpoint</th><th>Status</th></tr></thead>
+      <thead><tr><th>Type</th><th>Edge Function</th><th>Surepass Endpoint</th><th>Status</th></tr></thead>
       <tbody>
-        <tr><td>PAN</td><td><code>verify-pan</code></td><td><code>VerifyPAN</code></td><td><span class="badge badge-success">Working</span></td></tr>
-        <tr><td>GST</td><td><code>verify-gst</code></td><td><code>VerifyGstin</code></td><td><span class="badge badge-success">Working</span></td></tr>
-        <tr><td>Bank Account</td><td><code>verify-bank-account</code></td><td><code>VerifyBankAccountNumber</code></td><td><span class="badge badge-success">Working</span></td></tr>
-        <tr><td>UPI</td><td><code>verify-upi</code></td><td><code>VerifyVPA</code></td><td><span class="badge badge-success">Working</span></td></tr>
-        <tr><td>Aadhaar</td><td><code>verify-aadhaar</code> + <code>get-aadhaar-details</code></td><td><code>VerifyAadhaarViaDigilocker</code> + <code>GetAadhaarDetailsById</code></td><td><span class="badge badge-info">Multi-step</span></td></tr>
-        <tr><td>Experian Credit</td><td><code>credit-report-experian</code></td><td><code>GetIndivisualCreditReport</code></td><td><span class="badge badge-error">Inactive</span></td></tr>
+        <tr><td>PAN</td><td><code>verify-pan</code></td><td><code>/api/v1/pan/pan</code></td><td><span class="badge badge-success">Working</span></td></tr>
+        <tr><td>GST</td><td><code>verify-gst</code></td><td><code>/api/v1/corporate/gstin</code></td><td><span class="badge badge-success">Working</span></td></tr>
+        <tr><td>Bank Account</td><td><code>verify-bank-account</code></td><td><code>/api/v1/bank-verification</code></td><td><span class="badge badge-success">Working</span></td></tr>
+        <tr><td>UPI</td><td><code>verify-upi</code></td><td><code>/api/v1/upi-verification</code></td><td><span class="badge badge-success">Working</span></td></tr>
+        <tr><td>Aadhaar</td><td><code>verify-aadhaar</code> + <code>get-aadhaar-details</code></td><td><code>/api/v1/digilocker/initialize</code></td><td><span class="badge badge-info">Multi-step</span></td></tr>
+        <tr><td>Experian Credit</td><td><code>credit-report-experian</code></td><td><code>/api/v1/credit-report/fetch-report</code></td><td><span class="badge badge-error">Inactive</span></td></tr>
       </tbody>
     </table>
   </div>
@@ -1216,7 +1216,7 @@
       <span class="accordion-chevron">&#9660;</span>
     </div>
     <div class="accordion-body">
-      <p><strong>Purpose:</strong> Verify PAN number via VerifiedU</p>
+      <p><strong>Purpose:</strong> Verify PAN number via Surepass</p>
       <div class="code-block">
 <span class="comment">// Request</span>
 { <span class="key">"pan_number"</span>: <span class="str">"ABCDE1234F"</span>, <span class="key">"vendor_id"</span>: <span class="str">"uuid"</span> }
@@ -1231,7 +1231,7 @@
       <span class="accordion-chevron">&#9660;</span>
     </div>
     <div class="accordion-body">
-      <p><strong>Purpose:</strong> Verify GST registration via VerifiedU</p>
+      <p><strong>Purpose:</strong> Verify GST registration via Surepass</p>
       <div class="code-block">
 <span class="comment">// Request</span>
 { <span class="key">"gstin"</span>: <span class="str">"27AABCU9603R1ZM"</span>, <span class="key">"vendor_id"</span>: <span class="str">"uuid"</span> }
@@ -1246,7 +1246,7 @@
       <span class="accordion-chevron">&#9660;</span>
     </div>
     <div class="accordion-body">
-      <p><strong>Purpose:</strong> Verify bank account via VerifiedU</p>
+      <p><strong>Purpose:</strong> Verify bank account via Surepass</p>
       <div class="code-block">
 <span class="comment">// Request</span>
 { <span class="key">"account_number"</span>: <span class="str">"1234567890"</span>, <span class="key">"ifsc_code"</span>: <span class="str">"SBIN0001234"</span>, <span class="key">"vendor_id"</span>: <span class="str">"uuid"</span> }
@@ -1261,7 +1261,7 @@
       <span class="accordion-chevron">&#9660;</span>
     </div>
     <div class="accordion-body">
-      <p><strong>Purpose:</strong> Verify UPI VPA via VerifiedU</p>
+      <p><strong>Purpose:</strong> Verify UPI VPA via Surepass</p>
       <div class="code-block">
 <span class="comment">// Request</span>
 { <span class="key">"vpa"</span>: <span class="str">"user@upi"</span>, <span class="key">"vendor_id"</span>: <span class="str">"uuid"</span> }
@@ -1278,13 +1278,13 @@
     <div class="accordion-body">
       <p><strong>Purpose:</strong> Two-step Aadhaar verification via DigiLocker</p>
       <div class="code-block">
-<span class="comment">// Step 1: verify-aadhaar</span>
-{ <span class="key">"vendor_id"</span>: <span class="str">"uuid"</span>, <span class="key">"surl"</span>: <span class="str">"https://app/success"</span>, <span class="key">"furl"</span>: <span class="str">"https://app/fail"</span> }
-<span class="comment">// → Returns redirect_url + unique_request_number</span>
+<span class="comment">// Step 1: verify-aadhaar (initialize SDK)</span>
+{ <span class="key">"vendor_id"</span>: <span class="str">"uuid"</span> }
+<span class="comment">// → Returns client_id, token, verification_id</span>
 
-<span class="comment">// Step 2: get-aadhaar-details (after user completes DigiLocker)</span>
-{ <span class="key">"unique_request_number"</span>: <span class="str">"abc123"</span> }
-<span class="comment">// → Returns name, dob, gender, address, photo</span>
+<span class="comment">// Step 2: get-aadhaar-details (store SDK callback data)</span>
+{ <span class="key">"verification_id"</span>: <span class="str">"uuid"</span>, <span class="key">"aadhaar_data"</span>: { <span class="comment">/* SDK response */</span> } }
+<span class="comment">// → Returns success confirmation</span>
       </div>
     </div>
 
@@ -1293,7 +1293,7 @@
       <span class="accordion-chevron">&#9660;</span>
     </div>
     <div class="accordion-body">
-      <p><strong>Purpose:</strong> Fetch Experian individual credit report via VerifiedU</p>
+      <p><strong>Purpose:</strong> Fetch Experian individual credit report via Surepass</p>
       <div class="code-block">
 <span class="comment">// Request</span>
 { <span class="key">"name"</span>: <span class="str">"Rajesh Kumar"</span>, <span class="key">"mobile"</span>: <span class="str">"9876543210"</span>, <span class="key">"pan_number"</span>: <span class="str">"ABCDE1234F"</span> }
