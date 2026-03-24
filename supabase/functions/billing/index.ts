@@ -94,9 +94,73 @@ serve(async (req) => {
       );
     }
 
+    // ─── VALIDATE COUPON ──────────────────────────────────────────
+    if (action === "validate_coupon") {
+      const { code } = params;
+      if (!code) {
+        return new Response(
+          JSON.stringify({ error: "Coupon code is required" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const { data: coupon } = await supabase
+        .from("coupons")
+        .select("*")
+        .eq("code", code.toUpperCase().trim())
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (!coupon) {
+        return new Response(
+          JSON.stringify({ valid: false, error: "Invalid coupon code" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const today = new Date().toISOString().split("T")[0];
+      if (today < coupon.valid_from || today > coupon.valid_until) {
+        return new Response(
+          JSON.stringify({ valid: false, error: "Coupon has expired" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (coupon.max_uses && coupon.times_used >= coupon.max_uses) {
+        return new Response(
+          JSON.stringify({ valid: false, error: "Coupon usage limit reached" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Check if this tenant already used this coupon
+      const { data: existing } = await supabase
+        .from("coupon_redemptions")
+        .select("id")
+        .eq("coupon_id", coupon.id)
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+
+      if (existing) {
+        return new Response(
+          JSON.stringify({ valid: false, error: "Coupon already used by your organization" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({
+          valid: true,
+          discount_percent: coupon.discount_percent,
+          valid_until: coupon.valid_until,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // ─── CREATE RAZORPAY ORDER (for subscription payment) ────────
     if (action === "create_order") {
-      const { plan_id } = params;
+      const { plan_id, coupon_code } = params;
 
       // Get plan details
       const { data: plan } = await supabase
@@ -112,7 +176,42 @@ serve(async (req) => {
         );
       }
 
-      const baseAmount = plan.monthly_price;
+      // Validate coupon if provided
+      let discountPercent = 0;
+      let couponId: string | null = null;
+      if (coupon_code) {
+        const { data: coupon } = await supabase
+          .from("coupons")
+          .select("*")
+          .eq("code", coupon_code.toUpperCase().trim())
+          .eq("is_active", true)
+          .maybeSingle();
+
+        const today = new Date().toISOString().split("T")[0];
+        if (
+          coupon &&
+          today >= coupon.valid_from &&
+          today <= coupon.valid_until &&
+          (!coupon.max_uses || coupon.times_used < coupon.max_uses)
+        ) {
+          // Check tenant hasn't already used it
+          const { data: existing } = await supabase
+            .from("coupon_redemptions")
+            .select("id")
+            .eq("coupon_id", coupon.id)
+            .eq("tenant_id", tenantId)
+            .maybeSingle();
+
+          if (!existing) {
+            discountPercent = coupon.discount_percent;
+            couponId = coupon.id;
+          }
+        }
+      }
+
+      const listPrice = plan.monthly_price;
+      const discount = Math.round(listPrice * discountPercent / 100);
+      const baseAmount = listPrice - discount;
       const gstAmount = Math.round(baseAmount * GST_RATE * 100) / 100;
       const totalAmount = Math.round((baseAmount + gstAmount) * 100); // Razorpay uses paise
 
@@ -139,6 +238,11 @@ serve(async (req) => {
           notes: {
             tenant_id: tenantId,
             plan_id: plan_id,
+            list_price: listPrice,
+            discount,
+            discount_percent: discountPercent,
+            coupon_code: coupon_code || null,
+            coupon_id: couponId,
             base_amount: baseAmount,
             gst_amount: gstAmount,
           },
@@ -159,6 +263,10 @@ serve(async (req) => {
           order,
           razorpay_key_id: razorpayKeyId,
           plan,
+          list_price: listPrice,
+          discount,
+          discount_percent: discountPercent,
+          coupon_id: couponId,
           base_amount: baseAmount,
           gst_amount: gstAmount,
         }),
@@ -168,7 +276,7 @@ serve(async (req) => {
 
     // ─── VERIFY PAYMENT & ACTIVATE SUBSCRIPTION ─────────────────
     if (action === "verify_payment") {
-      const { razorpay_order_id, razorpay_payment_id, razorpay_signature, plan_id } = params;
+      const { razorpay_order_id, razorpay_payment_id, razorpay_signature, plan_id, coupon_id } = params;
 
       const razorpayKeySecret = Deno.env.get("RAZORPAY_KEY_SECRET");
       if (!razorpayKeySecret) {
@@ -230,28 +338,76 @@ serve(async (req) => {
           updated_at: now.toISOString(),
         }, { onConflict: "tenant_id" });
 
-      // Log transaction
-      const baseAmount = plan.monthly_price;
+      // Recalculate amounts (coupon may have been applied at order creation)
+      let discountPercent = 0;
+      if (coupon_id) {
+        const { data: coupon } = await supabase
+          .from("coupons")
+          .select("discount_percent")
+          .eq("id", coupon_id)
+          .maybeSingle();
+        discountPercent = coupon?.discount_percent || 0;
+      }
+
+      const listPrice = plan.monthly_price;
+      const discount = Math.round(listPrice * discountPercent / 100);
+      const baseAmount = listPrice - discount;
       const gstAmount = Math.round(baseAmount * GST_RATE * 100) / 100;
 
-      await supabase.from("billing_transactions").insert([
-        {
+      // Log transactions
+      const txns: any[] = [];
+
+      if (discount > 0) {
+        txns.push({
+          tenant_id: tenantId,
+          type: "debit",
+          category: "subscription_payment",
+          amount: listPrice,
+          description: `${plan.name} plan - monthly subscription (list price)`,
+          reference_id: razorpay_payment_id,
+        });
+        txns.push({
+          tenant_id: tenantId,
+          type: "credit",
+          category: "adjustment",
+          amount: discount,
+          description: `Coupon discount (${discountPercent}% off)`,
+          reference_id: razorpay_payment_id,
+        });
+      } else {
+        txns.push({
           tenant_id: tenantId,
           type: "debit",
           category: "subscription_payment",
           amount: baseAmount,
           description: `${plan.name} plan - monthly subscription`,
           reference_id: razorpay_payment_id,
-        },
-        {
+        });
+      }
+
+      txns.push({
+        tenant_id: tenantId,
+        type: "debit",
+        category: "gst",
+        amount: gstAmount,
+        description: `GST on ${plan.name} plan subscription`,
+        reference_id: razorpay_payment_id,
+      });
+
+      await supabase.from("billing_transactions").insert(txns);
+
+      // Record coupon redemption and increment usage
+      if (coupon_id) {
+        await supabase.from("coupon_redemptions").insert({
+          coupon_id,
           tenant_id: tenantId,
-          type: "debit",
-          category: "gst",
-          amount: gstAmount,
-          description: `GST on ${plan.name} plan subscription`,
-          reference_id: razorpay_payment_id,
-        },
-      ]);
+          razorpay_payment_id,
+        });
+        const { data: c } = await supabase.from("coupons").select("times_used").eq("id", coupon_id).single();
+        if (c) {
+          await supabase.from("coupons").update({ times_used: c.times_used + 1 }).eq("id", coupon_id);
+        }
+      }
 
       return new Response(
         JSON.stringify({ success: true, plan: plan_id }),

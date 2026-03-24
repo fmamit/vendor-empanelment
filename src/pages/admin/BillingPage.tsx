@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { format, formatDistanceToNow } from "date-fns";
+import { Input } from "@/components/ui/input";
 import {
   Loader2,
   CheckCircle2,
@@ -21,6 +22,7 @@ import {
   Receipt,
   Shield,
   Zap,
+  Tag,
 } from "lucide-react";
 
 declare global {
@@ -82,6 +84,9 @@ export default function BillingPage() {
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [paying, setPaying] = useState(false);
+  const [couponCode, setCouponCode] = useState("");
+  const [couponValid, setCouponValid] = useState<{ valid: boolean; discount_percent?: number } | null>(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
 
   const callBilling = async (action: string, params: any = {}) => {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -127,6 +132,25 @@ export default function BillingPage() {
     });
   };
 
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setValidatingCoupon(true);
+    try {
+      const result = await callBilling("validate_coupon", { code: couponCode.trim() });
+      setCouponValid(result);
+      if (result.valid) {
+        toast.success(`Coupon applied! ${result.discount_percent}% discount`);
+      } else {
+        toast.error(result.error || "Invalid coupon");
+      }
+    } catch {
+      setCouponValid(null);
+      toast.error("Failed to validate coupon");
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
   const handleUpgrade = async (plan: Plan) => {
     if (!isAdmin) {
       toast.error("Only admins can manage billing");
@@ -138,7 +162,11 @@ export default function BillingPage() {
       const loaded = await loadRazorpay();
       if (!loaded) { toast.error("Failed to load payment gateway"); return; }
 
-      const data = await callBilling("create_order", { plan_id: plan.id });
+      const appliedCoupon = couponValid?.valid ? couponCode.trim() : undefined;
+      const data = await callBilling("create_order", {
+        plan_id: plan.id,
+        coupon_code: appliedCoupon,
+      });
 
       const options = {
         key: data.razorpay_key_id,
@@ -146,7 +174,7 @@ export default function BillingPage() {
         currency: data.order.currency,
         order_id: data.order.id,
         name: "In-Sync",
-        description: `${plan.name} Plan - Monthly Subscription`,
+        description: `${plan.name} Plan - Monthly Subscription${data.discount ? ` (${data.discount_percent}% off)` : ""}`,
         handler: async (response: any) => {
           try {
             await callBilling("verify_payment", {
@@ -154,11 +182,14 @@ export default function BillingPage() {
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
               plan_id: plan.id,
+              coupon_id: data.coupon_id,
             });
             toast.success(`Upgraded to ${plan.name} plan!`);
             queryClient.invalidateQueries({ queryKey: ["subscription"] });
             queryClient.invalidateQueries({ queryKey: ["billing-transactions"] });
             setUpgradeOpen(false);
+            setCouponCode("");
+            setCouponValid(null);
           } catch (err: any) {
             toast.error(err.message || "Payment verification failed");
           }
@@ -367,16 +398,57 @@ export default function BillingPage() {
       </div>
 
       {/* Upgrade Dialog */}
-      <Dialog open={upgradeOpen} onOpenChange={setUpgradeOpen}>
+      <Dialog open={upgradeOpen} onOpenChange={(open) => {
+        setUpgradeOpen(open);
+        if (!open) { setCouponCode(""); setCouponValid(null); }
+      }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Choose a Plan</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 mt-2">
+
+          {/* Coupon input */}
+          <div className="flex gap-2 items-end">
+            <div className="flex-1">
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                <Tag className="h-3 w-3 inline mr-1" />
+                Coupon Code
+              </label>
+              <Input
+                placeholder="e.g. HAPPY50"
+                value={couponCode}
+                onChange={(e) => {
+                  setCouponCode(e.target.value.toUpperCase());
+                  setCouponValid(null);
+                }}
+                className="h-9"
+              />
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9"
+              onClick={handleApplyCoupon}
+              disabled={!couponCode.trim() || validatingCoupon}
+            >
+              {validatingCoupon ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Apply"}
+            </Button>
+          </div>
+          {couponValid?.valid && (
+            <p className="text-xs text-green-600 font-medium -mt-1">
+              <CheckCircle2 className="h-3 w-3 inline mr-1" />
+              {couponValid.discount_percent}% discount applied!
+            </p>
+          )}
+
+          <div className="space-y-3">
             {paidPlans.map((plan) => {
               const isSelected = selectedPlan?.id === plan.id;
-              const gst = Math.round(plan.monthly_price * 0.18);
-              const total = plan.monthly_price + gst;
+              const discountPct = couponValid?.valid ? couponValid.discount_percent || 0 : 0;
+              const discount = Math.round(plan.monthly_price * discountPct / 100);
+              const discountedPrice = plan.monthly_price - discount;
+              const gst = Math.round(discountedPrice * 0.18);
+              const total = discountedPrice + gst;
               return (
                 <button
                   key={plan.id}
@@ -391,10 +463,23 @@ export default function BillingPage() {
                       <p className="text-xs text-muted-foreground">{plan.description}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold flex items-center">
-                        <IndianRupee className="h-3.5 w-3.5" />
-                        {plan.monthly_price.toLocaleString("en-IN")}
-                      </p>
+                      {discount > 0 ? (
+                        <>
+                          <p className="text-xs text-muted-foreground line-through">
+                            <IndianRupee className="h-2.5 w-2.5 inline" />
+                            {plan.monthly_price.toLocaleString("en-IN")}
+                          </p>
+                          <p className="font-bold flex items-center text-green-600">
+                            <IndianRupee className="h-3.5 w-3.5" />
+                            {discountedPrice.toLocaleString("en-IN")}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="font-bold flex items-center">
+                          <IndianRupee className="h-3.5 w-3.5" />
+                          {plan.monthly_price.toLocaleString("en-IN")}
+                        </p>
+                      )}
                       <p className="text-[10px] text-muted-foreground">
                         + <IndianRupee className="h-2.5 w-2.5 inline" />{gst.toLocaleString("en-IN")} GST = <IndianRupee className="h-2.5 w-2.5 inline" />{total.toLocaleString("en-IN")}
                       </p>

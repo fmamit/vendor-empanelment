@@ -119,21 +119,21 @@ const STATS = [
 const PRICING = [
   {
     name: "Starter",
-    price: "2,499",
+    price: "4,999",
     vendors: "Up to 10",
     desc: "For teams getting started with vendor verification",
     popular: false,
   },
   {
     name: "Professional",
-    price: "5,999",
+    price: "11,999",
     vendors: "11 – 30",
     desc: "For growing organizations with regular vendor onboarding",
     popular: true,
   },
   {
     name: "Enterprise",
-    price: "11,999",
+    price: "23,999",
     vendors: "31+",
     desc: "For large teams with high vendor volumes",
     popular: false,
