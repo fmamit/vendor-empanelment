@@ -111,7 +111,7 @@ const FEATURES = [
 ];
 
 const STATS = [
-  { value: "< 48 hrs", label: "Verification Turnaround" },
+  { value: "< 5 mins", label: "Verification Turnaround" },
   { value: "6", label: "Government API Checks" },
   { value: "80%", label: "Less Manual Work" },
   { value: "100%", label: "DPDP Compliant" },
@@ -484,7 +484,7 @@ export default function LandingPage() {
             className="text-center mb-16"
           >
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-              Built for Compliance Teams
+              Built for Procurement Teams
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Every feature is designed to eliminate manual work and keep you
@@ -586,7 +586,7 @@ export default function LandingPage() {
                   </h3>
                   <ul className="space-y-4">
                     {[
-                      "Vendors verified in under 48 hours",
+                      "Vendors verified in under 5 minutes",
                       "AI reads and validates every document automatically",
                       "One dashboard — every vendor, every status, every document",
                       "Fraud flagged before a vendor enters your supply chain",
