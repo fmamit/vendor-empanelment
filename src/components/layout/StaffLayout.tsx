@@ -5,6 +5,7 @@ import { useTenant } from "@/contexts/TenantContext";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { StaffSidebar } from "./StaffSidebar";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 
 interface StaffLayoutProps {
@@ -13,7 +14,7 @@ interface StaffLayoutProps {
 }
 
 export function StaffLayout({ children, title }: StaffLayoutProps) {
-  const { user, userType, loading } = useAuth();
+  const { user, userType, loading, signOut } = useAuth();
   const { tenant } = useTenant();
   const navigate = useNavigate();
 
@@ -29,6 +30,28 @@ export function StaffLayout({ children, title }: StaffLayoutProps) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!loading && user && userType === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4 max-w-sm px-4">
+          <p className="text-lg font-medium text-foreground">Account setup incomplete</p>
+          <p className="text-sm text-muted-foreground">
+            We couldn't link your account to a staff profile. Please sign out and try again, or contact support if the issue persists.
+          </p>
+          <Button
+            variant="outline"
+            onClick={async () => {
+              await signOut();
+              navigate("/staff/login");
+            }}
+          >
+            Sign out and try again
+          </Button>
+        </div>
       </div>
     );
   }

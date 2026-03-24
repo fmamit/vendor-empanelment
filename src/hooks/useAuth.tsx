@@ -15,7 +15,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-async function determineUserType(userId: string): Promise<UserType> {
+async function determineUserType(userId: string, retries = 2): Promise<UserType> {
   const { data: profile } = await supabase
     .from("profiles")
     .select("id")
@@ -31,6 +31,12 @@ async function determineUserType(userId: string): Promise<UserType> {
     .maybeSingle();
 
   if (vendorUser) return "vendor";
+
+  // Retry after a delay in case profile creation is still propagating
+  if (retries > 0) {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    return determineUserType(userId, retries - 1);
+  }
 
   return null;
 }
@@ -62,7 +68,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     initialize();
 
-    return () => { cancelled = true; };
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        if (cancelled) return;
+        setSession(session);
+        setUser(session?.user ?? null);
+
+        if (session?.user) {
+          setLoading(true);
+          const type = await determineUserType(session.user.id);
+          if (!cancelled) {
+            setUserType(type);
+            setLoading(false);
+          }
+        } else {
+          setUserType(null);
+          setLoading(false);
+        }
+      }
+    );
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {

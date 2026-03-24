@@ -50,12 +50,14 @@ export default function OrgRegistration() {
       });
 
       if (loginError) {
-        toast.success("Organization created! Please log in with your credentials.");
+        toast.info("Organization created successfully. Please log in to continue.", {
+          duration: 5000,
+        });
         navigate("/staff/login");
         return;
       }
 
-      toast.success("Welcome! Your organization is ready.");
+      toast.success("Welcome! Your organization is ready. Redirecting to dashboard...");
       navigate("/staff/dashboard");
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Registration failed. Please try again.");
