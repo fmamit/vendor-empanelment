@@ -336,7 +336,8 @@ export default function LandingPage() {
               initial={{ opacity: 0, x: 40 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
-              className="mt-12 lg:mt-0 lg:flex-1 w-full"
+              className="mt-12 lg:mt-0 w-full"
+              style={{ flex: "1.25" }}
             >
               <div className="rounded-2xl overflow-hidden border-2 border-white/60 shadow-2xl ring-1 ring-black/5 bg-card aspect-video">
                 <ProcessWalkthrough />
