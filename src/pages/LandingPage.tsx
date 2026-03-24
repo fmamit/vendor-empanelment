@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { ProcessWalkthrough } from "@/components/staff/ProcessWalkthrough";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -267,67 +268,81 @@ export default function LandingPage() {
           <div className="absolute top-20 left-10 w-72 h-72 bg-white rounded-full blur-3xl" />
           <div className="absolute bottom-10 right-10 w-96 h-96 bg-accent rounded-full blur-3xl" />
         </div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 lg:py-36">
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            className="max-w-3xl mx-auto text-center"
-          >
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 lg:py-32">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:gap-12">
             <motion.div
-              variants={fadeUp}
-              custom={0}
-              className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 text-sm font-medium mb-8"
+              initial="hidden"
+              animate="visible"
+              className="max-w-xl lg:flex-1"
             >
-              <Sparkles className="h-4 w-4 text-accent" />
-              First 5 vendor verifications free — no card required
+              <motion.div
+                variants={fadeUp}
+                custom={0}
+                className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 text-sm font-medium mb-8"
+              >
+                <Sparkles className="h-4 w-4 text-accent" />
+                First 5 vendor verifications free — no card required
+              </motion.div>
+
+              <motion.h1
+                variants={fadeUp}
+                custom={1}
+                className="text-4xl sm:text-5xl lg:text-5xl font-bold leading-tight mb-6"
+              >
+                Verify once.
+                <br />
+                <span className="text-accent">Stay audit-ready forever.</span>
+              </motion.h1>
+
+              <motion.p
+                variants={fadeUp}
+                custom={2}
+                className="text-xl sm:text-2xl text-white/80 mb-10 max-w-2xl leading-relaxed"
+              >
+                The vendor verification platform that purchase managers trust.
+                AI-powered checks, real-time government API verification, and a
+                compliance trail that&apos;s always ready for audit.
+              </motion.p>
+
+              <motion.div
+                variants={fadeUp}
+                custom={3}
+                className="flex flex-col sm:flex-row gap-4"
+              >
+                <Button
+                  size="lg"
+                  className="bg-accent hover:bg-accent/90 text-white h-14 px-8 text-lg"
+                  onClick={() => navigate("/register")}
+                >
+                  Start Free — Verify 5 Vendors
+                  <ArrowRight className="h-5 w-5 ml-2" />
+                </Button>
+                <Button
+                  size="lg"
+                  className="border border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white h-14 px-8 text-lg backdrop-blur-sm"
+                  onClick={() => {
+                    document
+                      .getElementById("how-it-works")
+                      ?.scrollIntoView({ behavior: "smooth" });
+                  }}
+                >
+                  See How It Works
+                </Button>
+              </motion.div>
             </motion.div>
 
-            <motion.h1
-              variants={fadeUp}
-              custom={1}
-              className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6"
-            >
-              Verify once.
-              <br />
-              <span className="text-accent">Stay audit-ready forever.</span>
-            </motion.h1>
-
-            <motion.p
-              variants={fadeUp}
-              custom={2}
-              className="text-xl sm:text-2xl text-white/80 mb-10 max-w-2xl mx-auto leading-relaxed"
-            >
-              The vendor verification platform that purchase managers trust.
-              AI-powered checks, real-time government API verification, and a
-              compliance trail that&apos;s always ready for audit.
-            </motion.p>
-
+            {/* Walkthrough player */}
             <motion.div
-              variants={fadeUp}
-              custom={3}
-              className="flex flex-col sm:flex-row justify-center gap-4"
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="mt-12 lg:mt-0 lg:flex-1 w-full"
             >
-              <Button
-                size="lg"
-                className="bg-accent hover:bg-accent/90 text-white h-14 px-10 text-lg"
-                onClick={() => navigate("/register")}
-              >
-                Start Free — Verify 5 Vendors
-                <ArrowRight className="h-5 w-5 ml-2" />
-              </Button>
-              <Button
-                size="lg"
-                className="border border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white h-14 px-10 text-lg backdrop-blur-sm"
-                onClick={() => {
-                  document
-                    .getElementById("how-it-works")
-                    ?.scrollIntoView({ behavior: "smooth" });
-                }}
-              >
-                See How It Works
-              </Button>
+              <div className="rounded-2xl overflow-hidden border-2 border-white/60 shadow-2xl ring-1 ring-black/5 bg-card aspect-video">
+                <ProcessWalkthrough />
+              </div>
             </motion.div>
-          </motion.div>
+          </div>
         </div>
       </section>
 
