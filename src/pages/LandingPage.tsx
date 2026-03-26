@@ -21,6 +21,10 @@ import {
   FileText,
   UserCheck,
   ChevronDown,
+  Wallet,
+  Calendar,
+  Quote,
+  Play,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -39,8 +43,8 @@ const PHASES = [
   {
     step: "01",
     icon: Send,
-    title: "Onboard",
-    desc: "Invite vendors with a single link. They submit documents, verify their identity, and provide DPDP consent — all in one flow.",
+    title: "Collect",
+    desc: "Share a secure link with your vendor. They submit financials, verify identity, and provide DPDP consent — all in one flow.",
     color: "text-blue-600",
     bg: "bg-blue-50",
     border: "border-blue-200",
@@ -48,8 +52,8 @@ const PHASES = [
   {
     step: "02",
     icon: ScanSearch,
-    title: "Verify",
-    desc: "AI reads every document. PAN, GST, bank account, Aadhaar — verified against government APIs in real time. Fraud flagged instantly.",
+    title: "Analyse",
+    desc: "Credit Score, Bank Statement, GST filing history, PAN — verified against live government and financial APIs. Fraud flagged instantly.",
     color: "text-emerald-600",
     bg: "bg-emerald-50",
     border: "border-emerald-200",
@@ -57,8 +61,8 @@ const PHASES = [
   {
     step: "03",
     icon: BadgeCheck,
-    title: "Audit-Ready",
-    desc: "Complete digital trail for every vendor. Review, approve, and download compliance reports. Your next audit is already done.",
+    title: "Decide",
+    desc: "Get a complete financial health picture before committing a single rupee. Review, approve, and download compliance-ready reports.",
     color: "text-violet-600",
     bg: "bg-violet-50",
     border: "border-violet-200",
@@ -69,21 +73,21 @@ const FEATURES = [
   {
     icon: Brain,
     title: "AI Document Analysis",
-    desc: "Extracts data from GST certificates, PAN cards, cheques — and catches tampering. No manual review needed.",
+    desc: "Extracts data from GST certificates, PAN cards, bank statements — and catches tampering. No manual review needed.",
     color: "text-blue-600",
     bg: "bg-blue-50",
   },
   {
     icon: ScanSearch,
-    title: "5-in-1 Verification",
-    desc: "PAN, GST, Bank Account, Aadhaar, and Credit — all verified against live government and financial sources.",
+    title: "Credit Score & Financial Checks",
+    desc: "Credit Report, Bank Statement Analysis, GST filing history, PAN, Aadhaar — a complete financial picture of every vendor.",
     color: "text-emerald-600",
     bg: "bg-emerald-50",
   },
   {
     icon: AlertTriangle,
-    title: "Fraud Detection",
-    desc: "Duplicate GST, PAN, or bank accounts? Fake documents? Suspicious patterns? Caught before they enter your roster.",
+    title: "Fraud & Risk Detection",
+    desc: "Duplicate GST, PAN, or bank accounts? Fake documents? Financially unstable vendor? Caught before you commit.",
     color: "text-amber-600",
     bg: "bg-amber-50",
   },
@@ -96,15 +100,15 @@ const FEATURES = [
   },
   {
     icon: ShieldCheck,
-    title: "DPDP Compliant by Design",
-    desc: "PII encryption, automatic masking, data export & erasure rights, consent management — built in from day one.",
+    title: "DPDP & UIDAI Compliant",
+    desc: "PII encryption, automatic masking, data export & erasure rights, consent management — Aadhaar verification fully UIDAI compliant.",
     color: "text-rose-600",
     bg: "bg-rose-50",
   },
   {
     icon: ClipboardCheck,
     title: "Downloadable Reports",
-    desc: "Export your verification dashboard as PDF anytime. Share with management, attach to audits, prove compliance.",
+    desc: "Export your due diligence dashboard as PDF anytime. Share with the CFO, attach to audits, prove compliance.",
     color: "text-teal-600",
     bg: "bg-teal-50",
   },
@@ -120,24 +124,59 @@ const STATS = [
 const PRICING = [
   {
     name: "Starter",
-    price: "4,999",
-    vendors: "Up to 10",
-    desc: "For teams getting started with vendor verification",
+    price: "2,999",
+    period: "quarter",
+    verifications: "10 verifications included",
+    overage: "299",
+    desc: "For teams starting vendor due diligence",
     popular: false,
   },
   {
-    name: "Professional",
-    price: "11,999",
-    vendors: "11 – 30",
-    desc: "For growing organizations with regular vendor onboarding",
+    name: "Business",
+    price: "7,499",
+    period: "quarter",
+    verifications: "35 verifications included",
+    overage: "249",
+    desc: "For growing organizations with regular vendor commitments",
     popular: true,
   },
   {
     name: "Enterprise",
-    price: "23,999",
-    vendors: "31+",
+    price: "14,999",
+    period: "quarter",
+    verifications: "100 verifications included",
+    overage: "199",
     desc: "For large teams with high vendor volumes",
     popular: false,
+  },
+];
+
+const MODULAR_CHECKS = [
+  { name: "GST Verification", desc: "Filing history, status, and compliance check" },
+  { name: "Bank Statement Analysis", desc: "Account health, transaction patterns, and red flags" },
+  { name: "Credit Report", desc: "Credit score, payment history, and risk assessment" },
+  { name: "PAN Verification", desc: "Identity and tax compliance confirmation" },
+  { name: "Full Stack", desc: "All checks — Credit, Bank, GST, PAN, Aadhaar + AI analysis" },
+];
+
+const TESTIMONIALS = [
+  {
+    quote: "We caught a financially unstable vendor before committing a \u20B950L purchase order. The credit report alone saved us from a potential write-off.",
+    name: "Rajesh Mehta",
+    title: "CFO",
+    company: "Manufacturing Enterprise, Mumbai",
+  },
+  {
+    quote: "What used to take our team 7-10 days of manual verification now happens in under 5 minutes. The GST and bank statement analysis is remarkably thorough.",
+    name: "Priya Sharma",
+    title: "Head of Procurement",
+    company: "IT Services Company, Bangalore",
+  },
+  {
+    quote: "The audit trail is what sold us. Every verification, every document, every approval — all downloadable as a PDF. Our auditors were impressed.",
+    name: "Amit Desai",
+    title: "Finance Head",
+    company: "Infrastructure Group, Pune",
   },
 ];
 
@@ -256,7 +295,7 @@ export default function LandingPage() {
               Login
             </Button>
             <Button onClick={() => navigate("/register")}>
-              Register Your Organization <ArrowRight className="h-4 w-4 ml-1" />
+              Try Free <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           </div>
         </div>
@@ -281,7 +320,7 @@ export default function LandingPage() {
                 className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 text-sm font-medium mb-8"
               >
                 <Sparkles className="h-4 w-4 text-accent" />
-                First 5 vendor verifications free — no card required
+                3 free verifications — no card required
               </motion.div>
 
               <motion.h1
@@ -289,9 +328,9 @@ export default function LandingPage() {
                 custom={1}
                 className="text-4xl sm:text-5xl lg:text-5xl font-bold leading-tight mb-6"
               >
-                Verify once.
+                Financial due diligence
                 <br />
-                <span className="text-accent">Stay audit-ready forever.</span>
+                <span className="text-accent">before you commit.</span>
               </motion.h1>
 
               <motion.p
@@ -299,9 +338,9 @@ export default function LandingPage() {
                 custom={2}
                 className="text-xl sm:text-2xl text-white/80 mb-10 max-w-2xl leading-relaxed"
               >
-                The vendor verification platform that purchase managers trust.
-                AI-powered checks, real-time government API verification, and a
-                compliance trail that&apos;s always ready for audit.
+                Credit Score, Bank Statement Analysis, GST &amp; PAN verification
+                — know your vendor&apos;s financial health before you sign a single
+                purchase order. Built for CFOs and Finance leaders.
               </motion.p>
 
               <motion.div
@@ -314,19 +353,21 @@ export default function LandingPage() {
                   className="bg-accent hover:bg-accent/90 text-white h-14 px-8 text-lg"
                   onClick={() => navigate("/register")}
                 >
-                  Start Free — Verify 5 Vendors
+                  Try Free — 3 Verifications
                   <ArrowRight className="h-5 w-5 ml-2" />
                 </Button>
                 <Button
                   size="lg"
                   className="border border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white h-14 px-8 text-lg backdrop-blur-sm"
                   onClick={() => {
-                    document
-                      .getElementById("how-it-works")
-                      ?.scrollIntoView({ behavior: "smooth" });
+                    window.open(
+                      "https://calendly.com/in-sync/demo",
+                      "_blank"
+                    );
                   }}
                 >
-                  See How It Works
+                  <Play className="h-4 w-4 mr-2" />
+                  Request a Demo
                 </Button>
               </motion.div>
             </motion.div>
@@ -426,11 +467,11 @@ export default function LandingPage() {
             className="text-center mb-16"
           >
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-              Three Steps to Verified Vendors
+              Three Steps to Financial Clarity
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              From invitation to audit-ready — a streamlined process that
-              replaces weeks of manual work.
+              From vendor invite to complete financial due diligence — replacing
+              weeks of manual work with minutes.
             </p>
           </motion.div>
 
@@ -484,11 +525,11 @@ export default function LandingPage() {
             className="text-center mb-16"
           >
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-              Built for Procurement Teams
+              Built for Finance and Procurement Leaders
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Every feature is designed to eliminate manual work and keep you
-              audit-ready at all times.
+              Every feature is designed to give CFOs and procurement heads
+              complete financial visibility before committing to a vendor.
             </p>
           </motion.div>
 
@@ -535,7 +576,7 @@ export default function LandingPage() {
             className="text-center mb-12"
           >
             <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-              Stop Firefighting. Start Verifying.
+              Stop Guessing. Start Verifying.
             </h2>
           </motion.div>
 
@@ -552,10 +593,10 @@ export default function LandingPage() {
                   </h3>
                   <ul className="space-y-4">
                     {[
-                      "7–10 days to verify a single vendor",
-                      "Manual document review across multiple teams",
+                      "No visibility into vendor financial health",
+                      "7–10 days of manual document chasing",
                       "Vendor data scattered in spreadsheets and emails",
-                      "Fraud discovered only during audits",
+                      "Financially unstable vendors discovered after commitment",
                       "Paper-based compliance trail that nobody trusts",
                       "Every audit is a scramble",
                     ].map((item) => (
@@ -586,12 +627,12 @@ export default function LandingPage() {
                   </h3>
                   <ul className="space-y-4">
                     {[
-                      "Vendors verified in under 5 minutes",
+                      "Credit score, bank health, GST history — in under 5 minutes",
                       "AI reads and validates every document automatically",
-                      "One dashboard — every vendor, every status, every document",
-                      "Fraud flagged before a vendor enters your supply chain",
-                      "Digital audit trail — DPDP compliant from day one",
-                      "Download your compliance report anytime. Audit done.",
+                      "One dashboard — every vendor, every financial signal",
+                      "Financially risky vendors flagged before you commit",
+                      "Digital audit trail — DPDP & UIDAI compliant from day one",
+                      "Download your due diligence report anytime. Audit done.",
                     ].map((item) => (
                       <li
                         key={item}
@@ -687,8 +728,56 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Testimonials */}
+      <section className="py-16 sm:py-24 bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
+              Trusted by Finance Leaders
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Hear from CFOs and procurement heads who verify before they commit.
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {TESTIMONIALS.map((t, i) => (
+              <motion.div
+                key={t.name}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-30px" }}
+                transition={{ delay: i * 0.15 }}
+              >
+                <Card className="h-full hover:shadow-lg transition-shadow">
+                  <CardContent className="p-8">
+                    <Quote className="h-8 w-8 text-accent/30 mb-4" />
+                    <p className="text-foreground leading-relaxed mb-6 italic">
+                      &ldquo;{t.quote}&rdquo;
+                    </p>
+                    <div>
+                      <div className="font-semibold text-foreground">
+                        {t.name}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {t.title}, {t.company}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Pricing */}
-      <section id="pricing" className="py-16 sm:py-24 bg-background">
+      <section id="pricing" className="py-16 sm:py-24 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -700,7 +789,7 @@ export default function LandingPage() {
               Simple, Transparent Pricing
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Start free. Upgrade when you&apos;re ready. No hidden fees.
+              Quarterly subscription + pay-per-verification wallet. No hidden fees.
             </p>
           </motion.div>
 
@@ -712,7 +801,7 @@ export default function LandingPage() {
           >
             <span className="inline-flex items-center gap-2 bg-accent/10 text-accent font-semibold rounded-full px-5 py-2 text-sm">
               <Sparkles className="h-4 w-4" />
-              First 5 vendor verifications completely free
+              3 free verifications on signup — no card required
             </span>
           </motion.div>
 
@@ -750,30 +839,49 @@ export default function LandingPage() {
                         {plan.price}
                       </span>
                       <span className="text-sm text-muted-foreground">
-                        /month + GST
+                        /quarter + GST
                       </span>
                     </div>
-                    <div className="text-sm font-medium text-primary mb-8">
-                      {plan.vendors} vendors/month
+                    <div className="text-sm font-medium text-primary mb-2">
+                      {plan.verifications}
                     </div>
-                    <Button
-                      className={`w-full h-12 ${
-                        plan.popular
-                          ? "bg-primary hover:bg-primary/90"
-                          : "bg-primary/10 text-primary hover:bg-primary/20"
-                      }`}
-                      onClick={() => navigate("/register")}
-                    >
-                      Get Started
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </Button>
+                    <div className="text-xs text-muted-foreground mb-8 flex items-center justify-center gap-1">
+                      <Wallet className="h-3 w-3" />
+                      Extra: ₹{plan.overage}/verification from wallet
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        className={`w-full h-12 ${
+                          plan.popular
+                            ? "bg-primary hover:bg-primary/90"
+                            : "bg-primary/10 text-primary hover:bg-primary/20"
+                        }`}
+                        onClick={() => navigate("/register")}
+                      >
+                        Try Free — 3 Verifications
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="w-full h-10 text-sm"
+                        onClick={() => {
+                          window.open(
+                            "https://calendly.com/in-sync/demo",
+                            "_blank"
+                          );
+                        }}
+                      >
+                        Request a Demo
+                      </Button>
+                    </div>
                     <ul className="mt-8 space-y-3 text-left text-sm">
                       {[
-                        "6-in-1 government API verification",
-                        "AI document analysis",
-                        "Fraud detection",
+                        "Credit Score & financial checks",
+                        "Bank Statement Analysis",
+                        "GST & PAN verification",
+                        "AI document analysis & fraud detection",
                         "Review & approve workflow",
-                        "DPDP compliance built-in",
+                        "DPDP & UIDAI compliant",
                         "PDF report downloads",
                       ].map((f) => (
                         <li key={f} className="flex items-start gap-2">
@@ -782,6 +890,91 @@ export default function LandingPage() {
                         </li>
                       ))}
                     </ul>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Wallet info */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mt-12 max-w-3xl mx-auto"
+          >
+            <Card className="border-dashed border-2 border-primary/20">
+              <CardContent className="p-6 flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <Wallet className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-foreground mb-1">
+                    Wallet for Overages
+                  </h4>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Exceeded your included verifications? Top up your wallet
+                    and keep going. Minimum recharge ₹2,000. Unused wallet
+                    balance carries over — no expiry.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Modular Verification Options */}
+      <section className="py-16 sm:py-24 bg-background">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
+              Run the Checks You Need
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Need only a GST check? Just a credit report? Pick individual
+              modules or run the full stack — each verification counts as one
+              from your plan.
+            </p>
+          </motion.div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {MODULAR_CHECKS.map((check, i) => (
+              <motion.div
+                key={check.name}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-20px" }}
+                transition={{ delay: i * 0.08 }}
+              >
+                <Card
+                  className={`h-full hover:shadow-md transition-shadow ${
+                    check.name === "Full Stack"
+                      ? "border-2 border-primary bg-primary/5"
+                      : ""
+                  }`}
+                >
+                  <CardContent className="p-5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle2
+                        className={`h-5 w-5 ${
+                          check.name === "Full Stack"
+                            ? "text-primary"
+                            : "text-accent"
+                        }`}
+                      />
+                      <h4 className="font-semibold text-foreground">
+                        {check.name}
+                      </h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {check.desc}
+                    </p>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -799,19 +992,33 @@ export default function LandingPage() {
             viewport={{ once: true }}
           >
             <h2 className="text-3xl sm:text-4xl font-bold mb-6">
-              Your next audit shouldn&apos;t be a fire drill.
+              Know your vendor&apos;s financial health — before you commit.
             </h2>
             <p className="text-xl text-white/80 mb-10 max-w-2xl mx-auto">
-              Start verifying vendors today. Your first 5 are on us.
+              3 free verifications. No card required. See the full financial
+              picture in under 5 minutes.
             </p>
-            <div className="flex justify-center">
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Button
                 size="lg"
                 className="bg-accent hover:bg-accent/90 text-white h-14 px-10 text-lg"
                 onClick={() => navigate("/register")}
               >
-                Start Free — No Card Required
+                Try Free — 3 Verifications
                 <ArrowRight className="h-5 w-5 ml-2" />
+              </Button>
+              <Button
+                size="lg"
+                className="border border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white h-14 px-10 text-lg backdrop-blur-sm"
+                onClick={() => {
+                  window.open(
+                    "https://calendly.com/in-sync/demo",
+                    "_blank"
+                  );
+                }}
+              >
+                <Play className="h-4 w-4 mr-2" />
+                Request a Demo
               </Button>
             </div>
           </motion.div>
@@ -847,7 +1054,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-3">
             <img src={logo} alt={orgName} className="h-8 w-auto" />
-            <span>{orgName} Vendor Verification Portal</span>
+            <span>{orgName} — Financial Due Diligence Platform</span>
           </div>
           <div className="flex items-center gap-4">
             <a href="/privacy-policy" className="hover:underline">

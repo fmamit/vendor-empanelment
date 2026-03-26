@@ -247,7 +247,7 @@ const slides: Slide[] = [
             { icon: <Receipt className="h-3.5 w-3.5" />, name: "GST", fn: "verify-gst", status: "working" as const, delay: 150 },
             { icon: <Landmark className="h-3.5 w-3.5" />, name: "Bank Account", fn: "verify-bank-account", status: "working" as const, delay: 300 },
             { icon: <Fingerprint className="h-3.5 w-3.5" />, name: "Aadhaar (DigiLocker)", fn: "verify-aadhaar", status: "multi" as const, delay: 450 },
-            { icon: <ScanSearch className="h-3.5 w-3.5" />, name: "Experian Credit", fn: "credit-report-experian", status: "inactive" as const, delay: 600 },
+            { icon: <ScanSearch className="h-3.5 w-3.5" />, name: "Credit Report", fn: "credit-report", status: "working" as const, delay: 600 },
           ].map((v, i) => (
             <div key={i} className="flex items-center gap-2 py-1.5 px-2.5 rounded-md border bg-card animate-in fade-in slide-in-from-left-3 duration-400" style={{ animationDelay: `${v.delay}ms`, animationFillMode: "both" }}>
               <div className="text-primary">{v.icon}</div>
