@@ -50,30 +50,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
 
-    const initialize = async () => {
-      let session;
-      try {
-        const { data } = await supabase.auth.getSession();
-        session = data.session;
-      } catch {
-        return; // aborted by a concurrent auth operation (e.g. signInWithPassword)
-      }
-      if (cancelled) return;
-
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      if (session?.user) {
-        const type = await determineUserType(session.user.id);
-        if (cancelled) return;
-        setUserType(type);
-      }
-
-      setLoading(false);
-    };
-
-    initialize();
-
+    // onAuthStateChange fires INITIAL_SESSION immediately with the current session,
+    // so there is no need for a separate getSession() call. Having both races and
+    // causes an AbortError when signInWithPassword acquires the auth lock.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         if (cancelled) return;
