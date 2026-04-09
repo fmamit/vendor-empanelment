@@ -80,7 +80,7 @@ const FEATURES = [
   {
     icon: ScanSearch,
     title: "Credit Score & Financial Checks",
-    desc: "Credit Report, Bank Statement Analysis, GST filing history, PAN, Aadhaar — a complete financial picture of every vendor.",
+    desc: "Bank Statement Analysis, GST filing history, PAN, Aadhaar — a complete financial picture of every vendor.",
     color: "text-emerald-600",
     bg: "bg-emerald-50",
   },
@@ -154,14 +154,13 @@ const PRICING = [
 const MODULAR_CHECKS = [
   { name: "GST Verification", desc: "Filing history, status, and compliance check" },
   { name: "Bank Statement Analysis", desc: "Account health, transaction patterns, and red flags" },
-  { name: "Credit Report", desc: "Credit score, payment history, and risk assessment" },
   { name: "PAN Verification", desc: "Identity and tax compliance confirmation" },
-  { name: "Full Stack", desc: "All checks — Credit, Bank, GST, PAN, Aadhaar + AI analysis" },
+  { name: "Full Stack", desc: "All checks — Bank, GST, PAN, Aadhaar + AI analysis" },
 ];
 
 const TESTIMONIALS = [
   {
-    quote: "We caught a financially unstable vendor before committing a \u20B950L purchase order. The credit report alone saved us from a potential write-off.",
+    quote: "We caught a financially unstable vendor before committing a \u20B950L purchase order. The bank statement analysis alone saved us from a potential write-off.",
     name: "Rajesh Mehta",
     title: "CFO",
     company: "Manufacturing Enterprise, Mumbai",
@@ -216,7 +215,7 @@ const WORKFLOW_STEPS = [
   {
     icon: ScanSearch,
     title: "5-in-1 Government Verification",
-    desc: "PAN, GST, Bank Account, Aadhaar, and Credit Report — verified against live government and financial APIs.",
+    desc: "PAN, GST, Bank Account, and Aadhaar — verified against live government and financial APIs.",
     color: "text-emerald-600",
     bg: "bg-emerald-50",
     ring: "ring-emerald-200",
@@ -937,7 +936,7 @@ export default function LandingPage() {
               Run the Checks You Need
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Need only a GST check? Just a credit report? Pick individual
+              Need only a GST check? Just a bank verification? Pick individual
               modules or run the full stack — each verification counts as one
               from your plan.
             </p>
