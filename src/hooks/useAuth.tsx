@@ -47,37 +47,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userType, setUserType] = useState<UserType>(null);
   const [loading, setLoading] = useState(true);
 
+  // Keep the auth state change callback synchronous — no async work inside it.
+  // Doing async work (e.g. DB queries) inside onAuthStateChange holds Supabase's
+  // internal lock, which gets aborted on cleanup and throws AbortError.
   useEffect(() => {
-    let cancelled = false;
-
-    // onAuthStateChange fires INITIAL_SESSION immediately with the current session,
-    // so there is no need for a separate getSession() call. Having both races and
-    // causes an AbortError when signInWithPassword acquires the auth lock.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (cancelled) return;
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        if (session?.user) {
-          setLoading(true);
-          const type = await determineUserType(session.user.id);
-          if (!cancelled) {
-            setUserType(type);
-            setLoading(false);
-          }
-        } else {
-          setUserType(null);
-          setLoading(false);
-        }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (!session?.user) {
+        setUserType(null);
+        setLoading(false);
       }
-    );
-
-    return () => {
-      cancelled = true;
-      subscription.unsubscribe();
-    };
+    });
+    return () => subscription.unsubscribe();
   }, []);
+
+  // Resolve user type asynchronously, separately from the auth subscription.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    setLoading(true);
+    determineUserType(user.id).then(type => {
+      if (!cancelled) {
+        setUserType(type);
+        setLoading(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
