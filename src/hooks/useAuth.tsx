@@ -51,7 +51,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     const initialize = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      let session;
+      try {
+        const { data } = await supabase.auth.getSession();
+        session = data.session;
+      } catch {
+        return; // aborted by a concurrent auth operation (e.g. signInWithPassword)
+      }
       if (cancelled) return;
 
       setSession(session);
