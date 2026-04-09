@@ -1,16 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, CheckCircle2, XCircle, Loader2, ShieldCheck } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { AlertCircle, CheckCircle2, XCircle, Loader2, ShieldCheck, Link2, Copy, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   useVendorVerifications,
   useVerifyPan,
   useVerifyBankAccount,
-  useVerifyAadhaarInit,
-  useSaveAadhaarDetails,
 } from "@/hooks/useVendorVerification";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { VerificationBadge } from "@/components/fraud/VerificationBadge";
 
@@ -33,8 +33,9 @@ export function VerificationPanel({
   const verifyAadhaarInit = useVerifyAadhaarInit();
   const saveAadhaarDetails = useSaveAadhaarDetails();
 
-  const [expandedCard, setExpandedCard] = useState<string | null>(null);
-  const [aadhaarLoading, setAadhaarLoading] = useState(false);
+  const [aadhaarLink, setAadhaarLink] = useState<string | null>(null);
+  const [aadhaarLinkLoading, setAadhaarLinkLoading] = useState(false);
+  const [checkingAadhaar, setCheckingAadhaar] = useState(false);
 
   // Build verification status map
   const verificationStatusMap = verifications?.reduce((acc, v) => {
@@ -46,51 +47,51 @@ export function VerificationPanel({
     return acc;
   }, {} as Record<string, any>) || {};
 
-  const handleVerifyAadhaar = async () => {
-    setAadhaarLoading(true);
+  const handleGenerateAadhaarLink = async () => {
+    setAadhaarLinkLoading(true);
     try {
-      // Step 1: Initialize Surepass Digilocker session
-      const initData = await verifyAadhaarInit.mutateAsync({ vendorId });
+      // Create a pending verification record; vendor opens the link to complete DigiLocker
+      const { data, error } = await supabase
+        .from("vendor_verifications")
+        .insert({
+          vendor_id: vendorId,
+          verification_type: "aadhaar",
+          verification_source: "surepass",
+          status: "pending",
+          request_data: { initiated_at: new Date().toISOString() },
+        })
+        .select("id")
+        .single();
 
-      // Step 2: Load Digiboost SDK and open popup
-      await new Promise<void>((resolve, reject) => {
-        const script = document.createElement("script");
-        script.src = "https://cdn.jsdelivr.net/gh/surepassio/surepass-digiboost-web-sdk@latest/index.min.js";
-        script.onload = () => {
-          (window as any).DigiboostSdk({
-            gateway: "sandbox",
-            token: initData.token,
-            selector: "#digilocker-trigger",
-            onSuccess: async (data: any) => {
-              try {
-                // Step 3: Save Aadhaar data to backend
-                await saveAadhaarDetails.mutateAsync({
-                  verificationId: initData.verification_id,
-                  aadhaarData: data,
-                });
-                toast({ title: "Success", description: "Aadhaar verified successfully" });
-                refetch();
-                resolve();
-              } catch (err) {
-                reject(err);
-              }
-            },
-            onFailure: (error: any) => {
-              reject(new Error(error?.message || "Digilocker verification was cancelled or failed"));
-            },
-          });
-        };
-        script.onerror = () => reject(new Error("Failed to load Digilocker SDK"));
-        document.body.appendChild(script);
-      });
+      if (error) throw error;
+
+      const link = `${window.location.origin}/vendor/verify-aadhaar/${data.id}`;
+      setAadhaarLink(link);
+      navigator.clipboard.writeText(link).catch(() => {});
+      toast({ title: "Link generated", description: "Copied to clipboard — send to the vendor" });
     } catch (error) {
       toast({
-        title: "Verification Failed",
-        description: error instanceof Error ? error.message : "Aadhaar verification failed",
+        title: "Failed to generate link",
+        description: error instanceof Error ? error.message : "Please try again",
         variant: "destructive",
       });
     } finally {
-      setAadhaarLoading(false);
+      setAadhaarLinkLoading(false);
+    }
+  };
+
+  const handleCheckAadhaarStatus = async () => {
+    setCheckingAadhaar(true);
+    try {
+      await refetch();
+      const latest = verifications?.find(v => v.verification_type === "aadhaar");
+      if (latest?.status === "success") {
+        toast({ title: "Aadhaar verified!", description: "Vendor has completed DigiLocker verification" });
+      } else {
+        toast({ title: "Not yet verified", description: "Vendor hasn't completed the DigiLocker flow yet" });
+      }
+    } finally {
+      setCheckingAadhaar(false);
     }
   };
 
@@ -280,7 +281,7 @@ export function VerificationPanel({
           )}
         </div>
 
-        {/* Aadhaar Verification via Digilocker */}
+        {/* Aadhaar Verification via DigiLocker */}
         <div className="border rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -308,23 +309,59 @@ export function VerificationPanel({
             </div>
           )}
 
-          <div id="digilocker-trigger" />
-          <Button
-            onClick={handleVerifyAadhaar}
-            disabled={aadhaarLoading}
-            variant={verificationStatusMap.aadhaar ? "outline" : "default"}
-            size="sm"
-            className="w-full"
-          >
-            {aadhaarLoading ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Verifying...
-              </>
-            ) : (
-              "Verify Aadhaar"
+          {/* Link display once generated */}
+          {aadhaarLink && (
+            <div className="flex items-center gap-2 mb-3">
+              <Input value={aadhaarLink} readOnly className="text-xs h-8 font-mono" />
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+                onClick={() => {
+                  navigator.clipboard.writeText(aadhaarLink);
+                  toast({ title: "Copied to clipboard" });
+                }}
+              >
+                <Copy className="h-3 w-3" />
+              </Button>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <Button
+              onClick={handleGenerateAadhaarLink}
+              disabled={aadhaarLinkLoading || verificationStatusMap.aadhaar?.status === "success"}
+              variant={verificationStatusMap.aadhaar ? "outline" : "default"}
+              size="sm"
+              className="flex-1"
+            >
+              {aadhaarLinkLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <Link2 className="h-4 w-4 mr-1" />
+                  {aadhaarLink ? "Regenerate Link" : "Generate Link"}
+                </>
+              )}
+            </Button>
+            {(aadhaarLink || verificationStatusMap.aadhaar?.status === "in_progress" || verificationStatusMap.aadhaar?.status === "pending") && (
+              <Button
+                onClick={handleCheckAadhaarStatus}
+                disabled={checkingAadhaar}
+                variant="outline"
+                size="sm"
+              >
+                {checkingAadhaar ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+              </Button>
             )}
-          </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Generate a link and share it with the vendor. They complete DigiLocker on their own device.
+          </p>
         </div>
 
       </CardContent>
