@@ -18,6 +18,12 @@ verify_jwt = false
 [functions.validate-referral-code]
 verify_jwt = false
 
+[functions.verify-aadhaar]
+verify_jwt = false
+
+[functions.get-aadhaar-details]
+verify_jwt = false
+
 [functions.verify-pan]
 verify_jwt = false
 

@@ -30,9 +30,6 @@ export function VerificationPanel({
   const { data: verifications, isLoading: verificationsLoading, refetch } = useVendorVerifications(vendorId);
   const verifyPan = useVerifyPan();
   const verifyBankAccount = useVerifyBankAccount();
-  const verifyAadhaarInit = useVerifyAadhaarInit();
-  const saveAadhaarDetails = useSaveAadhaarDetails();
-
   const [aadhaarLink, setAadhaarLink] = useState<string | null>(null);
   const [aadhaarLinkLoading, setAadhaarLinkLoading] = useState(false);
   const [checkingAadhaar, setCheckingAadhaar] = useState(false);
@@ -50,11 +47,19 @@ export function VerificationPanel({
   const handleGenerateAadhaarLink = async () => {
     setAadhaarLinkLoading(true);
     try {
+      // Look up tenant_id from the vendor (required NOT NULL column)
+      const { data: vendor } = await supabase
+        .from("vendors")
+        .select("tenant_id")
+        .eq("id", vendorId)
+        .maybeSingle();
+
       // Create a pending verification record; vendor opens the link to complete DigiLocker
       const { data, error } = await supabase
         .from("vendor_verifications")
         .insert({
           vendor_id: vendorId,
+          tenant_id: vendor?.tenant_id,
           verification_type: "aadhaar",
           verification_source: "surepass",
           status: "pending",
