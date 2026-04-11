@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import {
   useVendorVerifications,
   useVerifyPan,
+  useVerifyGst,
   useVerifyBankAccount,
 } from "@/hooks/useVendorVerification";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +17,7 @@ import { VerificationBadge } from "@/components/fraud/VerificationBadge";
 
 interface VerificationPanelProps {
   vendorId: string;
+  gstin?: string;
   panNumber?: string;
   bankAccountNumber?: string;
   bankIfsc?: string;
@@ -23,12 +25,14 @@ interface VerificationPanelProps {
 
 export function VerificationPanel({
   vendorId,
+  gstin,
   panNumber,
   bankAccountNumber,
   bankIfsc,
 }: VerificationPanelProps) {
   const { data: verifications, isLoading: verificationsLoading, refetch } = useVendorVerifications(vendorId);
   const verifyPan = useVerifyPan();
+  const verifyGst = useVerifyGst();
   const verifyBankAccount = useVerifyBankAccount();
   const [aadhaarLink, setAadhaarLink] = useState<string | null>(null);
   const [aadhaarLinkLoading, setAadhaarLinkLoading] = useState(false);
@@ -97,6 +101,25 @@ export function VerificationPanel({
       }
     } finally {
       setCheckingAadhaar(false);
+    }
+  };
+
+  const handleVerifyGst = async () => {
+    if (!gstin) {
+      toast({ title: "Error", description: "GST number not available", variant: "destructive" });
+      return;
+    }
+
+    try {
+      await verifyGst.mutateAsync({ gstin, vendorId });
+      toast({ title: "Success", description: "GST verified successfully" });
+      refetch();
+    } catch (error) {
+      toast({
+        title: "Verification Failed",
+        description: error instanceof Error ? error.message : "GST verification failed",
+        variant: "destructive",
+      });
     }
   };
 
@@ -236,6 +259,48 @@ export function VerificationPanel({
               </>
             ) : (
               "Verify PAN"
+            )}
+          </Button>
+        </div>
+
+        {/* GST Verification */}
+        <div className="border rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">GST Verification</span>
+              {verificationStatusMap.gst && getStatusIcon(verificationStatusMap.gst.status)}
+            </div>
+            {verificationStatusMap.gst && (
+              <Badge className={cn("text-xs", getStatusBadgeVariant(verificationStatusMap.gst.status))}>
+                {verificationStatusMap.gst.status}
+              </Badge>
+            )}
+          </div>
+
+          {verificationStatusMap.gst?.data && (
+            <div className="text-sm text-muted-foreground mb-3 space-y-1">
+              <p>Business: <span className="text-foreground font-medium">{verificationStatusMap.gst.data.business_name}</span></p>
+              {verificationStatusMap.gst.data.trade_name && (
+                <p>Trade Name: <span className="text-foreground font-medium">{verificationStatusMap.gst.data.trade_name}</span></p>
+              )}
+              <p>Status: <span className="text-foreground font-medium">{verificationStatusMap.gst.data.status}</span></p>
+            </div>
+          )}
+
+          <Button
+            onClick={handleVerifyGst}
+            disabled={!gstin || verifyGst.isPending}
+            variant={verificationStatusMap.gst ? "outline" : "default"}
+            size="sm"
+            className="w-full"
+          >
+            {verifyGst.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Verifying...
+              </>
+            ) : (
+              "Verify GST"
             )}
           </Button>
         </div>

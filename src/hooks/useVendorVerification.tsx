@@ -62,6 +62,22 @@ export function useVerifyAadhaarInit() {
   });
 }
 
+export function useVerifyGst() {
+  return useMutation({
+    mutationFn: async ({ gstin, vendorId }: { gstin: string; vendorId: string }) => {
+      const response = await fetch(`${FUNCTIONS_BASE}/verify-gst`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gstin: gstin.toUpperCase(), vendor_id: vendorId }),
+      });
+
+      const data = await safeParseJson(response);
+      if (!data.success) throw new Error(data.error || "GST verification failed");
+      return data.data;
+    },
+  });
+}
+
 export function useVerifyBankAccount() {
   return useMutation({
     mutationFn: async ({

@@ -321,8 +321,9 @@ export default function VendorReviewDetail() {
         )}
 
         {/* Verification Panel */}
-        <VerificationPanel 
+        <VerificationPanel
           vendorId={vendor.id}
+          gstin={vendor.gst_number}
           panNumber={vendor.pan_number}
           bankAccountNumber={vendor.bank_account_number}
           bankIfsc={vendor.bank_ifsc}
