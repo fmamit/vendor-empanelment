@@ -11,8 +11,8 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { 
-  Building2, 
+import {
+  Building2,
   FileText,
   Plus,
   Edit,
@@ -27,9 +27,13 @@ import {
   AlertTriangle,
   CheckCircle2,
   Shield,
+  Globe,
+  Key,
 } from "lucide-react";
 import { DataRequestsPanel } from "@/components/admin/DataRequestsPanel";
 import { BreachNotificationPanel } from "@/components/admin/BreachNotificationPanel";
+import { WebhooksPanel } from "@/components/admin/WebhooksPanel";
+import { ApiKeysPanel } from "@/components/admin/ApiKeysPanel";
 
 export default function AdminSettings() {
   const { isAdmin } = useUserRoles();
@@ -137,6 +141,8 @@ export default function AdminSettings() {
             <TabsTrigger value="data-requests" className="flex items-center gap-2"><Database className="h-4 w-4" />Data Requests</TabsTrigger>
             <TabsTrigger value="breach" className="flex items-center gap-2"><ShieldAlert className="h-4 w-4" />Breach</TabsTrigger>
             <TabsTrigger value="reports" className="flex items-center gap-2"><BarChart3 className="h-4 w-4" />Reports</TabsTrigger>
+            <TabsTrigger value="webhooks" className="flex items-center gap-2"><Globe className="h-4 w-4" />Webhooks</TabsTrigger>
+            <TabsTrigger value="api-keys" className="flex items-center gap-2"><Key className="h-4 w-4" />API Keys</TabsTrigger>
           </TabsList>
 
           <TabsContent value="categories" className="flex-1 flex flex-col mt-0">
@@ -309,6 +315,14 @@ export default function AdminSettings() {
               <p className="text-muted-foreground mb-4">View vendor status reports, approval timelines, and pending case analysis.</p>
               <Button onClick={() => window.location.href = "/staff/reports"}>Go to Reports</Button>
             </div>
+          </TabsContent>
+
+          <TabsContent value="webhooks" className="flex-1 flex flex-col mt-0">
+            <WebhooksPanel />
+          </TabsContent>
+
+          <TabsContent value="api-keys" className="flex-1 flex flex-col mt-0">
+            <ApiKeysPanel />
           </TabsContent>
         </Tabs>
       </div>

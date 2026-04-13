@@ -14,6 +14,7 @@ import {
   LogOut,
   UserCircle,
   CreditCard,
+  Upload,
 } from "lucide-react";
 import {
   Sidebar,
@@ -38,6 +39,7 @@ const mainItems = [
   { title: "Dashboard", url: "/staff/dashboard", icon: LayoutDashboard },
   { title: "Approval Queue", url: "/staff/queue", icon: ClipboardList },
   { title: "Vendor List", url: "/staff/vendors", icon: List },
+  { title: "Bulk Import", url: "/staff/bulk-import", icon: Upload },
 ];
 
 const adminItems = [

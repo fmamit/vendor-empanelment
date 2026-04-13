@@ -189,6 +189,28 @@ export function useUpdateVendorStatus() {
           });
         }
       }
+
+      // Fire webhook for all status changes (fire-and-forget)
+      const webhookEventMap: Record<string, string> = {
+        pending_review: "vendor.submitted",
+        pending_approval: "vendor.reviewed",
+        approved: "vendor.approved",
+        rejected: "vendor.rejected",
+        sent_back: "vendor.sent_back",
+      };
+      const webhookEvent = webhookEventMap[newStatus as string];
+      if (webhookEvent && vendor.tenant_id) {
+        supabase.functions.invoke("send-webhook", {
+          body: {
+            tenant_id: vendor.tenant_id,
+            event: webhookEvent,
+            vendor_id: vendorId,
+            payload: { status: newStatus, comments: comments || null },
+          },
+        }).catch(() => {
+          // Webhook failure is non-blocking
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["staff-vendor-queue"] });

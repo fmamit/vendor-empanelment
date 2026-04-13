@@ -23,6 +23,7 @@ import StaffReviewQueue from "./pages/staff/StaffReviewQueue";
 import VendorReviewDetail from "./pages/staff/VendorReviewDetail";
 import StaffProfile from "./pages/staff/StaffProfile";
 import VendorList from "./pages/staff/VendorList";
+import BulkImportVendors from "./pages/staff/BulkImportVendors";
 
 // Admin Pages
 import AdminUserManagement from "./pages/admin/AdminUserManagement";
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/staff/vendor/:vendorId" element={<VendorReviewDetail />} />
             <Route path="/staff/profile" element={<StaffProfile />} />
             <Route path="/staff/vendors" element={<VendorList />} />
+            <Route path="/staff/bulk-import" element={<BulkImportVendors />} />
 
             {/* Admin Routes */}
             <Route path="/admin/users" element={<AdminUserManagement />} />
