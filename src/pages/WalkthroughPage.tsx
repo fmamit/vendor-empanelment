@@ -1,4 +1,4 @@
-import ProcessWalkthrough from "@/components/staff/ProcessWalkthrough";
+import { ProcessWalkthrough } from "@/components/staff/ProcessWalkthrough";
 
 export default function WalkthroughPage() {
   return (
