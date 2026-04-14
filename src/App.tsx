@@ -15,6 +15,8 @@ import NotFound from "./pages/NotFound";
 import VendorReferralRegistration from "./pages/vendor/VendorReferralRegistration";
 import VendorVerifyAadhaar from "./pages/vendor/VendorVerifyAadhaar";
 import PrivacyPolicy from "./pages/vendor/PrivacyPolicy";
+import WalkthroughPage from "./pages/WalkthroughPage";
+import HowItWorksPage from "./pages/HowItWorksPage";
 
 // Staff Pages
 import StaffLogin from "./pages/staff/StaffLogin";
@@ -48,6 +50,8 @@ const App = () => (
             <Route path="/register/ref/:token" element={<VendorReferralRegistration />} />
             <Route path="/vendor/verify-aadhaar/:verificationId" element={<VendorVerifyAadhaar />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/walkthrough" element={<WalkthroughPage />} />
+            <Route path="/how-it-works" element={<HowItWorksPage />} />
 
             {/* Staff Routes */}
             <Route path="/staff/login" element={<StaffLogin />} />
