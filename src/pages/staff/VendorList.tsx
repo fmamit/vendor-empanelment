@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { StaffLayout } from "@/components/layout/StaffLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useReferralCode } from "@/hooks/useReferralCode";
-import { ReferralLinkCard } from "@/components/staff/ReferralLinkCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -299,48 +298,48 @@ export default function VendorList() {
                   Invite Vendor
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Invite a Vendor</DialogTitle>
+              <DialogContent className="sm:max-w-sm max-h-[85vh] overflow-y-auto p-4 gap-3">
+                <DialogHeader className="space-y-0">
+                  <DialogTitle className="text-base">Invite a Vendor</DialogTitle>
                 </DialogHeader>
-                <div className="space-y-4 mt-2">
+                <div className="space-y-3">
                   <div>
-                    <Label htmlFor="inv-company">Company Name</Label>
+                    <Label htmlFor="inv-company" className="text-xs">Company Name</Label>
                     <Input
                       id="inv-company"
                       placeholder="Enter company name"
                       value={companyName}
                       onChange={(e) => setCompanyName(e.target.value)}
-                      className="mt-1"
+                      className="mt-1 h-9"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <Label htmlFor="inv-email">Email</Label>
+                      <Label htmlFor="inv-email" className="text-xs">Email</Label>
                       <Input
                         id="inv-email"
                         type="email"
                         placeholder="vendor@company.com"
                         value={contactEmail}
                         onChange={(e) => setContactEmail(e.target.value)}
-                        className="mt-1"
+                        className="mt-1 h-9"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="inv-phone">Phone</Label>
+                      <Label htmlFor="inv-phone" className="text-xs">Phone</Label>
                       <Input
                         id="inv-phone"
                         placeholder="+91 9876543210"
                         value={contactPhone}
                         onChange={(e) => setContactPhone(e.target.value)}
-                        className="mt-1"
+                        className="mt-1 h-9"
                       />
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="inv-category">Category</Label>
+                    <Label htmlFor="inv-category" className="text-xs">Category</Label>
                     <Select value={categoryId} onValueChange={setCategoryId}>
-                      <SelectTrigger className="mt-1">
+                      <SelectTrigger className="mt-1 h-9">
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent className="bg-popover z-50">
@@ -352,17 +351,30 @@ export default function VendorList() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button className="w-full" onClick={handleSendInvitation} disabled={sending}>
+                  <Button className="w-full h-9" onClick={handleSendInvitation} disabled={sending}>
                     {sending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
                     {sending ? "Sending..." : "Send Invitation"}
                   </Button>
+                  {referralCode && !referralLoading && (
+                    <div className="pt-2 border-t flex items-center justify-between gap-2">
+                      <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <Link2 className="h-3 w-3" />
+                        Referral: <span className="font-mono">{referralCode}</span>
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => {
+                          navigator.clipboard.writeText(`https://civ.in-sync.co.in/register/ref/${referralCode}`);
+                          sonnerToast.success("Link copied!");
+                        }}
+                      >
+                        Copy Link
+                      </Button>
+                    </div>
+                  )}
                 </div>
-                {/* Referral link */}
-                {referralCode && !referralLoading && (
-                  <div className="mt-4 pt-4 border-t">
-                    <ReferralLinkCard referralCode={referralCode} isLoading={referralLoading} />
-                  </div>
-                )}
               </DialogContent>
             </Dialog>
           </div>
