@@ -278,6 +278,16 @@ export default function LandingPage() {
   const orgName = tenant?.short_name || "In-Sync";
   const dpoEmail = tenant?.dpo_email || "dpo@company.com";
 
+  const handleTryFree = (location: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).gtag?.('event', 'generate_lead', {
+      product_key: 'vendor',
+      form_type: 'try_free',
+      cta_location: location,
+    });
+    navigate('/register');
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Navbar */}
@@ -293,7 +303,7 @@ export default function LandingPage() {
             <Button variant="ghost" onClick={() => navigate("/staff/login")}>
               Login
             </Button>
-            <Button onClick={() => navigate("/register")}>
+            <Button onClick={() => handleTryFree('navbar')}>
               Try Free <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           </div>
@@ -350,7 +360,7 @@ export default function LandingPage() {
                 <Button
                   size="lg"
                   className="bg-accent hover:bg-accent/90 text-white h-14 px-8 text-lg"
-                  onClick={() => navigate("/register")}
+                  onClick={() => handleTryFree('hero')}
                 >
                   Try Free — 3 Verifications
                   <ArrowRight className="h-5 w-5 ml-2" />
@@ -855,7 +865,7 @@ export default function LandingPage() {
                             ? "bg-primary hover:bg-primary/90"
                             : "bg-primary/10 text-primary hover:bg-primary/20"
                         }`}
-                        onClick={() => navigate("/register")}
+                        onClick={() => handleTryFree('pricing')}
                       >
                         Try Free — 3 Verifications
                         <ArrowRight className="h-4 w-4 ml-2" />
@@ -1001,7 +1011,7 @@ export default function LandingPage() {
               <Button
                 size="lg"
                 className="bg-accent hover:bg-accent/90 text-white h-14 px-10 text-lg"
-                onClick={() => navigate("/register")}
+                onClick={() => handleTryFree('final_cta')}
               >
                 Try Free — 3 Verifications
                 <ArrowRight className="h-5 w-5 ml-2" />
