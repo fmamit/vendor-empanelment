@@ -288,6 +288,16 @@ export default function LandingPage() {
     navigate('/register');
   };
 
+  const handleRequestDemo = (location: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).gtag?.('event', 'generate_lead', {
+      product_key: 'vendor',
+      form_type: 'demo_request',
+      cta_location: location,
+    });
+    window.open('https://calendly.com/in-sync/demo', '_blank');
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Navbar */}
@@ -368,12 +378,7 @@ export default function LandingPage() {
                 <Button
                   size="lg"
                   className="border border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white h-14 px-8 text-lg backdrop-blur-sm"
-                  onClick={() => {
-                    window.open(
-                      "https://calendly.com/in-sync/demo",
-                      "_blank"
-                    );
-                  }}
+                  onClick={() => handleRequestDemo('hero')}
                 >
                   <Play className="h-4 w-4 mr-2" />
                   Request a Demo
@@ -873,12 +878,7 @@ export default function LandingPage() {
                       <Button
                         variant="ghost"
                         className="w-full h-10 text-sm"
-                        onClick={() => {
-                          window.open(
-                            "https://calendly.com/in-sync/demo",
-                            "_blank"
-                          );
-                        }}
+                        onClick={() => handleRequestDemo('pricing')}
                       >
                         Request a Demo
                       </Button>
@@ -1019,12 +1019,7 @@ export default function LandingPage() {
               <Button
                 size="lg"
                 className="border border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white h-14 px-10 text-lg backdrop-blur-sm"
-                onClick={() => {
-                  window.open(
-                    "https://calendly.com/in-sync/demo",
-                    "_blank"
-                  );
-                }}
+                onClick={() => handleRequestDemo('final_cta')}
               >
                 <Play className="h-4 w-4 mr-2" />
                 Request a Demo
