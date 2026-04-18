@@ -281,8 +281,8 @@ export default function LandingPage() {
   const handleTryFree = (location: string) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).gtag?.('event', 'generate_lead', {
-      product_key: 'vendor',
-      form_type: 'try_free',
+      product_key: 'crm',
+      form_type: 'signup',
       cta_location: location,
     });
     navigate('/register');
@@ -291,7 +291,7 @@ export default function LandingPage() {
   const handleRequestDemo = (location: string) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).gtag?.('event', 'generate_lead', {
-      product_key: 'vendor',
+      product_key: 'crm',
       form_type: 'demo_request',
       cta_location: location,
     });
