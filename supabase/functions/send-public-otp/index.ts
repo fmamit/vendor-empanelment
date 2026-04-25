@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { identifier, identifierType, tenant_id } = await req.json();
+    const { identifier, identifierType, tenant_id, purpose } = await req.json();
 
     if (!identifier || !identifierType) {
       return new Response(
@@ -209,7 +209,7 @@ Deno.serve(async (req) => {
       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px; background-color: #f4f4f5;">
         <div style="background-color: #ffffff; border-radius: 12px; padding: 40px 32px; text-align: center; border: 1px solid #e4e4e7;">
           <h2 style="color: #111827; margin: 0 0 8px 0; font-size: 22px; font-weight: 700;">Vendor Verification Portal</h2>
-          <p style="color: #6b7280; margin: 0 0 28px 0; font-size: 14px;">Vendor Registration Verification</p>
+          <p style="color: #6b7280; margin: 0 0 28px 0; font-size: 14px;">${purpose === "org_registration" ? "Organization Registration" : "Vendor Registration Verification"}</p>
           <p style="color: #374151; margin: 0 0 16px 0; font-size: 14px;">Your verification code is:</p>
           <div style="border: 2px solid #d1d5db; border-radius: 10px; padding: 18px; margin: 0 0 24px 0; background-color: #f9fafb;">
             <span style="color: #000000; font-size: 36px; font-weight: 700; letter-spacing: 8px; font-family: monospace;">${otpCode}</span>
@@ -228,7 +228,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from: "Vendor Verification Portal <noreply@in-sync.co.in>",
         to: [normalizedIdentifier],
-        subject: "Your OTP for Vendor Registration",
+        subject: purpose === "org_registration" ? "Your verification code for In-Sync" : "Your OTP for Vendor Registration",
         html: emailHtml,
       }),
     });

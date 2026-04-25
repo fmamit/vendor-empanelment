@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenantLogo } from "@/hooks/useTenantLogo";
@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Building2, ArrowLeft } from "lucide-react";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { Loader2, Building2, ArrowLeft, CheckCircle2, Phone, Mail } from "lucide-react";
 import { toast } from "sonner";
 
 export default function OrgRegistration() {
@@ -16,14 +17,160 @@ export default function OrgRegistration() {
   const [orgName, setOrgName] = useState("");
   const [adminName, setAdminName] = useState("");
   const [adminEmail, setAdminEmail] = useState("");
+  const [adminPhone, setAdminPhone] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Email OTP state
+  const [emailOtpSent, setEmailOtpSent] = useState(false);
+  const [emailOtpValue, setEmailOtpValue] = useState("");
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailVerifying, setEmailVerifying] = useState(false);
+  const [emailCooldown, setEmailCooldown] = useState(0);
+  const [emailSessionId, setEmailSessionId] = useState("");
+  const [emailVerified, setEmailVerified] = useState(false);
+
+  // Phone OTP state
+  const [phoneOtpSent, setPhoneOtpSent] = useState(false);
+  const [phoneOtpValue, setPhoneOtpValue] = useState("");
+  const [phoneSending, setPhoneSending] = useState(false);
+  const [phoneVerifying, setPhoneVerifying] = useState(false);
+  const [phoneCooldown, setPhoneCooldown] = useState(0);
+  const [phoneSessionId, setPhoneSessionId] = useState("");
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [phoneTestOtp, setPhoneTestOtp] = useState("");
+
+  useEffect(() => {
+    if (emailCooldown <= 0) return;
+    const t = setTimeout(() => setEmailCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [emailCooldown]);
+
+  useEffect(() => {
+    if (phoneCooldown <= 0) return;
+    const t = setTimeout(() => setPhoneCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [phoneCooldown]);
+
+  const handleEmailChange = (val: string) => {
+    setAdminEmail(val);
+    if (emailVerified || emailOtpSent) {
+      setEmailVerified(false);
+      setEmailOtpSent(false);
+      setEmailOtpValue("");
+      setEmailSessionId("");
+    }
+  };
+
+  const handlePhoneChange = (val: string) => {
+    const digits = val.replace(/\D/g, "");
+    setAdminPhone(digits);
+    if (phoneVerified || phoneOtpSent) {
+      setPhoneVerified(false);
+      setPhoneOtpSent(false);
+      setPhoneOtpValue("");
+      setPhoneSessionId("");
+      setPhoneTestOtp("");
+    }
+  };
+
+  const sendEmailOtp = useCallback(async () => {
+    const email = adminEmail.trim();
+    setEmailSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-public-otp", {
+        body: { identifier: email, identifierType: "email", purpose: "org_registration" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setEmailSessionId(data.sessionId);
+      setEmailOtpSent(true);
+      setEmailCooldown(60);
+      toast.success("OTP sent to your email");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send OTP");
+    } finally {
+      setEmailSending(false);
+    }
+  }, [adminEmail]);
+
+  const verifyEmailOtp = useCallback(async () => {
+    if (emailOtpValue.length !== 6) return;
+    setEmailVerifying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("verify-public-otp", {
+        body: { sessionId: emailSessionId, otp: emailOtpValue },
+      });
+      if (error) throw error;
+      if (data?.verified) {
+        setEmailVerified(true);
+        toast.success("Email verified!");
+      } else {
+        toast.error(data?.error || "Invalid OTP");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Verification failed");
+    } finally {
+      setEmailVerifying(false);
+    }
+  }, [emailOtpValue, emailSessionId]);
+
+  const sendPhoneOtp = useCallback(async () => {
+    setPhoneSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-public-otp", {
+        body: { identifier: adminPhone, identifierType: "phone", purpose: "org_registration" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setPhoneSessionId(data.sessionId);
+      setPhoneOtpSent(true);
+      setPhoneCooldown(60);
+      if (data.isTestMode && data.testOtp) {
+        setPhoneTestOtp(data.testOtp);
+        toast.success(`Test Mode - OTP: ${data.testOtp}`);
+      } else {
+        toast.success("OTP sent to your WhatsApp");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send OTP");
+    } finally {
+      setPhoneSending(false);
+    }
+  }, [adminPhone]);
+
+  const verifyPhoneOtp = useCallback(async () => {
+    if (phoneOtpValue.length !== 6) return;
+    setPhoneVerifying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("verify-public-otp", {
+        body: { sessionId: phoneSessionId, otp: phoneOtpValue },
+      });
+      if (error) throw error;
+      if (data?.verified) {
+        setPhoneVerified(true);
+        toast.success("Phone verified!");
+      } else {
+        toast.error(data?.error || "Invalid OTP");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Verification failed");
+    } finally {
+      setPhoneVerifying(false);
+    }
+  }, [phoneOtpValue, phoneSessionId]);
+
+  const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail.trim());
+  const isValidPhone = adminPhone.length === 10;
 
   const canSubmit =
     orgName.trim().length >= 2 &&
     adminName.trim().length >= 2 &&
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail) &&
-    adminPassword.length >= 6;
+    isValidEmail &&
+    isValidPhone &&
+    adminPassword.length >= 6 &&
+    emailVerified &&
+    phoneVerified;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,13 +184,15 @@ export default function OrgRegistration() {
           admin_name: adminName.trim(),
           admin_email: adminEmail.toLowerCase().trim(),
           admin_password: adminPassword,
+          admin_phone: adminPhone,
+          email_session_id: emailSessionId,
+          phone_session_id: phoneSessionId,
         },
       });
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      // Auto-login with the new credentials
       const { error: loginError } = await supabase.auth.signInWithPassword({
         email: adminEmail.toLowerCase().trim(),
         password: adminPassword,
@@ -89,7 +238,7 @@ export default function OrgRegistration() {
             </div>
             <CardTitle className="text-2xl">Register Your Organization</CardTitle>
             <CardDescription>
-              Set up your vendor verification portal. First 5 verifications free.
+              Set up your vendor verification portal. First 3 verifications free.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -117,6 +266,7 @@ export default function OrgRegistration() {
                 />
               </div>
 
+              {/* Work Email + OTP */}
               <div className="space-y-2">
                 <Label htmlFor="adminEmail">Work Email</Label>
                 <Input
@@ -124,8 +274,106 @@ export default function OrgRegistration() {
                   type="email"
                   placeholder="you@company.com"
                   value={adminEmail}
-                  onChange={(e) => setAdminEmail(e.target.value)}
+                  onChange={(e) => handleEmailChange(e.target.value)}
+                  disabled={emailVerified}
                 />
+                {emailVerified ? (
+                  <div className="flex items-center gap-1.5 text-sm text-green-600">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Email verified
+                  </div>
+                ) : !emailOtpSent ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={sendEmailOtp}
+                    disabled={emailSending || !isValidEmail}
+                  >
+                    {emailSending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
+                    Send OTP via Email
+                  </Button>
+                ) : (
+                  <div className="space-y-2">
+                    <Label className="text-sm">Enter 6-digit OTP</Label>
+                    <InputOTP maxLength={6} value={emailOtpValue} onChange={setEmailOtpValue}>
+                      <InputOTPGroup>
+                        {[0, 1, 2, 3, 4, 5].map((i) => <InputOTPSlot key={i} index={i} />)}
+                      </InputOTPGroup>
+                    </InputOTP>
+                    <div className="flex gap-2">
+                      <Button type="button" size="sm" onClick={verifyEmailOtp} disabled={emailVerifying || emailOtpValue.length !== 6}>
+                        {emailVerifying && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+                        Verify
+                      </Button>
+                      <Button type="button" variant="ghost" size="sm" onClick={sendEmailOtp} disabled={emailCooldown > 0 || emailSending}>
+                        {emailCooldown > 0 ? `Resend (${emailCooldown}s)` : "Resend OTP"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Mobile Number + OTP */}
+              <div className="space-y-2">
+                <Label htmlFor="adminPhone">Mobile Number</Label>
+                <div className="flex gap-2">
+                  <div className="flex items-center px-3 h-10 rounded-md border border-input bg-muted/50 text-sm text-muted-foreground shrink-0">
+                    +91
+                  </div>
+                  <Input
+                    id="adminPhone"
+                    type="tel"
+                    placeholder="10-digit number"
+                    value={adminPhone}
+                    onChange={(e) => handlePhoneChange(e.target.value)}
+                    maxLength={10}
+                    disabled={phoneVerified}
+                    className="flex-1"
+                  />
+                </div>
+                {phoneVerified ? (
+                  <div className="flex items-center gap-1.5 text-sm text-green-600">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Phone verified
+                  </div>
+                ) : !phoneOtpSent ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={sendPhoneOtp}
+                    disabled={phoneSending || !isValidPhone}
+                  >
+                    {phoneSending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Phone className="h-4 w-4 mr-2" />}
+                    Send OTP via WhatsApp
+                  </Button>
+                ) : (
+                  <div className="space-y-2">
+                    <Label className="text-sm">Enter 6-digit OTP</Label>
+                    {phoneTestOtp && (
+                      <p className="text-xs text-muted-foreground bg-muted p-2 rounded">
+                        Test mode OTP: <span className="font-mono font-bold">{phoneTestOtp}</span>
+                      </p>
+                    )}
+                    <InputOTP maxLength={6} value={phoneOtpValue} onChange={setPhoneOtpValue}>
+                      <InputOTPGroup>
+                        {[0, 1, 2, 3, 4, 5].map((i) => <InputOTPSlot key={i} index={i} />)}
+                      </InputOTPGroup>
+                    </InputOTP>
+                    <div className="flex gap-2">
+                      <Button type="button" size="sm" onClick={verifyPhoneOtp} disabled={phoneVerifying || phoneOtpValue.length !== 6}>
+                        {phoneVerifying && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+                        Verify
+                      </Button>
+                      <Button type="button" variant="ghost" size="sm" onClick={sendPhoneOtp} disabled={phoneCooldown > 0 || phoneSending}>
+                        {phoneCooldown > 0 ? `Resend (${phoneCooldown}s)` : "Resend OTP"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">

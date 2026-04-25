@@ -26,7 +26,7 @@ serve(async (req) => {
   }
 
   try {
-    const { org_name, admin_name, admin_email, admin_password } = await req.json();
+    const { org_name, admin_name, admin_email, admin_password, admin_phone, email_session_id, phone_session_id } = await req.json();
 
     // Validate inputs
     if (!org_name || !admin_name || !admin_email || !admin_password) {
@@ -57,9 +57,61 @@ serve(async (req) => {
       );
     }
 
+    const phoneDigits = (admin_phone || "").replace(/\D/g, "");
+    if (phoneDigits.length !== 10 || !/^[6-9]/.test(phoneDigits)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid 10-digit Indian mobile number" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!email_session_id || !phone_session_id) {
+      return new Response(
+        JSON.stringify({ error: "Email and phone verification are required" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+    const normalizedEmail = admin_email.toLowerCase().trim();
+    const normalizedPhone = `+91${phoneDigits}`;
+
+    // Validate email OTP session server-side
+    const { data: emailOtpRecord } = await supabase
+      .from("public_otp_verifications")
+      .select("id")
+      .eq("session_id", email_session_id)
+      .eq("identifier_type", "email")
+      .eq("identifier", normalizedEmail)
+      .not("verified_at", "is", null)
+      .maybeSingle();
+
+    if (!emailOtpRecord) {
+      return new Response(
+        JSON.stringify({ error: "Email verification required. Please verify your email first." }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate phone OTP session server-side
+    const { data: phoneOtpRecord } = await supabase
+      .from("public_otp_verifications")
+      .select("id")
+      .eq("session_id", phone_session_id)
+      .eq("identifier_type", "phone")
+      .eq("identifier", normalizedPhone)
+      .not("verified_at", "is", null)
+      .maybeSingle();
+
+    if (!phoneOtpRecord) {
+      return new Response(
+        JSON.stringify({ error: "Phone verification required. Please verify your mobile number first." }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const trimmedName = org_name.trim();
     let slug = slugify(trimmedName);
@@ -101,36 +153,52 @@ serve(async (req) => {
       );
     }
 
-    // 2. Create auth user (admin)
-    const { data: authData, error: authErr } = await supabase.auth.admin.createUser({
-      email: admin_email.toLowerCase().trim(),
-      password: admin_password,
-      email_confirm: true,
-    });
+    // 2. Create or update auth user (admin)
+    // verify-public-otp creates an auth user as a side effect of email OTP verification,
+    // so the user may already exist with this email. Check and update password if so.
+    const { data: { users: existingUsers } } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+    const existingAuthUser = existingUsers?.find((u: any) => u.email === normalizedEmail);
 
-    if (authErr || !authData.user) {
-      console.error("Auth user creation failed:", authErr);
-      // Clean up the tenant we just created
-      await supabase.from("tenants").delete().eq("id", tenant.id);
+    let userId: string;
 
-      const message = authErr?.message?.includes("already been registered")
-        ? "This email is already registered. Please log in instead."
-        : "Failed to create admin account. Please try again.";
-
-      return new Response(
-        JSON.stringify({ error: message }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    if (existingAuthUser) {
+      const { data: updated, error: updateErr } = await supabase.auth.admin.updateUser(
+        existingAuthUser.id,
+        { password: admin_password }
       );
+      if (updateErr || !updated?.user) {
+        console.error("Auth user update failed:", updateErr);
+        await supabase.from("tenants").delete().eq("id", tenant.id);
+        return new Response(
+          JSON.stringify({ error: "Failed to set account password. Please try again." }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      userId = existingAuthUser.id;
+    } else {
+      const { data: authData, error: authErr } = await supabase.auth.admin.createUser({
+        email: normalizedEmail,
+        password: admin_password,
+        email_confirm: true,
+      });
+      if (authErr || !authData.user) {
+        console.error("Auth user creation failed:", authErr);
+        await supabase.from("tenants").delete().eq("id", tenant.id);
+        return new Response(
+          JSON.stringify({ error: "Failed to create admin account. Please try again." }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      userId = authData.user.id;
     }
-
-    const userId = authData.user.id;
 
     // 3. Create profile with tenant_id
     const { error: profileErr } = await supabase.from("profiles").insert({
       user_id: userId,
       tenant_id: tenant.id,
       full_name: admin_name.trim(),
-      email: admin_email.toLowerCase().trim(),
+      email: normalizedEmail,
+      phone: normalizedPhone,
       department: "Administration",
     });
 
@@ -142,6 +210,7 @@ serve(async (req) => {
         .update({
           tenant_id: tenant.id,
           full_name: admin_name.trim(),
+          phone: normalizedPhone,
           department: "Administration",
         })
         .eq("user_id", userId);
